@@ -64,7 +64,7 @@ CONTAINS
     INTEGER                                  :: np1, np2
 
     REAL(real_8), PARAMETER                  :: wntau = 7.26e-7_real_8
-    REAL(real_8)                             :: sinr_dof !ritama
+
     INTEGER                                  :: i, ia, iat, imatch, intt, ip, &
                                                 ipp, is, j, k, l, m, n1, nc, &
                                                 no, ntrue
@@ -218,18 +218,10 @@ CONTAINS
           IF (loct%tloct) CALL locgrcns
        ENDIF
     ENDIF
-    IF (paral%io_parent)THEN  !ritama
-       IF(cntl%tsinr)THEN
-         sinr_dof=3._real_8*(REAL(ions1%nat,KIND=REAL_8))
-         WRITE(6,'(A,T56,I10)')&
-         ' NOSEPA| USED # OF NUCLEAR DEGREES OF FREEDOM FOR SINR: ',&
-         INT(sinr_dof)
-       ELSE
+    IF (paral%io_parent)&
          WRITE(6,'(A,T56,I10)')&
          ' NOSEPA| USED # OF NUCLEAR DEGREES OF FREEDOM :    ',&
          INT(dofst)
-       ENDIF
-    ENDIF 
     ! 
     ! ..ION NOSE PARAMETERS
     DO ip=np1,np2
