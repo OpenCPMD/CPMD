@@ -10,7 +10,7 @@ MODULE meta_exlagr_methods
        fmtdres, hllh_val, hllw_val, iangcv, ibound, imeta, initial_value, &
        inter_hill, kharm, lchekharm, lcvtc, lkfix, lmeta, ncolvar, ra, rcc0, &
        rmeta, skiphill, tcvlangevin, toll_avcv, tycvar, vbound, vharm, &
-       vharm_walk, ncolvar_mtd
+       vharm_walk
   USE cotr,                            ONLY: cotc0
   USE error_handling,                  ONLY: stopgm
   USE fileopen_utils,                  ONLY: fileclose,&
@@ -418,7 +418,7 @@ CONTAINS
           ELSEIF(lmeta%hshift) THEN
              CALL HILLS_SALS_SHIFT(cv_dyn,ncolvar,i_meta,ntot_iter,f_hill,hc_last,i_cvst,1,0)
           ELSE IF(lmeta%sphere) THEN
-             CALL HILLS(cv_dyn,ncolvar_mtd,i_meta,ntot_iter,f_hill,1,0)
+             CALL HILLS(cv_dyn,ncolvar,i_meta,ntot_iter,f_hill,1,0)
           ELSE
              CALL HILLS_SALS(cv_dyn,ncolvar,i_meta,ntot_iter,f_hill,hc_last,i_cvst,1,0)
           ENDIF
@@ -444,13 +444,6 @@ CONTAINS
 
     i_cvst = i_cvst + 1
     iw_cv=iw_cv+1
-
-    IF(((iw_cv).EQ.1) .AND. (lmeta%hills_only) ) THEN
-      write(*,*)'HILLS_ONLY_SHALINI',lmeta%hills_only
-      CALL DCOPY(ncolvar,cv_ist,1,cv_dyn,1)
-      CALL DCOPY(ncolvar,cv_ist,1,hc_last,1)
-      write(*,*) 'RESTARTING HILLS ONLY: SHALINI'
-    END IF
 
     ! ==--------------------------------------------------------------==
     ! Check  CV_DYN wrt the center of the last Hill (HC_LAST)
@@ -511,7 +504,7 @@ CONTAINS
     ! number of cntl%md steps of the actual run, in the second column the global 
     ! metastep is reported, afterwards the values of the two CV sets and 
     ! instantaneous temperature in K
-    IF (lmeta%tcvmonitor .AND. MOD((iw_cv-1),imeta%wcv_freq) .EQ. 0) THEN
+    IF (lmeta%tcvmonitor .AND. MOD(iw_cv,imeta%wcv_freq) .EQ. 0) THEN
        IF (paral%io_parent)&
             WRITE(chnum,'(I5)') ncolvar
        CALL xstring(chnum,ia,ie)
@@ -646,7 +639,7 @@ CONTAINS
              ELSEIF(lmeta%hshift) THEN
                 CALL hills_sals_shift(cv_dyn,ncolvar,i_meta+1,ntot_iter,f_hill,hc_last,i_cvst,1,0)
              ELSE IF(lmeta%SPHERE) THEN
-                CALL hills(cv_dyn,ncolvar_mtd,i_meta+1,ntot_iter,f_hill,1,0)
+                CALL hills(cv_dyn,ncolvar,i_meta+1,ntot_iter,f_hill,1,0)
              ELSE
                 CALL hills_sals(cv_dyn,ncolvar,i_meta+1,ntot_iter,f_hill,hc_last,i_cvst,1,0)
           ENDIF
@@ -798,7 +791,7 @@ CONTAINS
           CALL hills_sals_shift(cv_dyn,ncolvar,i_meta,ntot_iter,f_hill,&
                hc_last,i_cvst,1,0)
        ELSE IF (lmeta%sphere) THEN
-          CALL hills(cv_dyn,ncolvar_mtd,i_meta,ntot_iter,f_hill,&
+          CALL hills(cv_dyn,ncolvar,i_meta,ntot_iter,f_hill,&
                1,0)
        ELSE
           CALL hills_sals(cv_dyn,ncolvar,i_meta,ntot_iter,f_hill,&

@@ -269,5 +269,5 @@ SRC_MODULES = kinds.mod.F90 machine.mod.F90 timer.mod.F90 error_handling.mod.F90
            bicanonicalCpmd.mod.F90 bicanonicalConfig.mod.F90 bicanonicalInputReader.mod.F90 bicanonicalCalculationConfig.mod.F90 bicanonicalCalculation.mod.F90 \
           pi_prpt_utils.mod.F90 pi_npt_cpmd_utils.mod.F90 pi_stress_utils.mod.F90 pi_npt_bomd_utils.mod.F90 \
           nvml_interfaces.mod.F90 nvml_types.mod.F90 nvml_utils.mod.F90 mts_utils.mod.F90 interface_utils.mod.F90 distribution_utils.mod.F90 fnl_utils.mod.F90 \
-          beta_utils.mod.F90 rnlsm_helper_utils.mod.F90 elpa_utils.mod.F90 autotune_utils.mod.F90 ace_hfx.mod.F90 sinr_utils.mod.F90 \
+          beta_utils.mod.F90 rnlsm_helper_utils.mod.F90 elpa_utils.mod.F90 autotune_utils.mod.F90 ace_hfx.mod.F90 \
           dftd3_driver.mod.F90 blas_utils.mod.F90

@@ -3,8 +3,7 @@
 #define PRINT_GROUP_INFOS .FALSE.
 
 MODULE hfx_utils
-  USE cnst,                            ONLY: uimag,kboltz
-  USE coor,                            ONLY: tau0
+  USE cnst,                            ONLY: uimag
   USE cppt,                            ONLY: scgx
   USE dotp_utils,                      ONLY: dotp
   USE error_handling,                  ONLY: stopgm
@@ -27,8 +26,7 @@ MODULE hfx_utils
                                              hfxc4,&
                                              ipoolhfx,&
                                              wcentx
-  USE ions,                            ONLY: ions1,&
-                                             ions0
+  USE ions,                            ONLY: ions1
   USE kinds,                           ONLY: int_8,&
                                              real_8
   USE kpts,                            ONLY: tkpts
@@ -36,8 +34,7 @@ MODULE hfx_utils
                                              m_flush
   USE mp_interface,                    ONLY: mp_bcast,&
                                              mp_max,&
-                                             mp_sum,&
-                                             mp_sync
+                                             mp_sum
   USE newd_utils,                      ONLY: newd
   USE parac,                           ONLY: parai,&
                                              paral
@@ -48,14 +45,12 @@ MODULE hfx_utils
                                              proc_to_grid2d
   USE pbc_utils,                       ONLY: pbc
   USE pslo,                            ONLY: pslo_com
-  USE puttau_utils,                    ONLY: taucl
   USE rhov_utils,                      ONLY: rhov
   USE ropt,                            ONLY: infi,&
                                              infw,&
                                              iteropt
   USE rswfmod,                         ONLY: maxstatesx,&
                                              rswfx
-  USE rmas,                            ONLY: rmass
   USE spin,                            ONLY: lspin2,&
                                              spin_mod
   USE state_utils,                     ONLY: &
@@ -66,11 +61,9 @@ MODULE hfx_utils
                                              group,&
                                              ncpw,&
                                              parm, &
-                                             spar, fpar,&
-                                             iatpt !SM
+                                             spar !SM
   USE timer,                           ONLY: tihalt,&
                                              tiset
-  USE tpar,                            ONLY: dt_ions,dtb2mi
   USE zeroing_utils,                   ONLY: zeroing
   !
   USE ace_hfx  !SAGAR
@@ -95,11 +88,6 @@ MODULE hfx_utils
   !public :: hfxrpav
   PUBLIC :: hfx_scdm !SM
   PUBLIC :: hfx_ace !SM
-  PUBLIC :: posupi_lan
-  PUBLIC :: velupi_lan1
-  PUBLIC :: velupi_lan2
-  PUBLIC :: lang_cons
-  PUBLIC:: rotate_c0
 
 CONTAINS
 
@@ -2020,9 +2008,9 @@ CONTAINS
 !----------------------------------------
     t1_tot=m_cputime()
 
-    !IF(hfxc3%twscr.OR.cntl%krwfn)CALL STOPGM(procedureN, &
-    !      'TWSCR OR KRWFN NOT IMPLEMENTED WITH SCDM METHOD', &
-    !     __LINE__,__FILE__)
+    IF(hfxc3%twscr.OR.cntl%krwfn)CALL STOPGM(procedureN, &
+          'TWSCR OR KRWFN NOT IMPLEMENTED WITH SCDM METHOD', &
+         __LINE__,__FILE__)
     !IF(parai%cp_nogrp > 1)CALL STOPGM(procedureN, &
     !      'CP_NOGRP>1 NOT IMPLEMENTED WITH ACE+SCDM METHOD', &
     !     __LINE__,__FILE__)
@@ -2137,24 +2125,23 @@ CONTAINS
            IF(ispin.EQ.2) st_offst = nstates(1)
 !=======================================================================
            !
-           if(use_ace)then
-              ALLOCATE(U(NST,NST),STAT=ierr)
-              IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-                __LINE__,__FILE__)
-              
-              !
-              IF(.not.NEW_SCDM)THEN
-                 CALL LOCALIZE_SCDM(PSI(1,1+ST_OFFST),NST,U)  ! TODO
-              ELSE
-                call loc_scdm_new(psi(1,1+ST_OFFST), nst, u, ispin)
-              ENDIF
-
-              !CALL LOCALIZATION_SCDM_NEW(PSI(1,1+ST_OFFST),NST,U,ispin)  ! TODO
-              !
+           ALLOCATE(U(NST,NST),STAT=ierr)
+           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
+              __LINE__,__FILE__)
+           !
+           CALL LOCALIZE_SCDM(PSI(1,1+ST_OFFST),NST,U)  ! TODO
+           !
 !==========================================================
-              CALL DSCAL(NST*LLR1,DSQRT(DFLOAT(spar%NR1S*spar%NR2S*spar%NR3S)), &
+!           IF(SCDM_DIST)THEN
+!             DO ID=1+ST_OFFST,NST+ST_OFFST
+!               CALL FIND_CENTER(PSI(1,ID), &
+!               SCDM_CENTER(1,ID),SCDM_CENTER(2,ID),SCDM_CENTER(3,ID))
+!             END DO
+!           END IF
+!----------------------------------------------------------
+           !
+           CALL DSCAL(NST*LLR1,DSQRT(DFLOAT(spar%NR1S*spar%NR2S*spar%NR3S)), &
                PSI(1,1+ST_OFFST),1)
-           endif
            !
 !C     ==--------------------------------------------------------------==
 
@@ -2382,22 +2369,20 @@ CONTAINS
 !=======================================================================
 !       SAGAR HACK todo change for ACE
 !-----------------------------------------------------------------------
-       if(use_ace)then
-          DO KA=1+ST_OFFST,ST_OFFST+NST
-           DO K=1,ncpw%ngw
-            DO KB=1+ST_OFFST,ST_OFFST+NST
-              !
-              C2_HFXKS(K,KA)=C2_HFXKS(K,KA)+C2_HFX(K,KB) &
-                               *U(KA-ST_OFFST,KB-ST_OFFST)
-              !
-            END DO
-           END DO
+        DO KA=1+ST_OFFST,ST_OFFST+NST
+         DO K=1,ncpw%ngw
+          DO KB=1+ST_OFFST,ST_OFFST+NST
+            !
+            C2_HFXKS(K,KA)=C2_HFXKS(K,KA)+C2_HFX(K,KB) &
+                             *U(KA-ST_OFFST,KB-ST_OFFST)
+            !
           END DO
-          !
-          DEALLOCATE(U,STAT=ierr)
-          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-             __LINE__,__FILE__)
-       endif
+         END DO
+        END DO
+        !
+        DEALLOCATE(U,STAT=ierr)
+        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+           __LINE__,__FILE__)
 !=======================================================================
         ENDDO                     !ispin
         CALL TIHALT(procedureN//'_outer',ISUB2)
@@ -2644,8 +2629,6 @@ CONTAINS
                                   PCMAT(:,:),SMAT(:,:),PSIC(:,:)
       !
       INTEGER, ALLOCATABLE     :: PIMAT(:), PIMATg(:), ME_LLR1(:) 
-!======================================================================
-      integer, save :: count=0
 !======================================================================
       CALL TISET('LOCALIZE_SCDM',ISUB)
 !
@@ -3234,904 +3217,5 @@ CONTAINS
       RETURN
       END SUBROUTINE G_TO_R_WF
 !==============================================================================
-!==========================================================================!
-      SUBROUTINE loc_scdm_new(psi, norb, u, spin)
-!==========================================================================!
-!     Localized Orbitals from Selected Column Density Matrix Computation   !  
-!     Modified version of SCDM; see Quantum ESPRESSO code for more details !
-!     subset of columns are pre-selected based on rho and grad_of_rho      ! 
-!==========================================================================!
-       IMPLICIT NONE
-       INTEGER, INTENT(in)            :: norb, spin
-       REAL(real_8), INTENT(inout)    :: psi(llr1,norb)
-       REAL(real_8), INTENT(out)      :: u(norb,norb)
-!--------------------------------------------------------------------------!
-!      local variables
-       REAL(real_8)         :: DUM
-       INTEGER              :: NGRIDS, IERR, IORB, JORB, I, IR, &
-                               ISUB
-       !
-       REAL(real_8),ALLOCATABLE :: C(:,:)
-       !
-       REAL(real_8),ALLOCATABLE :: small(:,:), &
-                                   PSIC(:,:), PCMAT(:,:), SMAT(:,:)
-       !
-       INTEGER, ALLOCATABLE     :: list(:), pimat(:), &
-                                   pimatg(:)
-       !
-       real(real_8) :: DenAve, GrdAve, &
-                       start_time, final_time, start_time1, final_time1
-       integer:: npoints, npt, n, info, J, npt_sum
-!==========================================================================!
-      !integer, save :: count=0
-!==========================================================================!
-       CALL tiset('loc_scdm_new',isub)
-       call cpu_time(start_time)
-       !
-       ALLOCATE(C(NORB,NORB),STAT=IERR)
-       IF (ierr.NE.0) CALL stopgm('loc_scdm_new','allocation problem',&
-                __LINE__,__FILE__)
-       !
-       CALL zeroing(U)
-       CALL zeroing(C)
-       !
-       NGRIDS=spar%NR1S*spar%NR2S*spar%NR3S
-       DUM=DSQRT(1.D0 / REAL(NGRIDS,kind=real_8))
-       CALL DSCAL(NORB*LLR1,DUM,PSI,1)
-       !
-       DenAve= 0.d0
-       GrdAve= 0.d0
-       do i=1,llr1
-         DenAve = DenAve + rho_scdm(i,spin)
-         GrdAve = GrdAve + dsqrt(grad_scdm(i,spin))
-       end do
-       ! 
-       CALL mp_sum(DenAve,parai%allgrp)
-       CALL mp_sum(GrdAve,parai%allgrp)
-       !
-       DenAve = DenAve / REAL(NGRIDS,kind=real_8)
-       GrdAve = GrdAve / REAL(NGRIDS,kind=real_8)
-
-       DenAve = DenAve * 1.d0
-       GrdAve = GrdAve * 1.d0
-
-       npoints = 0
-       !
-       do i = 1, llr1
-         if((rho_scdm(i,spin).gt.(DenAve)) .and. (dsqrt(grad_scdm(i,spin)).lt.GrdAve)) then
-             npoints = npoints + 1
-         end if
-       end do
-       !   
-       npt = npoints
-       npt_sum = npoints
-       CALL mp_max(npoints,parai%allgrp)
-       CALL mp_sum(npt_sum,parai%allgrp)
-       !
-       if(npt_sum .lt. norb) CALL stopgm('loc_scdm_new',' npt_sum <  norb ',&
-               __LINE__,__FILE__)
-       if(npoints .lt. norb) npoints = norb 
-       !
-       allocate(small(norb,npoints), list(npoints), pimat(npoints), STAT=IERR)
-       IF (ierr.NE.0) CALL stopgm('loc_scdm_new','allocation problem',&
-               __LINE__,__FILE__)
-       !
-       !call zeroing(small)
-       call zeroing(list)
-       !
-       n = 0
-       do i = 1, llr1
-         if((rho_scdm(i,spin).gt.(DenAve)) .and. (dsqrt(grad_scdm(i,spin)).lt.GrdAve)) then
-             n = n + 1
-             !npt = n + sum(cpu_npt(1:PARAI%ME)) 
-             small(:,n) = psi(i,:)
-             list(n) = i
-         end if
-       end do
-       !
-       do i = npt+1, npoints
-          small(:,i) = 0.d0
-       end do
-       !
-       call zeroing(PIMAT)
-       CALL PRQR(NORB,npoints,small,PIMAT)
-       !
-!-------------------------------------------
-      ALLOCATE(PIMATg(NORB),stat=ierr)
-      IF (ierr.NE.0) CALL stopgm('loc_scdm_new','Allocation problem',&
-         __LINE__,__FILE__)
-
-      ALLOCATE(PSIC(NORB,NORB),stat=ierr)
-      IF (ierr.NE.0) CALL stopgm('loc_scdm_new','Allocation problem',&
-         __LINE__,__FILE__)
-
-      call zeroing(PSIC)
-
-      IF(PARAI%ME.EQ.0)THEN
-        DO I=1,NORB
-          PIMATg(I)=PIMAT(I)
-        END DO
-      END IF
-      !
-      CALL mp_bcast(PIMATg,SIZE(PIMATg),parai%source,parai%allgrp)
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!      call cpu_time(final_time_1)
-!      if(parent)
-!     & print *, "Pc Mat Construction-1:  =",final_time_1-start_time
-!c
-      DO I = 1, NORB
-        IF((PIMATg(I).GT.PARAI%ME*npoints).AND. &
-          (PIMATg(I).LE.(PARAI%ME+1)*npoints))THEN
-           IR=PIMATg(I)-PARAI%ME*npoints
-           DO J = 1, NORB
-             PSIC(I,J)=PSI(list(IR),J)
-           END DO
-        END IF
-      END DO
-
-      CALL mp_sum(PSIC,NORB*NORB,parai%allgrp)
-!
-!-------------------------------------------
-      ALLOCATE(PCMAT(LLR1,NORB),stat=ierr)
-      IF (ierr.NE.0) CALL stopgm('loc_scdm_new','Allocation problem',&
-         __LINE__,__FILE__)
-
-!c     & print *, "Pc Mat Construction-3:  =",final_time_1-final_time
-!      call cpu_time(start_time)
-      CALL DGEMM('N','T',LLR1,NORB,NORB,1.D0,PSI,LLR1,PSIC,NORB, &
-                 0.D0,PCMAT,LLR1)
-
-      ALLOCATE(SMAT(NORB,NORB),stat=ierr)
-      IF (ierr.NE.0) CALL stopgm('loc_scdm_new','Allocation problem',&
-         __LINE__,__FILE__)
-      call zeroing(SMAT)
-
-!c     Constructing the Smatrix
-!      call cpu_time(start_time)
-!c FIXME Only upper diagonal or lower diagonal is required
-      DO IORB=1,NORB
-        IF((PIMATg(IORB).GT.PARAI%ME*npoints).AND. &
-         (PIMATg(IORB).LE.(PARAI%ME+1)*npoints))THEN
-          IR=PIMATg(IORB)-PARAI%ME*npoints
-          DO JORB=1,NORB
-            SMAT(IORB,JORB)=PCMAT(list(IR),JORB) !check ?? 
-          END DO
-        END IF
-      END DO
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      DEALLOCATE(PIMATg,stat=ierr)
-      IF (ierr.NE.0) CALL stopgm('loc_scdm_new','Deallocation problem',&
-         __LINE__,__FILE__)
-
-      CALL mp_sum(SMAT,NORB*NORB,parai%allgrp)
-
-      CALL DPOTRF('U',NORB,SMAT,NORB,IERR)
-
-      IF(IERR.NE.0) &
-        CALL STOPGM('loc_scdm_new','ERROR IN DPOTRF', &
-         __LINE__,__FILE__)
-!------------------------------------------------------------------------
-!     HACK SAGAR   CALCULATION OF OVERLAP MATRIX U
-      DO IORB=1,NORB
-        DO JORB=IORB,NORB
-          C(IORB,JORB)=SMAT(IORB,JORB)
-        END DO
-      END DO
-      !
-      CALL DTRTRI('U','N',NORB, C,NORB, IERR)
-      !
-      CALL DGEMM('T','N',NORB,NORB,NORB,1.D0, &
-                 PSIC,NORB,C,NORB,0.D0,U,NORB)
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      DEALLOCATE(PSIC,stat=ierr)
-      IF (ierr.NE.0) CALL stopgm('loc_scdm_new','Deallocation problem',&
-         __LINE__,__FILE__)
-                            !COMMENTED OUT THE PREVIOUS ONE (MUST)
-!========================================================================
-! FIXME The following is not required and make DTRSM reads lower diagonal
-       DO IORB=1,NORB-1
-         DO JORB=I+1,NORB
-           SMAT(JORB,IORB)=SMAT(IORB,JORB)
-         END DO
-       END DO
-!
-!     Building Orthogonal Basis
-!      call cpu_time(start_time)
-      CALL DTRSM('R','U','N', 'N',LLR1,NORB,1.D0,SMAT,NORB,PCMAT, &
-                LLR1)
-!      call cpu_time(final_time)
-!      if(parent)
-!     &print *, "DTRSM : Timing =",final_time-start_time
-!     Copying the localized orbitals to PSI
-      CALL DCOPY(LLR1*NORB,PCMAT,1,PSI,1)
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!c!check psi^2
-!      allocate( phi(llr1,norb) )
-!      do iorb=1,norb
-!        do jorb=1,norb
-!          dum=0.d0
-!          do ir=1,llr1
-!             dum=dum+psi(ir,iorb)*psi(ir,jorb)
-!          end do
-!          CALL Mp_SUM(DUM,parai%allgrp)
-!          if(PARAI%ME ==0) write(6,'(2i8,e14.6)')iorb,jorb, &
-!                     dum !/dsqrt(dfloat(spar%NR1S*spar%NR2S*spar%NR3S))
-!        end do
-!      end do
-!      CALL DGEMM('N','N',llr1,NORB,NORB,1.D0, &
-!                 PSI,llr1,U,NORB,0.D0,phi,llr1)
-!       call cpu_time(final_time)
-       !write(6,*)PARAI%ME,"time=", final_time - start_time
-       !
-!-----------------------------------------------------
-       deallocate(small,list,C, &
-                   pimat, pcmat, smat, stat=ierr)
-       IF (ierr.NE.0)CALL stopgm('loc_scdm_new','deallocation problem',&
-         __LINE__,__FILE__)
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       CALL TIHALT('loc_scdm_new',ISUB)
-       !
-       RETURN
-      END SUBROUTINE loc_scdm_new
-!==============================================================================!
-!==========================================================================!
-      SUBROUTINE localization_scdm_new(psi, norb, u, spin)
-!==========================================================================!
-!     Localized Orbitals from Selected Column Density Matrix Computation   !  
-!     Modified version of SCDM; see Quantum ESPRESSO code for more details !
-!     subset of columns are pre-selected based on rho and grad_of_rho      ! 
-!==========================================================================!
-       IMPLICIT NONE
-       INTEGER, INTENT(in)            :: norb, spin
-       REAL(real_8), INTENT(inout)    :: psi(llr1,norb)
-       REAL(real_8), INTENT(out)      :: u(norb,norb)
-!--------------------------------------------------------------------------!
-!      local variables
-       REAL(real_8)         :: DUM
-       INTEGER              :: NGRIDS, IERR, IORB, JORB, I, IR, &
-                               ISUB
-       !
-       REAL(real_8),ALLOCATABLE :: C(:,:)
-       !
-       REAL(real_8),ALLOCATABLE :: small(:,:), tau(:), work(:), &
-                                   QRbuff(:,:), mat(:,:), matT(:,:)
-       !
-       INTEGER, ALLOCATABLE     :: cpu_npt(:), list(:), pivot(:)
-       !
-       real(real_8) :: DenAve, GrdAve, &
-                       start_time, final_time, start_time1, final_time1
-       integer:: npoints, npt, n, lwork, info, NStart, Nend, J
-!==========================================================================!
-      !integer, save :: count=0
-!==========================================================================!
-       CALL tiset('localization_scdm_new',isub)
-       call cpu_time(start_time)
-       !
-       ALLOCATE(C(NORB,NORB),STAT=IERR)
-       IF (ierr.NE.0) CALL stopgm('localization_scdm_new','allocation problem',&
-                __LINE__,__FILE__)
-       !
-       CALL zeroing(U)
-       CALL zeroing(C)
-       !
-       NGRIDS=spar%NR1S*spar%NR2S*spar%NR3S
-       DUM=DSQRT(1.D0 / REAL(NGRIDS,kind=real_8))
-       CALL DSCAL(NORB*LLR1,DUM,PSI,1)
-       !
-       DenAve= 0.d0
-       GrdAve= 0.d0
-       do i=1,llr1
-         DenAve = DenAve + rho_scdm(i,spin)
-         GrdAve = GrdAve + dsqrt(grad_scdm(i,spin))
-       end do
-       ! 
-       CALL mp_sum(DenAve,parai%allgrp)
-       CALL mp_sum(GrdAve,parai%allgrp)
-       !
-       DenAve = DenAve / REAL(NGRIDS,kind=real_8)
-       GrdAve = GrdAve / REAL(NGRIDS,kind=real_8)
-       DenAve = DenAve * 1.d0
-
-       DenAve = 0.d0
-       GrdAve = GrdAve*1000.d0
-       !write(6,*)PARAI%ME, "DenAve =", DenAve, &
-       !               REAL(spar%nr1s*spar%nr2s*spar%nr3s,kind=real_8) 
-       !write(6,*)PARAI%ME, "GrdAve =", GrdAve, &
-       !               REAL(spar%nr1s*spar%nr2s*spar%nr3s,kind=real_8)
-       !
-       allocate(cpu_npt(PARAI%NPROC),STAT=IERR)
-       IF (ierr.NE.0) CALL stopgm('localization_scdm_new','allocation problem',&
-               __LINE__,__FILE__)
-       !
-       call zeroing(cpu_npt)
-       npoints = 0
-       !
-       do i = 1, llr1
-         if((rho_scdm(i,spin).gt.(DenAve)) .and. (dsqrt(grad_scdm(i,spin)).lt.GrdAve)) then
-             npoints = npoints + 1
-         end if
-       end do
-       !   
-       cpu_npt(PARAI%ME+1) = npoints
-       !
-       CALL mp_sum(npoints,parai%allgrp)
-       call mp_sum(cpu_npt, size(cpu_npt), parai%allgrp)
-       !write(6,*)PARAI%ME, "npoints =", npoints
-       !
-       allocate(small(norb,npoints),list(npoints),STAT=IERR)
-       IF (ierr.NE.0) CALL stopgm('localization_scdm_new','allocation problem',&
-               __LINE__,__FILE__)
-       !
-       call zeroing(small)
-       call zeroing(list)
-       !
-       n = 0
-       do i = 1, llr1
-         if((rho_scdm(i,spin).gt.(DenAve)) .and. (dsqrt(grad_scdm(i,spin)).lt.GrdAve)) then
-             n = n + 1
-             npt = n + sum(cpu_npt(1:PARAI%ME)) 
-             small(:,npt) = psi(i,:)
-             list(npt) = i
-         end if
-       end do
-       !
-       CALL mp_sum( small, norb*npoints, parai%allgrp)
-       CALL mp_sum( list, npoints, parai%allgrp)
-       !
-! perform the QRCP on the small matrix and get pivot
-       !
-       call cpu_time(start_time1)
-       allocate( tau(npoints), pivot(npoints), STAT=IERR)
-       IF (ierr.NE.0) CALL stopgm('localization_scdm_new','allocation problem',&
-               __LINE__,__FILE__)
-       !
-       call zeroing(tau)
-       call zeroing(pivot)
-
-       allocate( work(1), STAT=IERR)
-       IF (ierr.NE.0) CALL stopgm('localization_scdm_new','allocation problem',&
-               __LINE__,__FILE__)
-       call zeroing(work)
-       !
-       INFO = -1
-       lwork=-1
-       CALL DGEQP3( NORB, npoints, small, NORB, pivot, tau, work, lwork, INFO )
-       IF (info.NE.0) CALL stopgm( 'DGEQP3', 'QR failed', &
-               __LINE__,__FILE__)
-
-       lwork=work(1)
-
-       deallocate(work, stat=ierr)
-       IF (ierr.NE.0)CALL stopgm('localization_scdm_new','deallocation problem',&
-         __LINE__,__FILE__)
-
-       allocate( work(lwork), STAT=IERR)
-       IF (ierr.NE.0) CALL stopgm('localization_scdm_new','allocation problem',&
-               __LINE__,__FILE__)
-       call zeroing(work)
-       !
-       INFO = -1
-       CALL DGEQP3( NORB, npoints, small, NORB, pivot, tau, work, lwork, INFO )
-       !write(6,*)PARAI%ME, "INFO = ", info
-       IF (info.NE.0) CALL stopgm( 'DGEQP3', 'QR failed', &
-               __LINE__,__FILE__)
-       !
-       call cpu_time(final_time1)
-       !write(6,*)PARAI%ME,"time1=", final_time1 - start_time1, npoints
-       !
-       allocate( mat(Norb,Norb), STAT=IERR ) 
-       IF (ierr.NE.0) CALL stopgm('localization_scdm_new','allocation problem',&
-               __LINE__,__FILE__)
-       call zeroing(mat) 
-       ! Psi(pivot(1:NBands),:) in mat
-       NStart = sum(CPU_npt(1:PARAI%ME))
-       NEnd   = sum(CPU_npt(1:PARAI%ME+1))
-       do i = 1, Norb
-         if(Pivot(i).le.NEnd.and.Pivot(i).ge.NStart+1) Mat(:,i) = PSI(List(pivot(i)),:)
-       end do
-       !
-       call mp_sum(Mat, Norb*Norb, parai%allgrp)
-       !upto now 
-       call dcopy(norb*norb,Mat,1,C,1) !check
-       !DO IORB=1,NORB
-       ! DO JORB=IORB,NORB
-       !    C(IORB,JORB)=MAT(IORB,JORB)
-       ! END DO
-       !END DO
-       !
-       allocate( QRbuff(llr1, Norb), STAT=IERR)
-       IF (ierr.NE.0) CALL stopgm('localization_scdm_new','allocation problem',&
-               __LINE__,__FILE__)
-       !
-       call zeroing(QRbuff)
-       ! Pc = Psi * Psi(pivot(1:NBands),:)' in QRbuff
-       CALL DGEMM( 'N' , 'N' , llr1, Norb, Norb, 1.d0, psi, llr1, mat, Norb, 0.d0, QRbuff, llr1)
-       !
-! Orthonormalization
-
-! Pc(pivot(1:NBands),:) in mat
-       !
-       mat = 0.d0
-       ! Psi(pivot(1:NBands),:) in mat
-       NStart = sum(CPU_npt(1:PARAI%ME))
-       NEnd   = sum(CPU_npt(1:PARAI%ME+1))
-       do i = 1, Norb
-         if(Pivot(i).le.NEnd.and.Pivot(i).ge.NStart+1) Mat(:,i)= QRbuff(List(pivot(i)),:)
-       end do
-       !
-       call mp_sum(Mat, Norb*Norb, parai%allgrp)
-       !
-! Cholesky(psi)^(-1) in mat 
-! CALL invchol(NBands,mat)
-       !
-       !CALL MatChol(NBands,mat)
-       INFO = -1
-       CALL DPOTRF( 'L', Norb, mat, Norb, INFO )
-       IF (info.NE.0) CALL stopgm( 'DPOTRF', 'Cholesky failed in MatChol.', &
-               __LINE__,__FILE__)
-       !
-       !CALL MatInv('L',NBands,mat)
-       INFO = -1
-       CALL DTRTRI( 'L', 'N', Norb, mat, Norb, INFO )
-       IF (info.NE.0) CALL stopgm('DTRTRI','inversion failed in MatInv.', &
-               __LINE__,__FILE__)
-       !
-       !Call MatSymm('U','L',mat, NBands)
-       allocate( matT(Norb,Norb) ) 
-       call zeroing(matT) 
-       !
-       do i = 1, Norb
-         MatT(i,i) = Mat(i,i)
-         do j = i+1, Norb
-           MatT(j,i) = Mat(j,i)
-         end do
-       end do
-       !
-       mat = 0.d0
-       do i = 1, norb
-         Mat(i,i) = MatT(i,i)
-         do j = i+1, norb
-           Mat(i,j) = MatT(j,i)
-         end do
-       end do
-       !
-! Phi = Pc * Chol^(-1) = QRbuff * mat
-       psi = 0.d0
-       CALL DGEMM( 'N', 'N', llr1, Norb, Norb, 1.d0, QRbuff, llr1, mat, Norb, 0.d0, psi, llr1)
-       !
-       CALL DGEMM( 'N', 'N', Norb, Norb, Norb, 1.d0, C, norb, mat, Norb, 0.d0, U, norb) !check
-       !
-!c!check psi^2
-!      do iorb=1,norb
-!        do jorb=1,norb
-!          dum=0.d0
-!          do ir=1,llr1
-!             dum=dum+psi(ir,iorb)*psi(ir,jorb)
-!          end do
-!          CALL Mp_SUM(DUM,parai%allgrp)
-!          if(PARAI%ME ==0) write(6,'(2i8,e14.6)')iorb,jorb, &
-!                     dum !/dsqrt(dfloat(spar%NR1S*spar%NR2S*spar%NR3S))
-!        end do
-!      end do
-       call cpu_time(final_time)
-       !write(6,*)PARAI%ME,"time=", final_time - start_time
-       !
-       matT = 0.d0
-       !
-       do iorb=1,norb
-        !do jorb=iorb+1,norb
-        do jorb=1,norb
-          do ir=1,llr1
-              !matT(iorb,jorb) = matT(iorb,jorb) + dabs(psi(ir,iorb))*dabs(psi(ir,jorb))
-              matT(iorb,jorb) = matT(iorb,jorb) + (psi(ir,iorb))*(psi(ir,jorb))
-          end do
-        end do
-       end do
-       !
-       call mp_sum(MatT, Norb*Norb, parai%allgrp) 
-       !
-       !
-       matT = 0.d0
-       !
-       do iorb=1,norb
-        do jorb=1,norb
-          do ir=1,norb
-              matT(iorb,jorb) = matT(iorb,jorb) + U(ir,iorb)*U(ir,jorb)
-          end do
-        end do
-       end do
-       !
-       !call mp_sum(MatT, Norb*Norb, parai%allgrp) 
-       !
-!-----------------------------------------------------
-       deallocate(cpu_npt,small,list,tau,pivot,work,mat,QRbuff,matT,C, &
-                   stat=ierr)
-       IF (ierr.NE.0)CALL stopgm('localization_scdm_new','deallocation problem',&
-         __LINE__,__FILE__)
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       CALL TIHALT('localization_scdm_new',ISUB)
-       !
-       RETURN
-      END SUBROUTINE localization_scdm_new
-!==============================================================================!
-      SUBROUTINE write_scdm(psi,norb,countO)
-    
-      REAL(real_8), INTENT(inout)    :: psi(:,:) 
-      integer   :: norb
-      integer,optional    :: countO 
-      CHARACTER*128  :: CUBEFILENAME 
-      REAL(real_8)   :: CUBECENTER(3)
-      complex(real_8) :: psi_tmp(fpar%kr2s,fpar%kr3s)
-      integer:: isp, iat, nnat, i, ngrids
-      real(real_8) :: dum 
-
-       NGRIDS=spar%NR1S*spar%NR2S*spar%NR3S
-       DUM=DSQRT(1.D0 / REAL(NGRIDS,kind=real_8))
-       CALL DSCAL(NORB*LLR1,DUM,PSI,1)
- 
-          cubecenter(1) = 0._real_8
-          cubecenter(2) = 0._real_8
-          cubecenter(3) = 0._real_8
-          nnat = 0
-          DO isp=1,ions1%nsp
-             DO iat=1,ions0%na(isp)
-                cubecenter(1) = cubecenter(1) + tau0(1,iat,isp)
-                cubecenter(2) = cubecenter(2) + tau0(2,iat,isp)
-                cubecenter(3) = cubecenter(3) + tau0(3,iat,isp)
-                nnat = nnat + 1
-             ENDDO
-          ENDDO
-          cubecenter(1) =  cubecenter(1) / REAL(nnat,kind=real_8)
-          cubecenter(2) =  cubecenter(2) / REAL(nnat,kind=real_8)
-          cubecenter(3) =  cubecenter(3) / REAL(nnat,kind=real_8)
-
-         IF (present(countO)) THEN
-            IF ( countO .eq. 0 ) THEN
-               DO I=1,NORB
-                  IF(paral%io_parent)WRITE (CUBEfilename,'(A8,I3.3,A5)') &
-                    'PSI_SCDM',i,'.cube'
-                  CALL CUBEFILE(CUBEFILENAME,psi(1,i),CUBECENTER,PSI_tmp,.false.)
-               ENDDO
-            ELSE
-                  IF(paral%io_parent)WRITE (CUBEfilename,'(A4,I7.7,A7)') &
-                    'ORB_',countO,'.1.cube'
-                  CALL CUBEFILE(CUBEFILENAME,psi(1,1),CUBECENTER,PSI_tmp,.false.)
-            END IF
-         END IF
-       CALL DSCAL(NORB*LLR1,DSQRT(DFLOAT(spar%NR1S*spar%NR2S*spar%NR3S)), &
-               PSI,1)
-!       CALL mp_sync(parai%allgrp) 
-!       CALL stopgm('localization_scdm_new','intended stop',&
-!         __LINE__,__FILE__)
-
-      END SUBROUTINE write_scdm
-
-
-!=======================================================================
-  SUBROUTINE posupi_lan(tau0,taup,velp,FION,RND)
-! ==--------------------------------------------------------------==
-! ==  UPDATE OF THE POSITIONS FOR VELOCITY VERLET                 ==
-! ==--------------------------------------------------------------==
-    REAL(real_8)                             :: tau0(:,:,:), taup(:,:,:), &
-                                       velp(:,:,:),fion(:,:,:),rnd(:,:,:)
-!   local variables
-    REAL(real_8)                             :: FACT,FACT1,FACT2,FACT3
-    INTEGER                                  :: ia, iat, is
-
-    FACT1=2.D0*C_2
-
-    !$omp parallel do private(IA,IS,IAT,fact,fact2,fact3) schedule(static)
-!------------------------------------------
-      !
-      !
-      DO IAT=1,ions1%nat
-        IA=IATPT(1,IAT)
-        IS=IATPT(2,IAT)
-        !
-        FACT=DTB2MI(IS)*DT_IONS
-        !
-        FACT2=SIGMA_R*DT_IONS*DSQRT((2.D0*T_BATH*KBOLTZ)/(3.D0*rmass%pma(IS)))
-        !
-        FACT3=FACT2*RND(1,IA,IS)
-        !
-        TAUP(1,IA,IS)=TAU0(1,IA,IS)+DT_IONS*VELP(1,IA,IS)*C_1 &
-                     +FACT*FION(1,IA,IS)*FACT1 + FACT3
-        !
-        FACT3=FACT2*RND(2,IA,IS)
-        !
-        TAUP(2,IA,IS)=TAU0(2,IA,IS)+DT_IONS*VELP(2,IA,IS)*C_1 &
-                     +FACT*FION(2,IA,IS)*FACT1 + FACT3
-        !
-        FACT3=FACT2*RND(3,IA,IS)
-        !
-        TAUP(3,IA,IS)=TAU0(3,IA,IS)+DT_IONS*VELP(3,IA,IS)*C_1 &
-                     +FACT*FION(3,IA,IS)*FACT1 + FACT3
-        !
-      ENDDO
-!=======--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE posupi_lan
-!=======================================================================
-!=======================================================================
-  SUBROUTINE velupi_lan1(velp,fion,RND,nnlst)
-!=======--------------------------------------------------------------==
-    REAL(real_8)                   :: velp(:,:,:),fion(:,:,:)&
-                                     ,rnd(:,:,:)
-    INTEGER                        :: nnlst
-!   local variables
-    INTEGER                        :: i, ia, is
-    REAL(real_8)                   :: fact
-    REAL(real_8)                   :: fact1, gauss_dist1(2)
-    REAL(real_8)                   :: fact2, fact3, fact4, fact5
-!---------------------------------------------------------------------
-!ocl NOALIAS
-
-    fact1=2.D0*(c_1-c_2)
-
-    !$omp parallel do private(i,is,ia,fact,fact2,fact3,fact4,fact5) schedule(static)
-!=====================================================================
-      !
-      !
-      DO I=1,ions1%nat
-        IA=IATPT(1,I)
-        IS=IATPT(2,I)
-        !
-        FACT=REAL(nnlst,kind=real_8)*DTB2MI(IS)
-        !
-        FACT2=SIGMA_V*DSQRT((2.D0*T_BATH*KBOLTZ)/(rmass%pma(IS)))
-        !
-        FACT3=SIGMA_R*DT_IONS*DSQRT((2.D0*T_BATH*KBOLTZ)/(3.D0*rmass%pma(IS)))
-        !
-        FACT4=(DT_IONS*((T_BATH*KBOLTZ)/(rmass%pma(IS)))*C_RV)/(FACT2*FACT3)
-        !
-!-----------------------------------------------------------------------------
-        !
-        call gauss_dist( 0.D0, 1.D0 , 2 , gauss_dist1)
-
-        RND(1,IA,IS)=gauss_dist1(1)
-        !
-        FACT5=FACT2*(FACT4*gauss_dist1(1) &
-             +DSQRT(1-FACT4**2)*gauss_dist1(2))
-        !
-        VELP(1,IA,IS)=C_0*VELP(1,IA,IS)+FACT*FION(1,IA,IS)*FACT1 &
-                     + FACT5
-!------------------------------------------------------------------------------
-        !
-        call gauss_dist( 0.D0, 1.D0 , 2 , gauss_dist1)
-        !
-        RND(2,IA,IS)=gauss_dist1(1)
-        !
-        FACT5=FACT2*(FACT4*gauss_dist1(1) &
-             +DSQRT(1-FACT4**2)*gauss_dist1(2))
-        !
-        VELP(2,IA,IS)=C_0*VELP(2,IA,IS)+FACT*FION(2,IA,IS)*FACT1 &
-                     + FACT5
-!---------------------------------------------------------------------------------
-        !
-        call gauss_dist( 0.D0, 1.D0 , 2 , gauss_dist1)
-        !
-        RND(3,IA,IS)=gauss_dist1(1)
-        !
-        FACT5=FACT2*(FACT4*gauss_dist1(1) &
-             +DSQRT(1-FACT4**2)*gauss_dist1(2))
-        !
-        VELP(3,IA,IS)=C_0*VELP(3,IA,IS)+FACT*FION(3,IA,IS)*FACT1 &
-                     + FACT5
-        !
-      ENDDO
-      CALL TAUCL(VELP)
-!=======--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE velupi_lan1
-!=======================================================================
-
-!=======================================================================
-  SUBROUTINE velupi_lan2(velp,fion,nnlst)
-!=======--------------------------------------------------------------==
-    REAL(real_8)                      :: velp(:,:,:), fion(:,:,:)
-    INTEGER                           :: nnlst
-!   local variables
-    INTEGER                           :: i, ia, is
-    REAL(real_8)                      :: fact
-    REAL(real_8)                      :: FACT1
-!ocl NOALIAS
-
-    FACT1=2.D0*C_2
-
-    !$omp parallel do private(I,IS,IA,FACT) schedule(static)
-!-----------------------------------------------------------
-      !
-      !
-      DO I=1,ions1%nat
-        IA=IATPT(1,I)
-        IS=IATPT(2,I)
-        FACT=REAL(nnlst,kind=real_8)*DTB2MI(IS)
-        !
-        VELP(1,IA,IS)=VELP(1,IA,IS)+FACT*FION(1,IA,IS)*FACT1
-        !
-        VELP(2,IA,IS)=VELP(2,IA,IS)+FACT*FION(2,IA,IS)*FACT1
-        !
-        VELP(3,IA,IS)=VELP(3,IA,IS)+FACT*FION(3,IA,IS)*FACT1
-        !
-      ENDDO
-      !
-      CALL TAUCL(VELP)
-!=======--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE velupi_lan2
-!=======================================================================
-
-!=======================================================================
-      SUBROUTINE LANG_CONS
-!=======--------------------------------------------------------------==
-!     SAGARMOY MANDAL  !SAGAR HACK
-!---------------------------------------------------------------------!
-!     CHEMICAL PHYSICS 236(1998) 243-252                              !
-!                                                                     !
-!     VALUES OF THE COEFFICIENTS CAN BE FOUND IN THE ABOVE PAPER      !
-!---------------------------------------------------------------------!
-!      IMPLICIT NONE
-!     Local Variables
-      REAL(real_8)::      GAMMA_DT
-!     ==--------------------------------------------------------------==
-      GAMMA_DT = GAMMA*DT_IONS
-      !
-      C_0 = 1.D0 - GAMMA_DT + 0.5D0*(GAMMA_DT**2) - (GAMMA_DT**3)/6.D0 &
-          + (GAMMA_DT**4)/24.D0 - (GAMMA_DT**5)/120.D0
-      !
-      C_1 = 1.D0 - (GAMMA_DT/2.d0) + (GAMMA_DT**2)/6.d0 -  &
-      (GAMMA_DT**3)/24.D0   + (GAMMA_DT**4)/120.D0
-      !
-      C_2 = 0.5D0 - (GAMMA_DT/6.d0) + (GAMMA_DT**2)/24.d0 - &
-      (GAMMA_DT**3)/120.D0
-      !
-      SIGMA_V = DSQRT(GAMMA_DT*(1.D0 - GAMMA_DT + (2.D0/3.D0)* &
-              (GAMMA_DT**2) -(GAMMA_DT**3)/3.D0 + (2.D0/15.D0)* &
-              (GAMMA_DT**4) - (2.D0/45.D0)*(GAMMA_DT**5)))
-      !
-      SIGMA_R = DSQRT(GAMMA_DT*(1.D0 -(3.D0/4.D0)*GAMMA_DT &
-              +(7.D0/20.D0)*(GAMMA_DT**2) - (GAMMA_DT**3)/8.D0))
-
-      !
-      C_RV =GAMMA_DT*(1.D0 - GAMMA_DT + &
-              (7.D0/12.D0)*(GAMMA_DT**2) &
-             - (GAMMA_DT**3)/4.D0 + (31.D0/360.D0)* &
-              (GAMMA_DT**4))
-      !
-!=======--------------------------------------------------------------==
-      RETURN
-      END SUBROUTINE LANG_CONS
-!=======--------------------------------------------------------------==
-
-!=============================================================================!
-subroutine gauss_dist( mu, sigma, dim, gauss_dist1)
-!-----------------------------------------------------------------------
-!
-! ... this function generates an array of numbers taken from a
-! normal
-! ... distribution of mean value \mu and variance \sigma
-!
-!IMPLICIT NONE
-!
-REAL(real_8), INTENT(IN)    :: mu
-REAL(real_8), INTENT(IN)    :: sigma
-INTEGER,  INTENT(IN)        :: dim
-REAL(real_8)                :: gauss_dist1( dim )
-!local variables
-REAL(real_8)                :: x1, x2, w, y1 , y2
-INTEGER  :: i
-!
-!
-DO i = 1, dim, 2
-  !
-  gaussian_loop: DO
-     !
-     !$omp critical
-     call random_number(y1)
-     call random_number(y2)
-     !$omp end critical
-     !
-     x1 = 2.0D0 * y1 - 1.0D0
-     x2 = 2.0D0 * y2 - 1.0D0
-     !
-     w = x1 * x1 + x2 * x2
-     !
-     IF ( w < 1.0D0 ) EXIT gaussian_loop
-     !
-  END DO gaussian_loop
-  !
-  w = dSQRT( ( - 2.0D0 * dLOG( w ) ) / w )
-  !
-  gauss_dist1(i) = x1 * w * sigma
-  !
-  IF ( i >= dim ) EXIT
-  !
-  gauss_dist1(i+1) = x2 * w * sigma
-  !
-END DO
-!
-gauss_dist1(:) = gauss_dist1(:) + mu
-!
-RETURN
-!
-END subroutine gauss_dist
-!-----------------------------------------------------------------------
-
-subroutine rotate_c0(c0,nstate)
-    implicit none
-    COMPLEX(real_8) :: c0(:,:)
-    integer ::  nstate
-
-    REAL(real_8),DIMENSION(:,:),ALLOCATABLE  :: U
-    REAL(real_8), ALLOCATABLE      :: PSID(:,:)
-    COMPLEX(real_8), ALLOCATABLE   :: c0_tmp(:,:)
-    integer:: k1, k2 ,k3, ierr
-    INTEGER:: ispin, nspins, nst, nstates(2), st_offst
-    CHARACTER(*), PARAMETER                  :: procedureN = 'rotate_c0'
-
-   ALLOCATE(c0_tmp(ncpw%ngw,nstate),stat=ierr)
-    IF (ierr.NE.0) CALL stopgm(procedureN,'Allocation problem',&
-         __LINE__,__FILE__)
-
-   ALLOCATE(PSID(LLR1,nstate),stat=ierr)
-    IF (ierr.NE.0) CALL stopgm(procedureN,'Allocation problem',&
-         __LINE__,__FILE__)
-
-
-    nstates = 0
-    IF (cntl%tlsd) THEN
-       nspins = 2
-       nstates(1) = spin_mod%nsup
-       nstates(2) = spin_mod%nsdown
-    ELSE
-       nspins = 1
-       nstates(1) = nstate
-    ENDIF
-
-    CALL G_TO_R_WF(C0(:,:),NSTATE,PSID)
-    !CALL LOCALIZE_SCDM(PSID,NSTate,U)
-    call zeroing(c0_tmp)
-
-DO ispin = 1, nspins
-
-           nst = nstates(ispin)
-           st_offst = 0
-           IF(ispin.EQ.2) st_offst = nstates(1)
-
-
-    ALLOCATE(U(NST,NST),STAT=ierr)
-           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-         __LINE__,__FILE__)
-           !
-
-
-              CALL LOCALIZE_SCDM(PSID(1,1+ST_OFFST),NST,U)  ! TODO
-
-    !
-        DO K1=1+ST_OFFST,ST_OFFST+NST
-         DO K2=1,ncpw%ngw
-          DO K3=1+ST_OFFST,ST_OFFST+NST
-            !
-            C0_tmp(K2,K1)=C0_tmp(K2,K1)+C0(K2,K3) &
-                             *U(K3-ST_OFFST,K1-ST_OFFST)  !use of U^* check TODO
-            !
-          END DO
-         END DO
-        END DO  
-
-          DEALLOCATE(U,STAT=ierr)
-          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-             __LINE__,__FILE__)
-ENDDO
-
-   call dcopy(2*ncpw%ngw*nstate,C0_tmp,1,C0,1)
-
-   deallocate(c0_tmp,psid,stat=ierr)
-   IF (ierr.NE.0) CALL stopgm(procedureN,'DeAllocation problem',&
-         __LINE__,__FILE__)
-   return
-end subroutine rotate_c0
-
-
 !==========================================================!
 END MODULE hfx_utils

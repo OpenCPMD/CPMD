@@ -145,10 +145,10 @@ CONTAINS
        time_rho=(timeei2-timeei1)/1000._real_8
        IF (iqmmm%coupl_model.GE.1)THEN
           IF (paral%qmnode) THEN
-             !DEALLOCATE(qmmm_smat,STAT=ierr)
-             !IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-             !     __LINE__,__FILE__)
-             IF(ALLOCATED(qmmm_c0_ort))DEALLOCATE(qmmm_c0_ort,STAT=ierr)
+             DEALLOCATE(qmmm_smat,STAT=ierr)
+             IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+                  __LINE__,__FILE__)
+             DEALLOCATE(qmmm_c0_ort,STAT=ierr)
              IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
                   __LINE__,__FILE__)
           END IF
@@ -196,7 +196,7 @@ CONTAINS
 
     CALL mp_sync(parai%qmmmgrp)
     CALL mm_dim(mm_go_mm,statusdummy)
-    IF (paral%io_parent.AND. .NOT.clc%classical)THEN
+    IF (paral%parent.AND. .NOT.clc%classical)THEN
        CALL daxpy(3*maxsys%nax*maxsys%nsx,1.0_real_8,fion(1,1,1),1,mm_FION(1,1,1),1)
        ! parent has the short range  contribution + the QM forces; if parent.eq.mmnode, has also lr
     ENDIF

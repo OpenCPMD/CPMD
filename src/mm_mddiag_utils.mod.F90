@@ -163,7 +163,6 @@ MODULE mm_mddiag_utils
   USE zeroing_utils,                   ONLY: zeroing
   USE mts_utils,                       ONLY: mts,set_mts_functional !SM
   USE ace_hfx  !SM
-  USE sinr_utils  !ritama
 
   IMPLICIT NONE
 
@@ -216,8 +215,6 @@ CONTAINS
     ! high level wave-function parameters
     complex(real_8), allocatable :: c0_high(:,:,:)
     ! MTS]
-    INTEGER :: iostat !ritama
-    INTEGER, SAVE :: ifirst=0
 !=================================================
 
 ! Variables
@@ -274,16 +271,6 @@ CONTAINS
            if(ierr/=0) call stopgm(proceduren,'allocation problem: XI',&
                 __LINE__,__FILE__)
        ENDIF
-       IF(HFX_SCDM_STATUS)THEN  !SM
-          IF(cntl%tlsd)THEN
-            allocate(rho_scdm(fpar%nnr1,2),grad_scdm(fpar%nnr1,2),stat=ierr)
-          ELSE
-            allocate(rho_scdm(fpar%nnr1,1),grad_scdm(fpar%nnr1,1),stat=ierr)
-          END IF
-          if(ierr/=0) call stopgm(proceduren,'allocation problem: rho_scdm/grad_scdm',&
-                  __LINE__,__FILE__)
-       ENDIF
-
     ! ==--------------------------------------------------------------==
        !
        if (cntl%use_mts) then
@@ -573,9 +560,7 @@ CONTAINS
        CALL dynit(ekincp,ekin1,ekin2,temp1,temp2,ekinh1,ekinh2)
        ekinp=0.0_real_8  ! McB: cf. META_EXT..()
        ! PARAMETERS FOR THE NOSE-HOOVER THERMOSTATS
-    ! call nosepa to collect dtsuz(*) terms     ! Ritama 
-    !   IF (cntl%tnosep.AND.paral%parent) CALL nosepa(1,1)
-       IF ((cntl%tnosep.OR.cntl%tsinr).AND.paral%parent) CALL nosepa(1,1) ! ritama
+       IF (cntl%tnosep.AND.paral%parent) CALL nosepa(1,1)
        ! Dont symmetrize density
        cntl%tsymrho=.FALSE.
        ! ..Make sure TKFULL=.TRUE
@@ -592,15 +577,6 @@ CONTAINS
        ENDIF
 
        ! ==--------------------------------------------------------------==
-
-!  Ritama
-! Set  sinr thermostat parametes
-! Take the temperature 
-! TODO put the condition with SINR
-      IF(cntl%tsinr.AND.paral%parent)THEN
-        CALL sinr_init                           !ritama
-     ENDIF
-
        ! 28/3/03 added
        CALL mm_dim(mm_go_qm,statusdummy)
        CALL phfac(tau0)
@@ -670,7 +646,7 @@ CONTAINS
 
        ! INITIALIZE METADYNAMICS VARIABLES used also for 
        ! SHOOTING from SADDLE POINT with RANDOM VELOCITIES
-       IF (paral%io_parent .AND. (lmeta%lcolvardyn .OR. lmeta%lsadpnt)) THEN
+       IF (paral%parent .AND. (lmeta%lcolvardyn .OR. lmeta%lsadpnt)) THEN
           CALL colvar_structure(tau0,taur)
        ENDIF
 
@@ -679,63 +655,27 @@ CONTAINS
           ener_com%ecnstr = 0.0_real_8
           ener_com%erestr = 0.0_real_8
           CALL rinvel(velp,c2,crge%n)
-          IF(paral%parent) THEN
-              CALL taucl(velp)
-              CALL mm_solv_const('RATTL',dt_ions,tau0,velp,tau0)
-              CALL rattle(tau0,velp)
+          IF (paral%parent) THEN
+             CALL taucl(velp)
+             CALL mm_solv_const('RATTL',dt_ions,tau0,velp,tau0)
+             CALL rattle(tau0,velp)
           ENDIF
           ! RESCALE VELOCITIES ONLY IF NOT READ FROM GROMOS.G96 FILE
           IF ( g96_vel%ntx_vel.NE.1 ) CALL rvscal(velp)
        ELSE
-          IF(paral%parent) THEN
-              CALL taucl(velp)
-              CALL mm_solv_const('RATTL',dt_ions,tau0,velp,tau0)
-              CALL rattle(tau0,velp)
+          IF (paral%parent) THEN
+             CALL taucl(velp)
+             CALL mm_solv_const('RATTL',dt_ions,tau0,velp,tau0)
+             CALL rattle(tau0,velp)
           ENDIF
           IF (cntl%trescale) CALL rvscal(velp)
        ENDIF
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ritama!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   IF(cntl%tsinr) THEN
-    IF(ifirst.EQ.0) THEN
-      IF(paral%parent)THEN
-   !     IF(paral%io_parent)&
-        INQUIRE(file='RESTART_SINR',exist=fexist)
-        IF(.NOT.fexist)THEN
-          CALL invelp_sinr(velp,v1_sinr,v2_sinr)  !ritama
-        IF(paral%io_parent)&
-          WRITE(6,'(1X,64("="))')
-        IF(paral%io_parent)&
-          WRITE(6,*)&
-              'THERMOSTAT VARIABLES AND VELOCITIES READ FROM SUBROUTINE'
-        ELSE
-          OPEN(unit=601,file='RESTART_SINR',status='OLD',iostat=iostat)
-          IF (iostat.NE.0)CALL stopgm(procedureN,&
-             'Cannot open the restart_sinr file',&
-             731,"mm_mddiag_utils.mod.F90")
-          CALL read_restart_sinr(v1_sinr,v2_sinr,sinr_ke)
-          ifirst=1
-        IF(paral%io_parent)&
-          WRITE(6,'(1X,64("="))')
-        IF(paral%io_parent)&
-          WRITE(6,*)&
-               'THERMOSTAT VARIABLES READ FROM RESTART_SINR FILE'
-          CLOSE(601)
-        ENDIF
-      ENDIF
-    ENDIF
-   ENDIF
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ritama!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
        IF (cntl%quenchp) CALL zeroing(velp)!,3*maxsys%nax*maxsys%nsx)
        IF (clc%classical) CALL zeroing(cm(1:ncpw%ngw*nstate))!,ngw*nstate)
        ! COMPUTE THE IONIC TEMPERATURE TEMPP
        IF (paral%parent) THEN
           CALL ekinpp(ekinp,velp)
-          IF(cntl%tsinr)THEN  !ritama
-            tempp=(ekinp*2._real_8)*factem/(glib*lbylp1)  !ritama
-          ELSE
-            tempp=ekinp*factem*2._real_8/glib
-          ENDIF
+          tempp=ekinp*factem*2._real_8/glib
           ! ..TSH[
           tempp_sh=tempp
           ! ..TSH]
@@ -867,12 +807,7 @@ CONTAINS
           IF (paral%parent) CALL dispp(tau0,taui,disa)
           ! ENERGY OF THE NOSE THERMOSTATS
           CALL noseng(iteropt%nfi,velp,enose,enosp,dummy,1)
-    !      econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr+ener_com%erestr
-          IF(cntl%tsinr)THEN !ritama
-            econs=ekinp+ener_com%etot+enosp+enose+ener_com%ecnstr+ener_com%erestr+esinr
-          ELSE
-            econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr+ener_com%erestr
-          ENDIF
+          econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr+ener_com%erestr
           time2 =m_walltime()
           tcpu = (time2 - time1)*0.001_real_8
           IF (paral%io_parent)&
@@ -935,7 +870,6 @@ CONTAINS
           ! ANNEALING
           CALL anneal(velp,c2,crge%n,scr)
           CALL berendsen(velp,c2,nstate,scr,0.0_real_8,0.0_real_8)
-          IF(cntl%tsinr.AND.paral%parent)CALL sinrup(velp,v1_sinr,v2_sinr)   !ritama
           ! SUBTRACT CENTER OF MASS VELOCITY
           IF (paral%parent.AND.comvl%subcom) CALL comvel(velp,vcmio,.TRUE.)
           ! SUBTRACT ROTATION AROUND CENTER OF MASS
@@ -943,24 +877,12 @@ CONTAINS
           ! UPDATE NOSE THERMOSTATS
           CALL noseup(velp,c2,crge%n,1)
           ! UPDATE VELOCITIES
-!          IF (paral%parent) CALL velupi(velp,fion,1)
-          IF (paral%parent)THEN
-             IF(cntl%tsinr)THEN
-               CALL velupi_sinr(velp,v1_sinr,fion)  !ritama
-             ELSE
-               CALL velupi(velp,fion,1)
-             ENDIF
-          ENDIF
+          IF (paral%parent) CALL velupi(velp,fion,1)
           ! UPDATE POSITIONS
           ener_com%ecnstr = 0.0_real_8
           ener_com%erestr = 0.0_real_8
           IF (paral%parent) THEN
-             !CALL posupi(tau0,taup,velp)
-             IF(cntl%tsinr)THEN !ritama
-               CALL posupi_sinr(tau0,taup,velp,v2_sinr)  
-             ELSE
-               CALL posupi(tau0,taup,velp)
-             ENDIF
+             CALL posupi(tau0,taup,velp)
              CALL mm_solv_const('SHAKE',dt_ions,taup,velp,tau0)
              IF (cotc0%mcnstr.NE.0) THEN
                 CALL cpmdshake(tau0,taup,velp)
@@ -1117,11 +1039,7 @@ CONTAINS
           ener_com%ecnstr = 0.0_real_8
           ener_com%erestr = 0.0_real_8
           IF (paral%parent) THEN
-             IF(cntl%tsinr)THEN
-               CALL velupi_sinr(velp,v1_sinr,fion)  !ritama
-             ELSE 
-               CALL velupi(velp,fion,1)
-             ENDIF
+             CALL velupi(velp,fion,1)
              IF (lqmmm%qmmm_reflex) CALL mm_qm_boundary(taup,velp)! cmb
              CALL mm_solv_const('RATTL',dt_ions,taup,velp,tau0)
              CALL rattle(taup,velp)
@@ -1133,11 +1051,7 @@ CONTAINS
              ! calculate local kinetic temperature in QM and MM subsystem
              ! and write to "QM_TEMP"
              CALL ekinpp(ekinp,velp)
-             IF(cntl%tsinr)THEN  !ritama
-               tempp=(ekinp*2._real_8)*factem/(lbylp1*glib)
-             ELSE
-               tempp=ekinp*factem*2._real_8/glib
-             ENDIF
+             tempp=ekinp*factem*2._real_8/glib
              IF (wp_i%nfi_lt.GT.0) THEN
                 CALL mm_localt(velp,rmass%pma,factem,tempp,glib,iteropt%nfi,wp_i%nfi_lt)
              ENDIF
@@ -1155,31 +1069,16 @@ CONTAINS
           ! UPDATE NOSE THERMOSTATS
           CALL noseup(velp,c2,crge%n,1)
           CALL berendsen(velp,c2,nstate,scr,0.0_real_8,0.0_real_8)
-          !UPDATE 1ST HALF OF SINR THERMOSTAT
-          IF(cntl%tsinr.AND.paral%parent)CALL sinrup(velp,v1_sinr,v2_sinr)   !ritama
-
           ! ANNEALING
           CALL anneal(velp,c2,crge%n,scr)
           IF (paral%parent) THEN
              CALL ekinpp(ekinp,velp)
-             IF(cntl%tsinr)THEN
-               tempp=(ekinp*2._real_8)*factem/(glib*lbylp1)
-             ELSE
-              tempp=ekinp*factem*2._real_8/glib
-             ENDIF
+             tempp=ekinp*factem*2._real_8/glib
           ENDIF
           ! MEAN SQUARE DISPLACEMENT OF DIFFERENT IONIC SPECIES
           IF (paral%parent) CALL dispp(taup,taui,disa)
           ! ENERGY OF THE NOSE THERMOSTATS
           IF (paral%parent) CALL noseng(iteropt%nfi,velp,enose,enosp,dummy,1)
-          !PRINT SINR VARIABLES
-          IF (cntl%tsinr.AND.paral%parent) THEN !ritama
-             IF((MOD(iteropt%nfi,store1%istore).EQ.0) .OR. (iteropt%nfi.EQ.cnti%nomore))THEN
-             CALL print_sinr(iteropt%nfi,velp,v1_sinr,v2_sinr,sinr_ke)
-          ENDIF
-          IF (paral%io_parent) CLOSE(500)
-       ENDIF
-
           ! CALCULATE PROPERTIES DURING SIMULATION.
           cntl%caldip=cntl%tdipd.AND.MOD(iteropt%nfi-1,cnti%npdip).EQ.0
           CALL mm_dim(mm_go_qm,statusdummy)
@@ -1192,13 +1091,7 @@ CONTAINS
                   CALL fileclose(3)
              IF (paral%io_parent)&
                   CALL fileopen(3,filen,fo_app,ferror)
-             IF(cntl%tsinr)THEN
-               CALL sinr_cons(esinr)   ! ritama
-             !econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr+ener_com%erestr
-               econs=ekinp+ener_com%etot+enosp+enose+ener_com%ecnstr+ener_com%erestr+esinr
-             ELSE
-               econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr+ener_com%erestr
-             ENDIF
+             econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr+ener_com%erestr
              time2=m_walltime()
              tcpu=(time2-time1)*0.001_real_8
              CALL wrprint_md(eigv,crge%f,ener_com%amu,crge%n,taup,fion,&
@@ -1371,14 +1264,6 @@ CONTAINS
                __LINE__,__FILE__)
        ENDIF
 !-----------------------------------------------------------------------
-       IF(HFX_SCDM_STATUS)THEN  !SM
-          Deallocate(rho_scdm,STAT=ierr)
-          if(ierr/=0) call stopgm(proceduren,'deallocation problem: rho_scdm',&
-                         __LINE__,__FILE__)
-          Deallocate(grad_scdm,STAT=ierr)
-          if(ierr/=0) call stopgm(proceduren,'deallocation problem: grad_scdm',&
-                         __LINE__,__FILE__)
-       ENDIF
 !------------------------------------------------------
        if (cntl%use_mts) then
           deallocate(c0_high,stat=ierr)

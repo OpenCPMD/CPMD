@@ -1,9 +1,6 @@
 #include "cpmd_global.h"
 
 MODULE vofrhob_utils
-  USE ace_hfx,                         ONLY: grad_scdm, &
-                                             rho_scdm, &
-                                             hfx_scdm_status
   USE cofor_utils,                     ONLY: cofor
   USE corec_utils,                     ONLY: corec
   USE cppt,                            ONLY: indz,&
@@ -279,28 +276,12 @@ CONTAINS
              rhoe(ir,1)=rhoe(ir,1)-rhoe(ir,2)
           ENDDO
           CALL graden(rhoe(:,1),v,grad(:,1),vtmp)
-          !
-          IF(HFX_SCDM_STATUS)THEN
-            rho_scdm(:,1) = rhoe(:,1)
-            grad_scdm(:,1) = grad(:,1)
-          END IF
-          !
           CALL graden(rhoe(:,2),v,grad(:,5),vtmp)
-          !
-          IF(HFX_SCDM_STATUS)THEN
-            rho_scdm(:,2) = rhoe(:,2)
-            grad_scdm(:,2) = grad(:,5)
-          END IF
        ELSE
           IF (tstress.OR.cntl%tdiag) CALL dcopy(2*fpar%nnr1,v(1,1),1,dqg,1)
           CALL fwfftn(v(:,1),.FALSE.,parai%allgrp)
           CALL zgthr(ncpw%nhg,v,vtemp,nzh)
           CALL graden(rhoe,v,grad,vtmp)
-          !
-          IF(HFX_SCDM_STATUS)THEN
-            rho_scdm(:,1) = rhoe(:,1)
-            grad_scdm(:,1) = grad(:,1)
-          END IF
        ENDIF
        ! ==--------------------------------------------------------------==
        ! == GRADIENT CORRECTION TO THE EXCHANGE ENERGY (EGCX)            ==

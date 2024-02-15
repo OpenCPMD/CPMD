@@ -55,7 +55,6 @@ MODULE control_pri_utils
                                              real_8,&
                                              rmixsd,&
                                              tolx_inr
-  USE ace_hfx,         ONLY: LANG_DYN,GAMMA,T_BATH !SAGAR HACK
 
   IMPLICIT NONE
 
@@ -627,29 +626,6 @@ CONTAINS
                ' ION DYNAMICS WITH BERENDSEN-STYLE THERMOSTAT',&
                '    TEMPERATURE(KELVIN):',cntr%tempw,&
                '    CHARACTERISTIC TIME(A.U.):',cntr%taubp
-!----------------------------------------------------------------------------
-!      SAGAR HACK
-       ELSEIF (LANG_DYN) THEN
-             WRITE(6,'(A)') '!===============================================================!'
-             WRITE(6,'(A)') '!                  SAGARMOY, JAYASHRITA & NISANTH               !'
-             WRITE(6,'(A)') '!                     IIT KANPUR, INDIA (2018)                  !'
-             WRITE(6,'(A)') '!===============================================================!'
-             WRITE(6,'(A,T21,A)')' ION DYNAMICS:',&
-                  'TEMPERATURE CONTROL (LANGEVIN THERMOSTAT)'
-             WRITE(6,'(A,T54,1PE12.6,/,A,T54,1PE12.6)')&
-                  '    TARGET TEMPERATURE(KELVIN):',T_BATH,&
-                  '    FRICTION COEFFICIENT((A.U.)**-1):',GAMMA
-             WRITE(6,'(A)') '!===============================================================!'
-!----------------------------------------------------------------------------
-!-------------------------------------RITAMA----------------------------------------!
-       ELSEIF (cntl%tsinr) THEN
-          WRITE(6,'(A,T17,A)')' ION DYNAMICS:',&
-               "STOCHASTIC ISO-KINETIC NOSE-HOOVER(RESPA) IS USED"
-          WRITE(6,"(1X,A,17X,F16.6)")"TARGET TEMPERATUE IS (KELVIN) :",cntr%tempsinr
-          WRITE(6,"(1X,A,7X,F16.6)")"FRICTIONAL COEFFICIENT IS (ATOMIC UNIT) :",cntr%gammasinr
-          WRITE(6,"(1X,A,11X,F16.6)")"THERMOSTAT TIME SCALE (ATOMIC UNIT) :",cntr%tausinr
-          WRITE(6,"(1X,A,36X,I5)")"NUMBER OF THERMOSTATS :",cnti%lsinr
-!-------------------------------------RITAMA----------------------------------------!
        ELSE
           WRITE(6,'(A,T21,A)')' ION DYNAMICS:',&
                'THE TEMPERATURE IS NOT CONTROLLED'

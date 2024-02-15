@@ -129,9 +129,7 @@ CONTAINS
        else
            CALL hfx_new(c0,c2,f,psia,nstate,ehfx,vhfx,redist_c2,deeq_fnl_hfx,fion,tfor)
        endif
-     elseif(.not.use_ace.and.hfx_scdm_status)then
-       CALL hfx_scdm(c0,c2,f,psia,nstate,ehfx,vhfx,redist_c2,deeq_fnl_hfx,fion,tfor) !TODO SM
-     else
+     else 
        CALL hfx_new(c0,c2,f,psia,nstate,ehfx,vhfx,redist_c2,deeq_fnl_hfx,fion,tfor)
      endif
      !

@@ -201,10 +201,6 @@ MODULE md_driver
   USE wv30_utils,                      ONLY: zhwwf
   USE zeroing_utils,                   ONLY: zeroing
   USE ace_hfx  !SM
-  USE sinr_utils  !ritama
-  USE hfx_utils,                       ONLY: posupi_lan, &
-                                       velupi_lan1,velupi_lan2,lang_cons, &
-                                             rotate_c0
 
   IMPLICIT NONE
 
@@ -252,10 +248,6 @@ CONTAINS
     ! high level wave-function parameters
     complex(real_8), allocatable :: c0_high(:,:,:)
     ! MTS]
-    INTEGER :: iostat !ritama
-    INTEGER, SAVE :: ifirst=0
-    !LANGEVIN
-    REAL(real_8),allocatable::VEL_TMP(:,:,:),RND(:,:,:) !SAGAR HACK
 
     CALL tiset(procedureN,isub)
     IF (cntl%tddft.AND.cntl%tresponse) CALL stopgm("MDDIAG",&
@@ -626,14 +618,14 @@ CONTAINS
           CALL zeroing(scold)
            rmem=rmem*2._real_8
        END IF
-       ! allocate array for high level WF extrapolation
-       if (mts_pure_dft) then
-          allocate(cold_high(nkpt%ngwk,crge%n,nkpt%nkpnt,lenext/(crge%n*nkpt%ngwk*nkpt%nkpnt)),stat=ierr)
-          if(ierr/=0) call stopgm(proceduren,'allocation problem: cold_high',&
-               __LINE__,__FILE__)
-          call zeroing(cold_high)
-          rmem=rmem*2._real_8
-       endif
+        ! allocate array for high level WF extrapolation
+        if (mts_pure_dft) then
+           allocate(cold_high(nkpt%ngwk,crge%n,nkpt%nkpnt,lenext/(crge%n*nkpt%ngwk*nkpt%nkpnt)),stat=ierr)
+           if(ierr/=0) call stopgm(proceduren,'allocation problem: cold_high',&
+                __LINE__,__FILE__)
+           call zeroing(cold_high)
+           rmem=rmem*2._real_8
+        endif
 
        IF (paral%io_parent)&
             WRITE(6,'(A,T51,F8.3,A)') ' MDDIAG| '&
@@ -675,8 +667,7 @@ CONTAINS
     CALL dynit(ekincp,ekin1,ekin2,temp1,temp2,ekinh1,ekinh2)
     ekinp=0.0_real_8    ! McB: cf. META_EXT..()
     ! PARAMETERS FOR THE NOSE-HOOVER THERMOSTATS
-    ! call nosepa to collect dtsuz(*) terms     ! ritama
-    IF ((cntl%tnosep.OR.cntl%tsinr).AND.paral%parent) CALL nosepa(ipwalk,ipwalk) !ritama
+    IF (cntl%tnosep.AND.paral%parent) CALL nosepa(ipwalk,ipwalk)
     ! Dont symmetrize density 
     cntl%tsymrho=.FALSE.
     ! ..Make sure TKFULL=.TRUE
@@ -694,24 +685,9 @@ CONTAINS
          if(ierr/=0) call stopgm(proceduren,'allocation problem: XI',&
               __LINE__,__FILE__)
     ENDIF
-   IF(HFX_SCDM_STATUS)THEN  !SM
-       IF(cntl%tlsd)THEN
-         allocate(rho_scdm(fpar%nnr1,2),grad_scdm(fpar%nnr1,2),stat=ierr)
-       ELSE
-         allocate(rho_scdm(fpar%nnr1,1),grad_scdm(fpar%nnr1,1),stat=ierr)
-       END IF
-       if(ierr/=0) call stopgm(proceduren,'allocation problem: rho_scdm/grad_scdm',&
-               __LINE__,__FILE__)
-    ENDIF
     ! ==--------------------------------------------------------------==
     ! == INITIALISATION                                               ==
     ! ==--------------------------------------------------------------==
-!  Ritam
-! Set  sinr thermostat parametes
-! Take the temperature
-     IF(cntl%tsinr.AND.paral%io_parent)THEN
-       CALL sinr_init                           !ritama
-     ENDIF
     ! ..TSH[
     IF (tshl%tdtully) THEN
        ! ..XFMQC[
@@ -817,45 +793,15 @@ CONTAINS
     IF (irec(irec_vel).EQ.0.AND..NOT.restart1%rgeo) THEN
        ener_com%ecnstr = 0.0_real_8
        ener_com%erestr = 0.0_real_8
-       CALL rinvel(velp,c2,nstate)  ! ritama edit
-       IF (paral%parent) CALL taucl(velp)  !ritama
-       IF (paral%parent) CALL rattle(tau0,velp)  !ritama
-       !IF ((.NOT.cntl%tsinr).AND.paral%parent) CALL taucl(velp)  !ritama
-       !IF ((.NOT.cntl%tsinr).AND.paral%parent) CALL rattle(tau0,velp)  !ritama
+       CALL rinvel(velp,c2,nstate)
+       IF (paral%parent) CALL taucl(velp)
+       IF (paral%parent) CALL rattle(tau0,velp)
        CALL rvscal(velp)
     ELSE
-       IF (paral%parent) CALL taucl(velp) !ritama
-       IF (paral%parent) CALL rattle(tau0,velp) !ritama
-       !IF ((.NOT.cntl%tsinr).AND.paral%parent) CALL taucl(velp) !ritama
-       !IF ((.NOT.cntl%tsinr).AND.paral%parent) CALL rattle(tau0,velp) !ritama
+       IF (paral%parent) CALL taucl(velp)
+       IF (paral%parent) CALL rattle(tau0,velp)
        IF (cntl%trescale) CALL rvscal(velp)
     ENDIF
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ritama!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    IF(cntl%tsinr) THEN
-       IF(ifirst.EQ.0) THEN
-          IF(paral%io_parent)THEN
-             INQUIRE(file='RESTART_SINR',exist=fexist)
-             IF(.NOT.fexist)THEN
-                CALL invelp_sinr(velp,v1_sinr,v2_sinr)  !ritama
-                WRITE(6,'(1X,64("="))')
-                WRITE(6,*)&
-                     'THERMOSTAT VARIABLES AND VELOCITIES READ FROM SUBROUTINE'
-             ELSE
-                OPEN(unit=601,file='RESTART_SINR',status='OLD',iostat=iostat)
-                IF (iostat.NE.0)CALL stopgm(procedureN,&
-                     'Cannot open the restart_sinr file',& 
-                     __LINE__,__FILE__)
-                CALL read_restart_sinr(v1_sinr,v2_sinr,sinr_ke)
-                ifirst=1
-                WRITE(6,'(1X,64("="))')
-                WRITE(6,*)&
-                     'THERMOSTAT VARIABLES READ FROM RESTART_SINR FILE'
-                CLOSE(601)
-             ENDIF
-          ENDIF
-       ENDIF
-    ENDIF
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ritama!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     IF (cntl%quenchp) CALL zeroing(velp)!,3*maxsys%nax*maxsys%nsx)
     IF (cntl%trevers) THEN
        ! invert ionic velocities (useful for path sampling)
@@ -864,14 +810,9 @@ CONTAINS
     ! COMPUTE THE IONIC TEMPERATURE TEMPP
     IF (paral%parent) THEN
        CALL ekinpp(ekinp,velp)
-       IF(cntl%tsinr)THEN  !ritama
-       !  CALL sinr_cons(esinr)   
-         tempp=(ekinp*2._real_8)*factem/(lbylp1*glib) !ritama
-       ELSE
        tempp=ekinp*factem*2._real_8/glib
-       ENDIF
        ! ..TSH[
-       tempp_sh=tempp 
+       tempp_sh=tempp
        ! ..TSH]
     ENDIF
     ! RESET ACCUMULATORS
@@ -946,10 +887,6 @@ CONTAINS
        WRITE(6,'(1X,64("="))')
     ENDIF
     ifcalc=0
-    if(.not.use_ace.and.hfx_scdm_status)then
-        CALL rotate_c0(c0(:,:,1),nstate)
-        IF (paral%io_parent) write(6,*)"Initial SCDM localization"
-    end if
     IF (cntl%bsymm) THEN
        CALL bs_forces_diag(nstate,c0,c2,cm,sc0,cm(nx:),vpp,eigv,&
           rhoe,psi,&
@@ -1030,12 +967,8 @@ CONTAINS
        ! MEAN SQUARE DISPLACEMENT OF DIFFERENT IONIC SPECIES
        IF (paral%parent) CALL dispp(tau0,taui,disa)
        ! ENERGY OF THE NOSE THERMOSTATS
-       CALL noseng(iteropt%nfi,velp,enose,enosp,dummy(1),1)  ! SINR development
-       IF(cntl%tsinr)THEN
-         econs=ekinp+ener_com%etot+ener_com%ecnstr+esinr 
-       ELSE
-         econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr
-       ENDIF
+       CALL noseng(iteropt%nfi,velp,enose,enosp,dummy(1),1)
+       econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr
        IF (cntl%cdft)econs=econs+cdftcom%cdft_v(1)*(cdftcom%cdft_nc+cdftcom%vgrad(1))
        time2 =m_walltime()
        tcpu = (time2 - time1)*0.001_real_8
@@ -1053,18 +986,6 @@ CONTAINS
     ! ==          THE BASIC LOOP FOR MOLECULAR DYNAMICS               ==
     ! ==                 USING VELOCITY VERLET                        ==
     ! ==================================================================
-
-    IF(paral%io_parent.AND.LANG_DYN)THEN
-       CALL LANG_CONS  !SAGAR HACK
-       !
-       ALLOCATE(VEL_TMP(3,MAXSYS%NAX,MAXSYS%NSX),RND(3,MAXSYS%NAX,MAXSYS%NSX) &
-            ,stat=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-           __LINE__,__FILE__)
-       !
-    ENDIF
-
-
 #if defined(USE_IBM_HPM)
     CALL hpm_start('MD LOOP')
 #endif
@@ -1102,30 +1023,21 @@ CONTAINS
        ENDIF
        ! ANNEALING
        ! thermostats only if 1) standard dynamics 2) larger MTS step
-       !if ( .not.cntl%use_mts .or. mts_large_step ) then
+       if ( .not.cntl%use_mts .or. mts_large_step.or.use_ace ) then !SM
           CALL anneal(velp,c2,nstate,scr)
           CALL berendsen(velp,c2,nstate,scr,0.0_real_8,0.0_real_8)
           ! UPDATE NOSE THERMOSTATS
           CALL noseup(velp,c2,nstate,ipwalk)
           ! FIRST HALF OF GLE EVOLUTION
           CALL gle_step(tau0,velp,rmass%pma)
-       !endif 
-          !FIRST HALF OF SINR UPDATE
-       IF(cntl%tsinr.AND.paral%io_parent)CALL sinrup(velp,v1_sinr,v2_sinr)   !ritama
+       endif 
        ! SUBTRACT CENTER OF MASS VELOCITY
        IF (paral%io_parent.AND.comvl%subcom) CALL comvel(velp,vcmio,.TRUE.)
        ! SUBTRACT ROTATION AROUND CENTER OF MASS
        IF (paral%io_parent.AND.comvl%subrot) CALL rotvel(tau0,velp,lmio,&
             tauio,.TRUE.)
        ! UPDATE VELOCITIES
-       !IF (paral%io_parent)CALL velupi(velp,fion,1)
-       IF (paral%io_parent)THEN
-          IF(cntl%tsinr)THEN
-            CALL velupi_sinr(velp,v1_sinr,fion)  !ritama
-          ELSE
-            CALL velupi(velp,fion,1)
-          ENDIF
-       ENDIF
+       IF (paral%io_parent) CALL velupi(velp,fion,1)
 #if defined (__QMECHCOUPL)
        IF (paral%io_parent .AND. qmmech) THEN
           CALL mm_cpmd_velup(cntr%delt_ions)
@@ -1134,13 +1046,8 @@ CONTAINS
        ! UPDATE POSITIONS
        ener_com%ecnstr = 0.0_real_8
        IF (paral%io_parent) THEN
-    !      CALL posupi(tau0,taup,velp)
-           IF(cntl%tsinr)THEN 
-             CALL posupi_sinr(tau0,taup,velp,v2_sinr)  !ritama
-           ELSE
-             CALL posupi(tau0,taup,velp)
-           ENDIF
-          IF (cotc0%mcnstr.NE.0) CALL cpmdshake(tau0,taup,velp) 
+          CALL posupi(tau0,taup,velp)
+          IF (cotc0%mcnstr.NE.0) CALL cpmdshake(tau0,taup,velp)
 #if defined (__QMECHCOUPL)
           IF (qmmech) THEN
              CALL mm_cpmd_update_links(taup, ions0%na, ions1%nsp, maxsys%nax, ions1%nat)
@@ -1171,14 +1078,6 @@ CONTAINS
              CALL extrapwf(infi,c0,scr,cold,nnow,numcold,nstate,cnti%mextra)
           END IF
        ENDIF
-
-       if( mod(infi, n_loop) == 0 ) then 
-          if(.not.use_ace.and.hfx_scdm_status) then
-             CALL rotate_c0(c0(:,:,1),nstate)
-             IF (paral%io_parent) write(6,*) "relocalization of SCDM", infi, "-th step"
-          endif
-       end if
-
        IF (cntl%tlanc) nx=1
        IF (cntl%tdavi) nx=cnti%ndavv*nkpt%nkpnt+1
        ! RESPONSE calculation
@@ -1314,13 +1213,8 @@ CONTAINS
 #endif
        ! FINAL UPDATE FOR VELOCITIES
        ener_com%ecnstr = 0.0_real_8
-
        IF (paral%io_parent) THEN
-          IF(cntl%tsinr)THEN
-            CALL velupi_sinr(velp,v1_sinr,fion)  !ritama
-          ELSE
-            CALL velupi(velp,fion,1)
-          ENDIF
+          CALL velupi(velp,fion,1)
 #if defined (__QMECHCOUPL)
           IF (qmmech) THEN
              CALL mm_cpmd_velup(cntr%delt_ions)
@@ -1336,8 +1230,6 @@ CONTAINS
           IF (lmeta%lextlagrange.AND. ltcglobal) THEN
              CALL ekincv_global(ek_cv)
              tempp=(ek_cv+ekinp)*factem*2._real_8/(glib+REAL(ncolvar,kind=real_8))
-          ELSEIF(cntl%tsinr)THEN  !ritama
-             tempp=(ekinp*2._real_8)*factem/(lbylp1*glib)
           ELSE
              tempp=ekinp*factem*2._real_8/glib
           ENDIF
@@ -1372,27 +1264,21 @@ CONTAINS
        IF (paral%io_parent.AND.comvl%subcom) CALL comvel(velp,vcmio,.FALSE.)
 
        ! thermostats only if 1) standard dynamics 2) larger MTS step
-       !if ( .not.cntl%use_mts .or. mts_large_step.or.use_ace ) then !SM
+       if ( .not.cntl%use_mts .or. mts_large_step.or.use_ace ) then !SM
           ! SECOND HALF OF GLE EVOLUTION
           CALL gle_step(tau0,velp,rmass%pma)
 
           ! UPDATE NOSE THERMOSTATS
           CALL noseup(velp,c2,nstate,ipwalk)
           CALL berendsen(velp,c2,nstate,scr,0.0_real_8,0.0_real_8)
-        
-          !UPDATE SECOND HALF OF SINR THERMOSTAT
-          IF(cntl%tsinr.AND.paral%io_parent)CALL sinrup(velp,v1_sinr,v2_sinr)   !ritama
-
           ! ANNEALING
           CALL anneal(velp,c2,nstate,scr)
-       !endif
+       endif
        IF (paral%io_parent) THEN
           CALL ekinpp(ekinp,velp)
           IF (lmeta%lextlagrange.AND. ltcglobal) THEN
              CALL ekincv_global(ek_cv)
              tempp=(ek_cv+ekinp)*factem*2._real_8/(glib+REAL(ncolvar,kind=real_8))
-          ELSEIF (cntl%tsinr)THEN
-             tempp=(ekinp*2._real_8)*factem/(lbylp1*glib)
           ELSE
              tempp=ekinp*factem*2._real_8/glib
           ENDIF
@@ -1401,13 +1287,6 @@ CONTAINS
        IF (paral%io_parent) CALL dispp(taup,taui,disa)
        ! ENERGY OF THE NOSE THERMOSTATS
        IF (paral%io_parent) CALL noseng(iteropt%nfi,velp,enose,enosp,dummy(1),ipwalk)
-       !PRINT SINR VARIABLES AFTER EVERY ISTORE STEP
-       IF (cntl%tsinr.AND.paral%io_parent) THEN !ritama
-          IF((MOD(iteropt%nfi,store1%istore).EQ.0) .OR. (iteropt%nfi.EQ.cnti%nomore))THEN
-            CALL print_sinr(iteropt%nfi,velp,v1_sinr,v2_sinr,sinr_ke) 
-          ENDIF
-       IF (paral%io_parent) CLOSE(500)
-       ENDIF
        ! CALCULATE PROPERTIES DURING SIMULATION.
        cntl%caldip=cntl%tdipd.AND.MOD(iteropt%nfi-1,cnti%npdip).EQ.0
        ! mb - Wannier stuff for vdW-WC; call ddipo instead of localize2
@@ -1425,12 +1304,7 @@ CONTAINS
             rhoe,psi,nstate,nkpt%nkpnt,iteropt%nfi,infi)
        ! PRINTOUT the evolution of the accumulators every time step
        IF (paral%io_parent) THEN
-          IF(cntl%tsinr)THEN
-            CALL sinr_cons(esinr)   ! ritama !TODO remove extra energy
-            econs=ekinp+ener_com%etot+ener_com%ecnstr+ekincv+vharm+glepar%egle+esinr 
-          ELSE
-            econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr+ekincv+vharm+glepar%egle
-          ENDIF
+          econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr+ekincv+vharm+glepar%egle 
           IF (cntl%cdft)THEN
              econs=econs+cdftcom%cdft_v(1)*(cdftcom%cdft_nc+cdftcom%vgrad(1))
           ENDIF
@@ -1648,14 +1522,6 @@ CONTAINS
        GOTO 99999
     ENDIF
 10000 CONTINUE
-    !SAGAR HACK
-    IF(paral%io_parent.AND.LANG_DYN)THEN
-       !
-       DEALLOCATE(VEL_TMP,RND,stat=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-           __LINE__,__FILE__)
-       !
-    ENDIF
     ! ==--------------------------------------------------------------==
     DEALLOCATE(eigv,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
@@ -1847,16 +1713,8 @@ CONTAINS
     ! SOC]
 !=======================================================================
     IF(USE_ACE)THEN  !SM
-       DEALLOCATE(XI,STAT=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem: XI',&
-            __LINE__,__FILE__)
-    ENDIF
-    IF(HFX_SCDM_STATUS)THEN  !SM
-       Deallocate(rho_scdm,STAT=ierr)
-       if(ierr/=0) call stopgm(proceduren,'deallocation problem: rho_scdm',&
-            __LINE__,__FILE__)
-       Deallocate(grad_scdm,STAT=ierr)
-       if(ierr/=0) call stopgm(proceduren,'deallocation problem: grad_scdm',&
+      DEALLOCATE(XI,STAT=ierr)
+      IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem: XI',&
             __LINE__,__FILE__)
     ENDIF
 !-----------------------------------------------------------------------

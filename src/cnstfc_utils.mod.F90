@@ -510,13 +510,13 @@ CONTAINS
   ! ==================================================================
   ! ==================================================================
   SUBROUTINE coornumgrp(na_grp,maxnb_grp,nb_grp,&
-       IA,IB,C1_KAPPA,C1_RC_A,PF,TSCR,AN,LSK,FCI,FVI,CVAL)
+       IA,IB,C1_KAPPA,C1_RC_A,TSCR,AN,LSK,FCI,FVI,CVAL)
     ! ==--------------------------------------------------------------==
 
     INTEGER                                  :: na_grp, maxnb_grp, &
                                                 nb_grp(na_grp), ia(na_grp), &
                                                 ib(na_grp*maxnb_grp)
-    REAL(real_8)                             :: c1_kappa, c1_rc_a(na_grp), pf(na_grp), &
+    REAL(real_8)                             :: c1_kappa, c1_rc_a(na_grp), &
                                                 tscr(3,*), an(*)
     INTEGER                                  :: LSK(3,ions1%nat)
     REAL(real_8)                             :: fci, fvi, cval
@@ -558,10 +558,8 @@ CONTAINS
           ! ..exclude self interaction
           IF (dd.GT.1.e-2_real_8) THEN
              df=c1_kappa*(dd-c1_rc_a(iatma))
-             !fvi=fvi+1._real_8/(EXP(df)+1._real_8)
-             fvi=fvi+pf(iatma)/(EXP(df)+1._real_8)
-             !ff=-0.5_real_8*c1_kappa/(COSH(df)+1._real_8)/dd
-             ff=-0.5_real_8*pf(iatma)*c1_kappa/(COSH(df)+1._real_8)/dd
+             fvi=fvi+1._real_8/(EXP(df)+1._real_8)
+             ff=-0.5_real_8*c1_kappa/(COSH(df)+1._real_8)/dd
              IF (lsk(1,atmb).NE.0) THEN
                 k=lsk(1,atmb)
                 an(k)=an(k)+ff*dx

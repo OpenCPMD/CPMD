@@ -61,9 +61,7 @@ MODULE forces_diag_utils
   USE wrener_utils,                    ONLY: wrprint_wfopt
   USE wv30_utils,                      ONLY: zhwwf
   USE zeroing_utils,                   ONLY: zeroing
-  USE ace_hfx,                         ONLY: use_ace,switch_ace, & 
-                                             status_ace,hfx_scdm_status, &
-                                             de_cutoff  !SM
+  USE ace_hfx,                         ONLY: use_ace,switch_ace,status_ace  !SM
 
   IMPLICIT NONE
 
@@ -285,13 +283,8 @@ CONTAINS
              ENDIF
              etot0=ener_com%etot
           ENDIF
-          IF(.not.hfx_scdm_status)THEN
-           IF (MOD(ifcalc,store1%isctore).EQ.0)&
+          IF (MOD(ifcalc,store1%isctore).EQ.0)&
                CALL zhwwf(2,irec,c0,c2,nstate,eigv,tau0,velp,taui,iteropt%nfi)
-          ELSE
-            CALL mp_bcast(detot,parai%io_source,parai%cp_grp)
-            if((dabs(detot) .le. de_cutoff).and.(infr.gt.1))GOTO 100
-          ENDIF
           ! Check to break the loop.
           IF (.NOT.soft_com%exsoft) CALL testex(soft_com%exsoft)
           IF (soft_com%exsoft) GOTO 200   ! Soft Exit (no force calculation)
@@ -314,14 +307,12 @@ CONTAINS
     ! ==================================================================
     ! ==                      END OF MAIN  LOOP                       ==
     ! ==================================================================
-    IF(.not.hfx_scdm_status)THEN
-       IF (paral%io_parent)&
-            WRITE(6,'(A)') ' WARNING! DENSITY NOT CONVERGED !!!'
-       IF (paral%io_parent)&
-            WRITE(6,'(A)') ' WARNING! DENSITY NOT CONVERGED !!!'
-       IF (paral%io_parent)&
-            WRITE(6,'(A)') ' WARNING! DENSITY NOT CONVERGED !!!'
-    ENDIF
+    IF (paral%io_parent)&
+         WRITE(6,'(A)') ' WARNING! DENSITY NOT CONVERGED !!!'
+    IF (paral%io_parent)&
+         WRITE(6,'(A)') ' WARNING! DENSITY NOT CONVERGED !!!'
+    IF (paral%io_parent)&
+         WRITE(6,'(A)') ' WARNING! DENSITY NOT CONVERGED !!!'
 100 CONTINUE
     ! Compute stress tensor if requested
     ropt_mod%calste=calste_save

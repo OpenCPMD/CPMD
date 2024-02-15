@@ -16,7 +16,7 @@ MODULE ratom_utils
                                              tclas
   USE cnst_dyn,                        ONLY: &
        ekincv, icv_spin, imeta, inter_hill, inter_hill_max, kharm, lmeta, &
-       ncolvar, ncolvar_mtd, nsubsys, rcc0, rmeta, vharm
+       ncolvar, nsubsys, rcc0, rmeta, vharm
   USE coninp_utils,                    ONLY: coninp
   USE coor,                            ONLY: tau0,&
                                              velp
@@ -719,11 +719,10 @@ CONTAINS
     CALL mp_bcast_byte(imeta,size_in_bytes_of(imeta),parai%io_source,parai%cp_grp)
     CALL mp_bcast_byte(rmeta,size_in_bytes_of(rmeta),parai%io_source,parai%cp_grp)
     CALL mp_bcast(ncolvar,parai%io_source,parai%cp_grp)
-    CALL mp_bcast(ncolvar_mtd,parai%io_source,parai%cp_grp)
     CALL mp_bcast(inter_hill,parai%io_source,parai%cp_grp)
     CALL mp_bcast(inter_hill_max,parai%io_source,parai%cp_grp)
     IF (lmeta%tlocalizespin) THEN
-       IF (.NOT. paral%io_parent) THEN
+       IF (.NOT. paral%parent) THEN
           ALLOCATE(icv_spin(ncolvar),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)

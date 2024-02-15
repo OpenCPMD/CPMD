@@ -11,7 +11,7 @@ MODULE meta_colvar_inp_utils
        max_natcngb, max_nnvar, maxrmsdat, mdcellr, natcngb, ncolvar, ncvsys, &
        nlong, nrmsd_ab, nshort, nsubsys, optdist, rcc, rcc0, rccnga, rch, &
        rcw, rmeta, specindex, tad_scf, tcvlangevin, tcvscale, toll_avcv, &
-       trmsd_ab, tvolbound, tycvar, vbound, ncolvar_mtd, pfcnga
+       trmsd_ab, tvolbound, tycvar, vbound
   USE cnstfc_utils,                    ONLY: bndswitch,&
                                              coorn_rf,&
                                              coornum,&
@@ -210,7 +210,6 @@ CONTAINS
     REAL(real_8)                             :: cpos_0, fmax, fmin, r0_shift, &
                                                 r_wall, temp, vbar
     REAL(real_8), ALLOCATABLE                :: dummy(:)
-    LOGICAL, ALLOCATABLE                     :: no_hill(:)    
 
     lmeta%lcolvardyn = .TRUE.
     !WT-MTD
@@ -288,11 +287,6 @@ CONTAINS
             __LINE__,__FILE__)
        CALL settological(initial_value,nnvar,.FALSE.)
 
-       ALLOCATE(no_hill(nnvar),STAT=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-            __LINE__,__FILE__)
-       CALL settological(no_hill,nnvar,.FALSE.)
-
        IF (lmeta%tmulti) THEN
           ALLOCATE(hwm(nsubsys),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
@@ -362,7 +356,7 @@ CONTAINS
           CALL readsi(line,i1,iout,idummy,erread)
           atcvar(2,ncolvar)=NAT_cpmd(idummy)
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
        ELSEIF (INDEX(line,'DISAXIS').NE.0) THEN
           ncolvar = ncolvar + 1
@@ -377,7 +371,7 @@ CONTAINS
           CALL readsi(line,i1,iout,idummy,erread)
           atcvar(3,ncolvar)=idummy
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==--------------- DIFFERENCE AMONG DISTANCES ------------------==
        ELSEIF (INDEX(line,'DIFFER').NE.0) THEN
@@ -393,7 +387,7 @@ CONTAINS
           CALL readsi(line,i1,iout,idummy,erread)
           atcvar(3,ncolvar)=NAT_cpmd(idummy)
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==------------------ STRETCH ----------------------------------==
        ELSEIF (INDEX(line,'STRETCH').NE.0) THEN
@@ -406,7 +400,7 @@ CONTAINS
           CALL readsi(line,i1,iout,idummy,erread)
           atcvar(2,ncolvar)=NAT_cpmd(idummy)
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==------------------  BEND ------------------------------------==
        ELSEIF (INDEX(line,'BEND').NE.0) THEN
@@ -422,7 +416,7 @@ CONTAINS
           CALL readsi(line,i1,iout,idummy,erread)
           atcvar(3,ncolvar)=NAT_cpmd(idummy)
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==------------------ TORSION ANGLE  ----------------------------==
        ELSEIF (INDEX(line,'TORSION').NE.0) THEN
@@ -442,7 +436,7 @@ CONTAINS
           CALL readsi(line,i1,iout,idummy,erread)
           atcvar(4,ncolvar)=NAT_cpmd(idummy)
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==------------------ OUT OF LPANE ANGLE ------------------------==
        ELSEIF (INDEX(line,'OUTP').NE.0) THEN
@@ -462,7 +456,7 @@ CONTAINS
           CALL readsi(line,i1,iout,idummy,erread)
           atcvar(4,ncolvar)=NAT_cpmd(idummy)
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==------------------ COORDINATION NUMBER ------------------------==
        ELSEIF (INDEX(line,'COORD').NE.0) THEN
@@ -476,7 +470,7 @@ CONTAINS
           i1=iout
           CALL readsr(line,i1,iout,cvpar(2,ncolvar),erread)
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==------------ SPECIES DEPENDENT COORDINATION NUMBER  -----------==
           ! ==                 f = 1/(1+exp(k*(R-R_0)))                      ==
@@ -494,7 +488,7 @@ CONTAINS
           i1=iout
           CALL readsr(line,i1,iout,cvpar(2,ncolvar),erread)
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==--- SPECIES DEPENDENT COORDINATION NUMBER OF POINT IN SPACE ---=
           ! ==                 f = 1/(1+exp(k*(R-R_0)))                      =
@@ -513,7 +507,7 @@ CONTAINS
 
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
           ! ==-------------- COORDINATION NUMBER FOR SPECIES IN GROUP-----------------==
@@ -528,7 +522,7 @@ CONTAINS
           CALL readsr(line,i1,iout,cvpar(1,ncolvar),erread)! parameter k
           i1=iout
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           IF (firstcorgrp.EQ.0) THEN
              ALLOCATE(iatcnga(atcvar(1,ncolvar)*nnvar),STAT=ierr)
@@ -543,15 +537,9 @@ CONTAINS
              ALLOCATE(rccnga(atcvar(1,ncolvar)*nnvar),STAT=ierr)
              IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                   __LINE__,__FILE__)      ! stores the cut-off distances for all A
-
-             ALLOCATE(pfcnga(atcvar(1,ncolvar)*nnvar),STAT=ierr)
-             IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-                  __LINE__,__FILE__) !stores the prefactor before each atom of type A 
-
              CALL zeroing(iatcnga)!,atcvar(1,ncolvar)*nnvar)
              CALL zeroing(iatcngb)!,atcvar(1,ncolvar)*max_natcngb*nnvar)
              CALL zeroing(rccnga)!,atcvar(1,ncolvar)*nnvar)
-             CALL zeroing(pfcnga)!,atcvar(1,ncolvar)*nnvar)
              firstcorgrp = 1
              ipgrpa=0
              ipgrpb=0
@@ -560,7 +548,7 @@ CONTAINS
           DO iatma=1,atcvar(1,ncolvar)
              ipgrpa=ipgrpa+1
              IF (paral%io_parent)&
-                  READ(iunit,*) iatcnga(ipgrpa), rccnga(ipgrpa), pfcnga(ipgrpa), &
+                  READ(iunit,*) iatcnga(ipgrpa), rccnga(ipgrpa),&
                   natcngb(ipgrpa)
              iatcnga(ipgrpa)=NAT_cpmd(iatcnga(ipgrpa))! A's in CPMD order
              IF (natcngb(ipgrpa).GT.max_natcngb)THEN
@@ -642,18 +630,13 @@ CONTAINS
                 CALL zeroing(iatdlmn)!,my_nat*nnvar)
                 firstdlmn = 1
              ENDIF
-             !IF (lqmmm%qmmm)  CALL stopgm('M_COLVAR_INP',&
-             !     'INDAT not implemented for QMMM',& 
-             !     __LINE__,__FILE__)
+             IF (lqmmm%qmmm)  CALL stopgm('M_COLVAR_INP',&
+                  'INDAT not implemented for QMMM',& 
+                  __LINE__,__FILE__)
              IF (paral%io_parent)&
                   READ(iunit,*)  (iatdlmn(ii+my_nat*(ncolvar-1)),&
                   ii=1,atcvar(2,ncolvar))
-             IF (lqmmm%qmmm) THEN
-                DO ii = 1, atcvar(2,ncolvar)
-                   idummy= iatdlmn(ii+my_nat*(ncolvar-1))
-                   iatdlmn(ii+my_nat*(ncolvar-1)) =nat_cpmd(idummy) 
-                ENDDO
-             ENDIF
+
           ELSEIF (specindex(ncolvar) .LT. -3) THEN
              IF (paral%io_parent)&
                   READ(iunit, *) atcvar(5,ncolvar), atcvar(6,ncolvar)
@@ -672,7 +655,7 @@ CONTAINS
              ENDIF
           ENDIF
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
           ! ==--------------- BOND SWITCH WITH RATIONAL F -------------------==
@@ -693,7 +676,7 @@ CONTAINS
           i1=iout
           CALL readsr(line,i1,iout,cvpar(1,ncolvar),erread)
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==--------- TOTAL SPECIES DEPENDENT COORDINATION NUMBER ---------==
           ! ==      f =sum_j[sum_i (1+(Rij/R_0)^n)/(1+(Rij/R_0)^(n+m))]/NA   ==
@@ -777,7 +760,7 @@ CONTAINS
              ENDIF
           ENDIF
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==--------- TOTAL SPECIES DEPENDENT COORDINATION NUMBER OF DIFFERENCE ---------==
           ! ==   f =sum_j[sum_i (1+(Rij/R_0)^n)/(1+(Rij/R_0)^(n+m))]/NA-sum_j[sum_k[]]/NA ==
@@ -808,7 +791,7 @@ CONTAINS
 
           ! scaling factor, k, m, low and upper bounds, turning on lagrange formulations     
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==--------- COORDINATION NUMBER BETWEEN SEQUENCES (QMMM) ---------==
           ! ==      f =sum_j[sum_i (1+(Rij/R_0)^n)/(1+(Rij/R_0)^(n+m))]/NA   ==
@@ -884,7 +867,7 @@ CONTAINS
           ENDIF
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
           ! ==------- RMSD wrt 2 configurations A and B (read from file)-----==
@@ -935,7 +918,7 @@ CONTAINS
           atcvar(numspec+2,ncolvar) = nrmsd_ab
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
        ELSEIF (INDEX(line,'RMSD_SEQ').NE. 0) THEN
@@ -981,7 +964,7 @@ CONTAINS
                   READ(iunit, *) atcvar(3,ncolvar), atcvar(4,ncolvar)
           ENDIF
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
           ! 
@@ -1123,7 +1106,7 @@ CONTAINS
              atcvar(3+i2,ncolvar)=0
           ENDIF
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==---- Angle between 2 planes, each defined by 3 given pnts  -----==
        ELSEIF (INDEX(line,'PLNANG').NE.0) THEN
@@ -1150,7 +1133,7 @@ CONTAINS
           CALL readsi(line,i1,iout,idummy,erread)
           atcvar(6,ncolvar)=NAT_cpmd(idummy)
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==--------------------- Hydrogen Bonds Chain  --------------------==
        ELSEIF (INDEX(line,'HBONDCH').NE.0) THEN
@@ -1216,7 +1199,7 @@ CONTAINS
                ii=1,atcvar(4,ncolvar))
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
           IF (INDEX(line,'PARA').NE.0) THEN
@@ -1301,14 +1284,9 @@ CONTAINS
              IF (paral%io_parent)&
                   READ(iunit,*)  (iatdlmn(ii+my_nat*(ncolvar-1)),&
                   ii=1,atcvar(3,ncolvar))
-!NNdbg
-             DO ii=1,atcvar(3,ncolvar)
-               idummy=iatdlmn(ii+my_nat*(ncolvar-1))
-               iatdlmn(ii+my_nat*(ncolvar-1))=nat_cpmd(idummy)
-             END DO
           ENDIF
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==------------ COORDINATION OF SECOND NEIGHBORS -------------==
           ! ==    f =sum_jik [(1+(Rij/R_0)^n)/(1+(Rij/R_0)^(n+m))*       ==
@@ -1333,7 +1311,7 @@ CONTAINS
           CALL readsr(line,i1,iout,cvpar(2,ncolvar),erread)
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
           ! ==------------ PRESENCE OF THE HYDRONIUM COMPLEX -----------==
@@ -1402,7 +1380,7 @@ CONTAINS
           ENDIF
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
           ! ==------------ PRESENCE OF THE HYDRONIUM COMPLEX B -----------==
@@ -1488,7 +1466,7 @@ CONTAINS
 
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
 
@@ -1538,7 +1516,7 @@ CONTAINS
 
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
 
@@ -1584,7 +1562,7 @@ CONTAINS
 
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
 
@@ -1630,7 +1608,7 @@ CONTAINS
 
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
           ! ==------------ DISTANCE BETWEEN ION AND HYDRONIUM ----------==
@@ -1701,7 +1679,7 @@ CONTAINS
           ENDIF! cmb - this endif must stay here as in version 3.11
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
 
@@ -1776,7 +1754,7 @@ CONTAINS
 
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
           ! ==------------ LOCALIZATION OF THE SPIN DENSITY  -----------==
        ELSEIF (INDEX(line,'SPIN').NE.0) THEN
@@ -1803,7 +1781,7 @@ CONTAINS
           atcvar(1,ncolvar)=NAT_cpmd(idummy)
           IF (erread) GOTO 22
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
        ELSEIF (INDEX(line,'VOLVAR').NE.0) THEN
           IF (.NOT. cntl%tprcp) THEN
@@ -1828,7 +1806,7 @@ CONTAINS
           ! IF(ERREAD) GOTO 22
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
        ELSEIF (INDEX(line,'CELLSIDE').NE.0) THEN
           IF (.NOT. cntl%tprcp) THEN
@@ -1853,7 +1831,7 @@ CONTAINS
           IF (erread) GOTO 22
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
        ELSEIF (INDEX(line,'CELLANGLE').NE.0) THEN
           IF (.NOT. cntl%tprcp) THEN
@@ -1878,7 +1856,7 @@ CONTAINS
           IF (erread) GOTO 22
 
           CALL param_meta(line,tad_scf,vbound,ibound,&
-               cv_dyn_0,initial_value,no_hill,&
+               cv_dyn_0,initial_value,&
                ncolvar,cscl_fac,kharm,cv_mass,lmeta%lextlagrange)
 
        ENDIF
@@ -1908,10 +1886,6 @@ CONTAINS
     ELSEIF (INDEX(line,'METASTEPNUM').NE.0) THEN
        IF (paral%io_parent)&
             READ(iunit,err=20,END=20,fmt=*) imeta%i_meta_max
-       GOTO 10
-       ! ==------------ IF ONLY HILLS HAVE TO BE RESTARTED  ----------------==
-    ELSEIF (INDEX(line,'HILLS_ONLY').NE.0) THEN
-       lmeta%hills_only=.TRUE.
        GOTO 10
        ! ==-------- RESTART META DYNAMICS FROM METASTEPI_META_RES -------==
     ELSEIF (INDEX(line,'META_RESTART').NE.0) THEN
@@ -2263,11 +2237,6 @@ CONTAINS
        CALL STOPGM('M_COLVAR_INP', 'Well Tempered is only implemented for ext. lag. metadyn.',&
             __LINE__,__FILE__)
     END IF
-
-    ncolvar_mtd=0
-    DO I = 1, ncolvar 
-      IF(.NOT.no_hill(I)) ncolvar_mtd = ncolvar_mtd + 1
-    END DO
 
     ! ==--------------------------------------------------------------==
     ! Print initialization
@@ -3042,7 +3011,7 @@ CONTAINS
           CALL coornumgrp(atcvar(1,icv),max_natcngb,&
                natcngb(ipatma+1),iatcnga(ipatma+1),&
                iatcngb(ipatmb+1),&
-               c_rcm,rccnga(ipatma+1),pfcnga(ipatma+1),tscr,det_colvar(1,icv),lskptr,&
+               c_rcm,rccnga(ipatma+1),tscr,det_colvar(1,icv),lskptr,&
                diff,cv_ist(icv),0.0_real_8)
           ipatma=ipatma+atcvar(1,icv)
           ipatmb=ipatmb+atcvar(1,icv)*max_natcngb
@@ -3569,7 +3538,7 @@ CONTAINS
   END SUBROUTINE colvarpr
   ! ==================================================================
   SUBROUTINE param_meta(line,tad_scf,vbound,ibound,&
-       cv_dyn_0,initial_value,no_hill,&
+       cv_dyn_0,initial_value,&
        ncolvar,cscl_fac,kharm,cv_mass,lextlagrange)
     ! ==--------------------------------------------------------------==
     CHARACTER(len=80)                        :: line
@@ -3577,7 +3546,7 @@ CONTAINS
     REAL(real_8)                             :: vbound(4,*)
     INTEGER                                  :: ibound(*)
     REAL(real_8)                             :: cv_dyn_0(*)
-    LOGICAL                                  :: initial_value(*), no_hill(*)
+    LOGICAL                                  :: initial_value(*)
     INTEGER                                  :: ncolvar
     REAL(real_8)                             :: cscl_fac(3,*), kharm(*), &
                                                 cv_mass(*)
@@ -3649,14 +3618,6 @@ CONTAINS
        ia=ii+13
        CALL readsr(line,ia,ie,cv_dyn_0(ncolvar),erread)
     ENDIF
-
-    ii=INDEX(line,'NO_HILL')
-    IF (ii .NE. 0) THEN
-      no_hill(ncolvar) = .TRUE.
-      ia = ii + 6 
-    ENDIF
-    IF (paral%io_parent)&
-    WRITE(6,*) 'No Hill addition for CV',ncolvar,'is',no_hill(ncolvar) !shalini    
 
     RETURN
 22  CONTINUE

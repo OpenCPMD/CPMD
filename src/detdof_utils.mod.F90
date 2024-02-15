@@ -87,8 +87,7 @@ CONTAINS
     ENDDO
     IF (cotc0%nodim.NE.3*ions1%nat) THEN
        glib=REAL(cotc0%nodim,kind=real_8)
-    !ELSEIF (nosl%tultra.OR.nosl%tmnose.OR.tcafes.OR.loct%tloct) THEN
-    ELSEIF (nosl%tultra.OR.nosl%tmnose.OR.tcafes.OR.loct%tloct.OR.cntl%tsinr) THEN !ritama
+    ELSEIF (nosl%tultra.OR.nosl%tmnose.OR.tcafes.OR.loct%tloct) THEN
        glib=REAL(cotc0%nodim,kind=real_8)
     ELSE
        glib=REAL(cotc0%nodim,kind=real_8)-3._real_8

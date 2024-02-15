@@ -83,10 +83,6 @@ MODULE control_bcast_utils
                                              wannr
   USE xinr,                            ONLY: inr_logical,&
                                              rmixsd
-
-  USE ace_hfx,                       ONLY: LANG_DYN,&
-                                             GAMMA,T_BATH !SAGAR HACK
-
 #include "sizeof.h"
 
   IMPLICIT NONE
@@ -159,7 +155,7 @@ CONTAINS
     CALL mp_bcast_byte(wanni, size_in_bytes_of(wanni),parai%io_source,parai%cp_grp)
     CALL mp_bcast_byte(wannr, size_in_bytes_of(wannr),parai%io_source,parai%cp_grp)
     IF (wanni%sw_orb.GT.0) THEN
-       IF (.NOT.paral%io_parent) THEN
+       IF (.NOT.paral%parent) THEN
           ALLOCATE(sw_list(wanni%sw_orb),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
@@ -195,7 +191,7 @@ CONTAINS
     CALL mp_bcast(tcafes,parai%io_source,parai%cp_grp)
     IF (tcafes) THEN
        CALL mp_bcast(ncafesgrp,parai%io_source,parai%cp_grp)
-       IF (.NOT. paral%io_parent) THEN
+       IF (.NOT. paral%parent) THEN
           ALLOCATE(cafesini(2,ncafesgrp),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
@@ -211,7 +207,7 @@ CONTAINS
     IF (loct%tloct) THEN
        CALL mp_bcast(loct%nloct,parai%io_source,parai%cp_grp)
        CALL mp_bcast(loct%nlocrng,parai%io_source,parai%cp_grp)
-       IF (.NOT. paral%io_parent) THEN
+       IF (.NOT. paral%parent) THEN
           ALLOCATE(loctpin(2,loct%nloct),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
@@ -305,18 +301,6 @@ CONTAINS
     !BLOCKING FFT
     CALL mp_bcast(batch_fft,parai%io_source,parai%cp_grp)
     CALL mp_bcast(a2a_msgsize,parai%io_source,parai%cp_grp)
-!=======================================================================
-!     LANGEVIN_DYNAMICS VARIABLES         !SAGAR HACK
-      !
-      CALL mp_bcast(LANG_DYN,parai%io_source,parai%cp_grp)
-      !
-      IF(LANG_DYN)THEN
-       CALL mp_bcast_byte(GAMMA,size_in_bytes_of(GAMMA), parai%io_source,parai%cp_grp)
-       !
-       CALL mp_bcast_byte(T_BATH,size_in_bytes_of(T_BATH), parai%io_source,parai%cp_grp)
-      ENDIF
-      !
-!     ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE control_bcast
   ! ==================================================================

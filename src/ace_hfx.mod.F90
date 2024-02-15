@@ -15,21 +15,9 @@ MODULE ace_hfx
   !
   COMPLEX(real_8), ALLOCATABLE  ::      XI(:,:)
 ! ==================================================================
-  LOGICAL      :: HFX_SCDM_STATUS, NEW_SCDM
+  LOGICAL      :: HFX_SCDM_STATUS
 !----------------------------------------------
-  REAL(real_8) :: SCDM_CUTOFF, de_cutoff
-  integer      :: n_loop
-  REAL(real_8), ALLOCATABLE  ::  rho_scdm(:,:), grad_scdm(:,:)
+  REAL(real_8) :: SCDM_CUTOFF
+
 !-------------------------------------------------------------------
-  ! ==================================================================
-  ! == INCLUDE FILE FOR LANGEVIN DYNAMICS WITH SCDM APPROACH        ==
-  ! ==================================================================
-  ! == GAMMA    VALUE OF LANGEVIN FRICTION COEFFICIENT IN A.U.      ==
-  ! == T_BATH   TARGET TEMPERATURE IN KELVIN                        ==
-  ! ==--------------------------------------------------------------==
-  LOGICAL :: LANG_DYN
-  !
-  REAL(real_8) :: GAMMA,T_BATH,C_0,C_1,C_2,&
-       C_RV,SIGMA_R,SIGMA_V
-! ==================================================================
 END MODULE ace_hfx

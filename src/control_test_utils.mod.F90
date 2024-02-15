@@ -375,9 +375,6 @@ CONTAINS
           ENDIF
           cntl%tberp=.FALSE.
        ENDIF
-       IF (cntl%tsinr) THEN  !ritama
-          WRITE(6,'(A)')' WARNING! SINR IS USING, CONSTRAINTS WILL NOT WORK'
-       ENDIF
        IF (cntl%tnosec) THEN
           IF (cntl%tcc) THEN
              WRITE(6,'(A,A)')' WARNING! BOTH NOSE CELL AND ',&

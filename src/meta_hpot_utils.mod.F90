@@ -2,7 +2,7 @@ MODULE meta_hpot_utils
   USE cnst,                            ONLY: pi
   USE cnst_dyn,                        ONLY: &
        cnst_val, cscl_val, cv_path, hllh_val, hllw_val, ht_path, iangcv, &
-       inter_hill, lmeta, rmeta, ncolvar
+       inter_hill, lmeta, rmeta
   USE error_handling,                  ONLY: stopgm
   USE kinds,                           ONLY: real_8
 
@@ -26,9 +26,9 @@ CONTAINS
 
 
     INTEGER                                  :: nvar
-    REAL(real_8)                             :: cvar(ncolvar)
+    REAL(real_8)                             :: cvar(nvar)
     INTEGER                                  :: i_meta, ntot
-    REAL(real_8)                             :: force(ncolvar)
+    REAL(real_8)                             :: force(nvar)
     INTEGER                                  :: isys, ipos
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'hills'
@@ -39,7 +39,7 @@ CONTAINS
     REAL(real_8), POINTER                    :: c_history(:,:)
 
     length  = nvar*4
-    ALLOCATE(diffpos(ncolvar),STAT=ierr)
+    ALLOCATE(diffpos(nvar),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
     IF (lmeta%lcnstdyn) THEN
@@ -51,7 +51,7 @@ CONTAINS
     ENDIF
 
     !$omp parallel do private(IC)
-    DO ic=1,ncolvar
+    DO ic=1,nvar
        force(ic)=0._real_8
        diffpos(ic)=0.0_real_8
     ENDDO

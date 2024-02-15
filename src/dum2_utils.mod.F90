@@ -161,13 +161,13 @@ CONTAINS
     DO i=1,duat%ndat
        ityp=duat%listda(i,1)
        id=duat%listda(i,2)
-       IF (ityp.EQ.1) WRITE(6,'(I6,I8,A,3F15.5)')&
+       IF (ityp.EQ.1) WRITE(6,'(I5,I8,A,3F15.5)')&
             i,nat_grm(mmdim%natm+i),'  TYPE1',(duat%dummy1(k,id),k=1,3)
-       IF (ityp.EQ.2) WRITE(6,'(I6,I8,A,3F15.5)')&
+       IF (ityp.EQ.2) WRITE(6,'(I5,I8,A,3F15.5)')&
             i,nat_grm(mmdim%natm+i),'  TYPE2',(duat%dummy2(k,id),k=1,3)
-       IF (ityp.EQ.3) WRITE(6,'(I6,I8,A,3F15.5)')&
+       IF (ityp.EQ.3) WRITE(6,'(I5,I8,A,3F15.5)')&
             i,nat_grm(mmdim%natm+i),'  TYPE3',(duat%dummy3(k,id),k=1,3)
-       IF (ityp.EQ.4) WRITE(6,'(I6,I8,A,3F15.5)')&
+       IF (ityp.EQ.4) WRITE(6,'(I5,I8,A,3F15.5)')&
             i,nat_grm(mmdim%natm+i),'  TYPE4',(duat%dummy4(k,id),k=1,3)
     ENDDO
     ! ==--------------------------------------------------------------==

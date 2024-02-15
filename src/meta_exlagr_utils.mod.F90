@@ -778,7 +778,7 @@ CONTAINS
 
        ENDIF
        WRITE(nw) (hllw_val(it,1),it=1,i_meta-1)
-       !WRITE(nw) (hllh_val(it,1),it=1,i_meta-1)
+       WRITE(nw) (hllh_val(it,1),it=1,i_meta-1)
        WRITE(NW) (hllh_val(it,1)*rmeta%wtfac,it=1,i_meta-1)
        
        CALL fileclose(nw)
