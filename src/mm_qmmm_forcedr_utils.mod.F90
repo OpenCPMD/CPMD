@@ -123,6 +123,10 @@ CONTAINS
              DEALLOCATE(qmmm_smat,stat=ierr)
              IF (ierr.NE.0) CALL stopgm(procedureN,'Deallocation problem',&
                   __LINE__,__FILE__)
+             DEALLOCATE(qmmm_c0_ort,STAT=ierr)
+             IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+                  __LINE__,__FILE__)
+
           ELSE
              c0_ptr=>c0
           END IF
@@ -143,16 +147,6 @@ CONTAINS
        ENDIF
        timeei2=m_walltime()
        time_rho=(timeei2-timeei1)/1000._real_8
-       IF (iqmmm%coupl_model.GE.1)THEN
-          IF (paral%qmnode) THEN
-             DEALLOCATE(qmmm_smat,STAT=ierr)
-             IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-                  __LINE__,__FILE__)
-             DEALLOCATE(qmmm_c0_ort,STAT=ierr)
-             IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-                  __LINE__,__FILE__)
-          END IF
-       END IF
     ENDIF
     IF (update_pot .AND. iqmmm%coupl_model.GE.1)THEN
        timeei1=m_walltime()
