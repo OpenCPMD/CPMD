@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE mdmain_utils
   USE anneal_utils,                    ONLY: anneal,&
                                              berendsen,&
@@ -218,6 +220,9 @@ CONTAINS
 #endif
     CALL tiset(procedureN,isub)
     time1 =m_walltime()
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(to:crge%f)
+#endif
     ! Walker ID for multiple walker MTD. MTD part is in grandparent
     ipwalk=1
     ionode=paral%io_parent !bugfix
@@ -322,13 +327,22 @@ CONTAINS
     ALLOCATE(rhoe(fpar%nnr1,il_rhoe_2d),STAT=ierr) !vw doenst work in parallel (should be equal to nnr1) !il_rhoe_1d
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:rhoe)
+#endif
     ALLOCATE(psi(il_psi_1d,il_psi_2d),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:psi)
+#endif
     CALL give_scr_mdmain(lscr,tag)
     ALLOCATE(scr(lscr),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:scr)
+#endif
     ! ==--------------------------------------------------------------==
 99999 IF (cntl%tsampl) THEN
        soft_com%exsoft=.FALSE.
@@ -370,7 +384,7 @@ CONTAINS
        IF (paral%io_parent)&
             WRITE(6,333) 'BROKEN SYMMETRY INIT SUCCESSFUL'
     ENDIF
-    ! 
+    !
     CALL mp_bcast(taup,SIZE(taup),parai%io_source,parai%cp_grp)
     CALL dcopy(3*maxsys%nax*maxsys%nsx,taup,1,taui,1)
     ! INITIALIZE WF CENTERS & SPREAD
@@ -439,7 +453,6 @@ CONTAINS
           CALL deort(nstate,c0(:,:,1))
        ENDIF
     ENDIF
-
     ! INITIALIZE VELOCITIES
     IF (paral%parent) CALL detdof(tau0,taur)
 
@@ -476,6 +489,9 @@ CONTAINS
     ! make sure the velocities are correctly replicated while using groups      
     CALL mp_bcast(velp,SIZE(velp),parai%io_source,parai%cp_grp)
     CALL mp_bcast(cm,ncpw%ngw*nstate*bsfac,parai%io_source,parai%cp_inter_grp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(CM)
+#endif
     ! <<<
     ! RESET ACCUMULATORS
     IF (paral%parent.AND.irec(irec_ac).EQ.0)&
@@ -548,6 +564,9 @@ CONTAINS
        bsclcs=1
        CALL setbsstate
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(C0(:,:,1))
+#endif
     CALL forcedr(c0(:,:,1),c2(:,:,1),sc0(:,:,1),rhoe,psi,&
          TAU0,FION,EIGV,NSTATE,1,.FALSE.,.TRUE.,.TRUE.)
     ! STORE THE SPIN DENSITIES FOR PRINTING
@@ -797,6 +816,9 @@ CONTAINS
        ! FOR BROKEN SYMMETRY STATE
        bsclcs=1
        IF (cntl%bsymm)CALL setbsstate
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update from(C0(:,:,1))
+#endif
        CALL forcedr(c0(:,:,1),c2(:,:,1),sc0(:,:,1),rhoe,psi,taup,fion,eigv,&
             nstate,1,.FALSE.,.TRUE.,.FALSE.)
        IF (cntl%bsymm) THEN
@@ -1257,12 +1279,21 @@ CONTAINS
             __LINE__,__FILE__)
     ENDIF
     IF (paral%parent.AND.paral%io_parent) CALL fileclose(3)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:rhoe)
+#endif
     DEALLOCATE(rhoe,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:psi)
+#endif
     DEALLOCATE(psi,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:scr)
+#endif
     DEALLOCATE(scr,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)

@@ -647,6 +647,9 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
     nmm=1
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:rhoe)
+#endif
     IF (cntl%tddft) THEN
        ALLOCATE(rhoo(il_rhoe_1d, il_rhoe_2d),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
@@ -660,10 +663,16 @@ CONTAINS
     ALLOCATE(psi(il_psi_1d,il_psi_2d),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:psi)
+#endif
     CALL give_scr_mddiag(lscr,tag)
     ALLOCATE(scr(lscr),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:scr)
+#endif
     ! ==--------------------------------------------------------------==
 99999 IF (cntl%tsampl) THEN
        CALL sample_wait
@@ -1733,12 +1742,21 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
     IF (paral%io_parent) CALL fileclose(3)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(rhoe)
+#endif
     DEALLOCATE(rhoe,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(psi)
+#endif
     DEALLOCATE(psi,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(scr)
+#endif
     DEALLOCATE(scr,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)

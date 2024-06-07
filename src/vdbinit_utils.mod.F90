@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE vdbinit_utils
   USE aavan,                           ONLY: indv
   USE cnst,                            ONLY: fpi
@@ -114,6 +116,9 @@ CONTAINS
           ENDDO
        ENDDO
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(nghtol)
+#endif
     ! ==--------------------------------------------------------------==
     ! ==   INDV(1)=1         ! QQ ORDER:                              ==
     ! ==   INDV(2)=3         ! s_1 p_x1 p_z1 p_y1 s_2 p_x2 p_z2 p_y2  ==
@@ -167,6 +172,9 @@ CONTAINS
           ENDIF
        ENDDO
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(dvan)
+#endif
     CALL tihalt('   VDBINIT',isub)
     ! ==--------------------------------------------------------------==
     RETURN
@@ -316,6 +324,9 @@ CONTAINS
           ENDDO
        ENDIF
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(qq)
+#endif
     ! ==--------------------------------------------------------------==
     DEALLOCATE(qsp1,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
@@ -352,6 +363,9 @@ CONTAINS
        ALLOCATE(qg(ncpw%nhg,nhh),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map (alloc:qg)
+#endif
        nhh=0
        DO is=1,ions1%nsp
           IF(pslo_com%tvan(is))THEN
@@ -365,6 +379,9 @@ CONTAINS
              END DO
           END IF
        END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(qg)
+#endif
     END IF
     CALL tihalt(procedureN,isub)
     RETURN
@@ -392,6 +409,9 @@ CONTAINS
        ALLOCATE(qg_dipole(6,nhh),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:qg_dipole)
+#endif
        qg_dipole=cmplx(0.0_real_8,0.0_real_8)
        nhh=0
        DO is=1,ions1%nsp
@@ -409,6 +429,9 @@ CONTAINS
           END IF
        END DO
        CALL mp_sum(qg_dipole,6*nhh,parai%allgrp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(qg_dipole)
+#endif
     END IF
     CALL tihalt(procedureN,isub)
     RETURN

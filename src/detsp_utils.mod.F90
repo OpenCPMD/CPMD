@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE detsp_utils
   USE array_utils,                     ONLY: array_alloc,&
                                              array_realloc
@@ -275,6 +277,9 @@ CONTAINS
     ALLOCATE(nghtol(nhx,maxsys%nsx),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__) ! FIXME deallocate missing
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map (alloc:nghtol)
+#endif
     ALLOCATE(nghcom(nhx,maxsys%nsx),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__) ! FIXME deallocate missing

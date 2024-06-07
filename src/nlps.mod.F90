@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE nlps
   USE kinds,                           ONLY: real_8
   USE system,                          ONLY: maxsp
@@ -41,5 +43,8 @@ MODULE nlps
      INTEGER :: idum
   END TYPE nlps_com_t
   TYPE(nlps_com_t) :: nlps_com
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  !$omp declare target (nlps_com)
+#endif
+  
 END MODULE nlps

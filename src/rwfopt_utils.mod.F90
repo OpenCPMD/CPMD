@@ -160,6 +160,9 @@ CONTAINS
     ALLOCATE(rhoe(fpar%nnr1,il_rhoe_2d),STAT=ierr) !vw doenst work in parallel with il_rhoe_1d
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:rhoe)
+#endif
     CALL zeroing(rhoe)
     ! EHR[
     IF (cntl%tpspec.OR.cntl%tpdist) THEN
@@ -176,11 +179,17 @@ CONTAINS
     ALLOCATE(psi(il_psi_1d,il_psi_2d),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', __LINE__,__FILE__)
     !#endif
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:psi)
+#endif
     CALL zeroing(psi)
     CALL give_scr_rwfopt(lscr,tag)
     ALLOCATE(scr(lscr),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:scr)
+#endif
     ! ==--------------------------------------------------------------==
     tfor = (cprint%iprint(iprint_force).EQ.1)
     IF (lqmmm%qmmm) THEN
@@ -945,16 +954,25 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
             __LINE__,__FILE__)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:rhoe)
+#endif
     DEALLOCATE(rhoe,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
     !#if defined(_HAS_CUDA)
     !    CALL cuda_dealloc_host(psi)
     !#else
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:psi)
+#endif
     DEALLOCATE(psi,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
     !#endif
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:scr)
+#endif
     DEALLOCATE(scr,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)

@@ -139,6 +139,9 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     iteropt%iinfi=0
     update_pot=.TRUE.
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map (alloc:vpp,gde,pme,eigv)
+#endif
 100 CONTINUE
     time1=m_walltime()
     ! UPDATE THE WAVEFUNCTIONS
@@ -161,6 +164,9 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ==     END OF MAIN LOOP                                         ==
     ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map (delete:vpp,gde,pme,eigv)
+#endif
     DEALLOCATE(pme,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)

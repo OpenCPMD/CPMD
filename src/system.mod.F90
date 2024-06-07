@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE system
   USE kinds,                           ONLY: real_8
 #ifdef __PARALLEL
@@ -56,6 +58,9 @@ MODULE system
      INTEGER :: mmaxx = HUGE(0)
   END TYPE maxsys_t
   TYPE(maxsys_t), SAVE, PUBLIC :: maxsys
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  !$omp declare target(maxsys)
+#endif
   ! ==================================================================
   ! == SPAR   : Global array dimensions (parallel work)             ==
   ! ==          NHGS = sum of NHG for all processors                ==

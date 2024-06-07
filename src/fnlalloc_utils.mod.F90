@@ -145,6 +145,9 @@ CONTAINS
     IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dfnl_packed',&
          __LINE__,__FILE__)
     ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:fnl,dfnl,fnl_packed,dfnl_packed)
+#endif
     RETURN
   END SUBROUTINE fnlalloc
   ! ==================================================================
@@ -157,6 +160,9 @@ CONTAINS
     INTEGER                                  :: ierr
 
 ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:fnl,dfnl,fnl_packed,dfnl_packed)
+#endif
     if (imagp .eq. 1) nullify(fnla,dfnla)
     DEALLOCATE(fnl,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
@@ -202,7 +208,9 @@ CONTAINS
                                                 xfnla(:,:,:)
 
     IF (INDEX(tag,'SAVE').NE.0) THEN
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target exit data map(delete:fnl,dfnl,fnl_packed,dfnl_packed)
+#endif
        xfnl   => fnl
        xfnl2  => fnl2
        xdfnl  => dfnl
@@ -232,7 +240,13 @@ CONTAINS
        tfnl2=tfnl2b
        il_dfnl_packed=ildfnl
        il_fnl_packed=ilfnl
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:fnl,dfnl,fnl_packed,dfnl_packed)
+#endif
     ELSEIF (INDEX(tag,'SWITCH').NE.0) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target exit data map(delete:fnl,dfnl,fnl_packed,dfnl_packed)
+#endif
        xdum => fnl
        fnl => xfnl
        xfnl => xdum
@@ -279,7 +293,13 @@ CONTAINS
        ildum=il_fnl_packed
        il_fnl_packed=ilfnl
        ilfnl=ildum
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:fnl,dfnl,fnl_packed,dfnl_packed)
+#endif
     ELSEIF (INDEX(tag,'MIX').NE.0) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target exit data map(delete:fnl,dfnl,fnl_packed,dfnl_packed)
+#endif
        xdum2 => dfnl
        dfnl => xdfnl
        xdfnl => xdum2
@@ -295,6 +315,9 @@ CONTAINS
        ldfd=ndfnl
        ndfnl=ndfnlb
        ndfnlb=ldfd
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:fnl,dfnl,fnl_packed,dfnl_packed)
+#endif
     ELSE
        CALL stopgm('FNL_SET','INVALID TAG',&
             __LINE__,__FILE__)

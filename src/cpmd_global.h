@@ -85,6 +85,16 @@
 #define _HAS_DGEMMT
 #endif
 
+!tk OpenMP Offload
+#if defined(__HAS_OMP_OFFLOAD)
+#define _HAS_OMP_TARGET_OFFLOAD
+#endif
+
+!tk OpenMP offload for Intel MKL
+#if defined(__HAS_OMP_OFFLOAD) && defined(__INTEL_MKL)
+#define _HAS_OMP_TARGET_OFFLOAD_INTEL
+#endif
+
 !tk grimme lib for vdw
 #if defined(__HAS_LIBGRIMMEVDW)
 #define _HAS_LIBGRIMMEVDW
@@ -109,8 +119,6 @@
 #if defined(__HAS_LIBELPA)
 #define _HAS_LIBELPA
 #endif
-!tk ------------------------------------------------------
-!tk use scratch module
 !vw ------------------------------------------------------
 !vw CUDA 
 

@@ -203,6 +203,9 @@ CONTAINS
     ALLOCATE(indzs(ncpw%ngw),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:nzhs,indzs)
+#endif
     ! MAXIMUM OF NR1, NGRAYS AND NHRAYS FOR MP_INDEX
     nr1m = 0
     nhrm = 0
@@ -260,6 +263,9 @@ CONTAINS
     ALLOCATE(msp(nhrm,2,parai%nproc),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:msp)
+#endif
     len = nhrm * 8
     CALL my_concat(ms,msp,len,parai%allgrp)
     ! TRANSLATE I,J TO A SINGLE G/S INDEX
@@ -311,6 +317,9 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
             __LINE__,__FILE__)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to (nzhs,indzs,msp)
+#endif
     ! ARRAY SIZE TO DO A 3D-FFT
     maxfft = MAX(kr1m*fpar%kr2s*fpar%kr3s,parai%nproc*nr1m*nhrm)
     IF (group%nogrp.GT.1) maxfft = MAX(fpar%krx*fpar%kr2s*fpar%kr3s,maxfft)

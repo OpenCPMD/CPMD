@@ -65,6 +65,7 @@ Description of options:
                     OMP3 is in general triggered by the config keyword OMP3_DISABLED,
                     which can either be true or false (or a script that sets true/false
                     according a certain compiler version)
+   -omp_offload     Enable OpenMP offload to GPUs
    -disable_omp3    Overrides any specification (compiler/configuration file) and disables
                     OMP3 instructions
    -minpack=<PATH>  Compiles enabling MINPACK and links using the provided library
@@ -128,6 +129,10 @@ do
       omp=1
       omp3=1
       echo "** Enabling OMP instructions (if the config file allows that)" >&2
+      ;;
+    -omp_offload)
+      omp_offload=1
+      echo "** Enabling OMP OFFLOAD instructions (if the config file allows that)" >&2
       ;;
     -disable_omp3)
       omp3=0

@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE rinforce_utils
   USE aainit_utils,                    ONLY: aainit
   USE aavan,                           ONLY: indv,&
@@ -117,9 +119,15 @@ CONTAINS
     ALLOCATE(vps(maxsys%nsx,ncpw%nhg),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__) ! FIXME deallocate missing
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:vps)
+#endif
     ALLOCATE(rhops(maxsys%nsx,ncpw%nhg),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__) ! FIXME deallocate missing
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:rhops)
+#endif
     IF (lqmmm%qmmm)  THEN
        ALLOCATE(mm_RHOPS(maxsys%nsx,ncpw%nhg),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
@@ -196,6 +204,9 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
        CALL zeroing(deeq)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:qq,dvan,deeq)
+#endif
     ENDIF
     ! ==--------------------------------------------------------------==
     DO is=1,ions1%nsp
@@ -220,6 +231,9 @@ CONTAINS
           CALL nlin(is,rs1,rs2)
        ENDIF
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(nlps_com)
+#endif
     IF (pslo_com%tivan) CALL qinit(rs1,rs2)
     pub = 0._real_8
     IF (geq0) THEN
@@ -295,10 +309,15 @@ CONTAINS
     ALLOCATE(twnl_nghtol(nkpt%ngwk,maxsys%nhxs,maxsys%nsx,kpts_com%nkptall),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__) ! FIXME deallocate missing
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:twnl_nghtol)
+#endif
     ALLOCATE(twnl_nghtol_gk(nkpt%ngwk,3,maxsys%nhxs,maxsys%nsx,kpts_com%nkptall),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__) ! FIXME deallocate missing
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:twnl_nghtol_gk)
+#endif
     CALL zeroing(twnl)!,maxsys%nsx*maxsys%nhxs*nkpt%ngwk*kpts_com%nkptall)
     CALL putwnl
     IF(pslo_com%tivan) CALL qvan2_init()
@@ -452,6 +471,9 @@ CONTAINS
        IF (geq0) rhops(is,1)=-ions0%zv(is)*vol
        IF (geq0.AND.lqmmm%qmmm) mm_RHOPS(is,1)=-ions0%zv(is)*vol
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(rhops,vps)
+#endif
     CALL tihalt('     PUTPS',isub)
     ! ==--------------------------------------------------------------==
     RETURN
@@ -649,6 +671,9 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
             __LINE__,__FILE__)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(twnl_nghtol,twnl_nghtol_gk)
+#endif
     ! ==--------------------------------------------------------------==
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==

@@ -241,6 +241,9 @@ CONTAINS
     ALLOCATE(mapgp(ncpw%nhg),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:hg,inyh)
+#endif
     CALL zeroing(hg)!,nhg)
     CALL zeroing(inyh)!,3*nhg)
     CALL zeroing(mapgp)!,nhg)
@@ -389,6 +392,9 @@ CONTAINS
        mapgp(ig)=ig
     ENDDO
     CALL gorder
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(hg,inyh)
+#endif
     ! ==--------------------------------------------------------------==
     geq0=.FALSE.
     i0=0
@@ -404,6 +410,9 @@ CONTAINS
        WRITE(6,'(" ",16("PARA"),/)')
        CALL prmem(procedureN)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(geq0)
+#endif
     ! ==--------------------------------------------------------------==
     ! LEADING DIMENSIONS OF REAL SPACE ARRAYS
     ! ==--------------------------------------------------------------==

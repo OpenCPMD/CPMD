@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE spin
   USE kinds,                           ONLY: real_8
 
@@ -33,6 +35,9 @@ MODULE spin
   END TYPE spin_mod_t
   TYPE(spin_mod_t), SAVE :: spin_mod
   ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  !$omp declare target(spin_mod)
+#endif
 
   TYPE :: lspin1_t
      REAL(real_8) :: lsea = HUGE(0.0_real_8)

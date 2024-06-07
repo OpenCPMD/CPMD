@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE setsys_utils
   USE adat,                            ONLY: elem
   USE atom,                            ONLY: gnl,&
@@ -1337,6 +1339,9 @@ CONTAINS
     CALL mp_bcast_byte(shock1, size_in_bytes_of(shock1),parai%io_source,parai%cp_grp)
     CALL mp_bcast(maxsys%nhxs,parai%io_source,parai%cp_grp)
     CALL mp_bcast(maxsys%lpmax,parai%io_source,parai%cp_grp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(maxsys)
+#endif
     CALL mp_bcast(cntr%cmass,parai%io_source,parai%cp_grp)
     ! RAGGIO
     CALL mp_bcast(raggio,SIZE(raggio),parai%io_source,parai%cp_grp)
@@ -1397,10 +1402,16 @@ CONTAINS
     ENDIF
     ! SPIN
     CALL mp_bcast_byte(spin_mod, size_in_bytes_of(spin_mod),parai%io_source,parai%cp_grp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(spin_mod)
+#endif
     CALL mp_bcast_byte(tdsp1, size_in_bytes_of(tdsp1),parai%io_source,parai%cp_grp)
     ! IONS
     CALL mp_bcast_byte(ions0, size_in_bytes_of(ions0),parai%io_source,parai%cp_grp)
     CALL mp_bcast_byte(ions1, size_in_bytes_of(ions1),parai%io_source,parai%cp_grp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(ions0,ions1)
+#endif
     ! TAU0
     CALL mp_bcast(tau0,SIZE(tau0),parai%io_source,parai%cp_grp)
     ! NLCC

@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE wfopts_utils
   USE atwf,                            ONLY: atwp
   USE bswfo_utils,                     ONLY: bs_wfo
@@ -201,11 +203,17 @@ CONTAINS
     ENDIF
     ! ==--------------------------------------------------------------==
     ! CB
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:c0,c2,sc0,pme,gde,vpp,eigv)
+#endif
     IF (.NOT.cntl%bsymm) THEN
        CALL rwfopt(c0,c2,sc0,pme,gde,vpp,eigv)
     ELSE
        CALL bs_wfo(c0,c2,sc0,pme,gde,vpp,eigv)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:c0,c2,sc0,pme,gde,vpp,eigv)
+#endif
     ! ==--------------------------------------------------------------==
 
     DEALLOCATE(eigv,STAT=ierr)
