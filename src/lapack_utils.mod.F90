@@ -72,7 +72,6 @@
 #if defined(_HAS_OMP_TARGET_OFFLOAD_INTEL)
     USE onemkl_lapack_omp_offload_lp64
     USE gpu
-    use iso_c_binding
 #endif
     IMPLICIT NONE
     CHARACTER(1)          jobz, uplo

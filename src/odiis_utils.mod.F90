@@ -157,13 +157,20 @@ CONTAINS
     LOGICAL,INTENT(IN)                 :: geq0_local
     INTEGER                            :: ig,k,i,j,nempty
     REAL(real_8)                       :: ff,temp,bc(maxdis+1,maxdis+1),&
-                                          vc(maxdis+1)
+                                          vc(maxdis+1),temp1
 
     ! Update cntl%diis buffers
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+#else
     !$omp parallel do &
+#endif
     !$omp& private(k,ig)
     DO k=1,nocc
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(ig)
+#endif
        DO ig=ibeg_c0,iend_c0
           pme_r(1,ig,k,nowv)=c0_r(1,ig,k)
           pme_r(2,ig,k,nowv)=c0_r(2,ig,k)
@@ -171,7 +178,12 @@ CONTAINS
     END DO
 
 
-    !$omp parallel do private(K,FF,IG)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(K,FF,IG)
     DO k=1,nocc
        IF (cntl%prec.AND.crge%f(k,1).GT.0.1_real_8) THEN
           ff=1.0_real_8/crge%f(k,1)
@@ -179,6 +191,9 @@ CONTAINS
           ff=1.0_real_8
        ENDIF
        ff=ff*ff*2.0_real_8
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(ig) firstprivate(ff)
+#endif
        DO ig=ibeg_c0,iend_c0
           gde_r(1,ig,k,nowv)=-c2_r(1,ig,k)
           gde_r(2,ig,k,nowv)=-c2_r(2,ig,k)
@@ -186,7 +201,6 @@ CONTAINS
           c2_r(2,ig,k)=-c2_r(2,ig,k)*ff*vpp(ig)*vpp(ig)
        ENDDO
     ENDDO
-    !$omp end parallel do
 
     ! Update cntl%diis matrix
     DO i=1,nsize-1
@@ -195,20 +209,28 @@ CONTAINS
     IF (ngw_local.GT.0) THEN
        DO i=1,nsize-1
           temp=0.0_real_8
-          !$omp parallel do reduction(+:temp) &
-          !$omp& private(k,ig)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute &
+#else
+          !$omp parallel do &
+#endif
+          !$omp& private(k,ig) reduction(+:temp)
           DO k=1,nocc
              IF(geq0_local)THEN
-                temp=temp+gde_r(1,ibeg_c0,k,i)*c2_r(1,ibeg_c0,k)*0.5_real_8
+                temp1=gde_r(1,ibeg_c0,k,i)*c2_r(1,ibeg_c0,k)*0.5_real_8
              ELSE
-                temp=temp+gde_r(1,ibeg_c0,k,i)*c2_r(1,ibeg_c0,k)
-                temp=temp+&
+                temp1=gde_r(1,ibeg_c0,k,i)*c2_r(1,ibeg_c0,k)
+                temp1=temp1+&
                      gde_r(2,ibeg_c0,k,i)*c2_r(2,ibeg_c0,k)
              END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp parallel do reduction(+:temp1)
+#endif
              DO ig=ibeg_c0+1,iend_c0
-                temp=temp+gde_r(1,ig,k,i)*c2_r(1,ig,k)
-                temp=temp+gde_r(2,ig,k,i)*c2_r(2,ig,k)
+                temp1=temp1+gde_r(1,ig,k,i)*c2_r(1,ig,k)
+                temp1=temp1+gde_r(2,ig,k,i)*c2_r(2,ig,k)
              END DO
+             temp=temp+temp1
           ENDDO
           diism(i,nowv)=temp*2.0_real_8
        ENDDO
@@ -236,14 +258,24 @@ CONTAINS
     CALL solve(bc,maxdis+1,nsize,vc)
     ! Compute Interpolated Coefficient Vectors
     
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+#else
     !$omp parallel do &
+#endif
     !$omp& private(k,ig)
     DO k=1,nocc
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(ig)
+#endif
        DO ig=ibeg_c0,iend_c0
           c0_r(1,ig,k)=pme_r(1,ig,k,1)*vc(1)
           c0_r(2,ig,k)=pme_r(2,ig,k,1)*vc(1)
        END DO
        DO i=2,nsize-1
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do private(ig)
+#endif
           DO ig=ibeg_c0,iend_c0
              c0_r(1,ig,k)=c0_r(1,ig,k)+pme_r(1,ig,k,i)*vc(i)
              c0_r(2,ig,k)=c0_r(2,ig,k)+pme_r(2,ig,k,i)*vc(i)
@@ -252,7 +284,11 @@ CONTAINS
     END DO
 
     ! Estimate New Parameter Vectors 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+#else
     !$omp parallel do &
+#endif
     !$omp& private(K,FF,IG)
     DO k=1,nocc
        IF (cntl%prec.AND.crge%f(k,1).GT.0.1_real_8) THEN
@@ -261,6 +297,9 @@ CONTAINS
           ff=1.0_real_8
        ENDIF
        DO i=1,nsize-1
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do private(ig)
+#endif
           DO ig=ibeg_c0,iend_c0
              c0_r(1,ig,k)=c0_r(1,ig,k)-&
                   vc(i)*ff*vpp(ig)*gde_r(1,ig,k,i)
