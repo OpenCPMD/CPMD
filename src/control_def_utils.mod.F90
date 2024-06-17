@@ -94,7 +94,7 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     INTEGER                                  :: i
 
-    nort_com%slimit=0._real_8
+    nort_com%slimit=1.e-14_real_8
     nort_com%scond=0._real_8
     cntl%is_in_stream=.FALSE.
     cntl%is_out_stream=.FALSE.
@@ -682,11 +682,11 @@ CONTAINS
     !TK minimum message size
     a2a_msgsize=1000
     !TK buffercounts of rnlsm1/2
-    cnti%rnlsm1_bc=3
+    cnti%rnlsm1_bc=1
     cnti%rnlsm2_bc=3
     !TK fraction of work of first/last buffers of rnlsm1/2
-    cntr%rnlsm1_b1=0.5
-    cntr%rnlsm1_b2=0.3
+    cntr%rnlsm1_b1=1.0
+    cntr%rnlsm1_b2=0.0
     cntr%rnlsm2_b1=0.5
     cntr%rnlsm2_b2=0.3
     !TK autotuning disabled

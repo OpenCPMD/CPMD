@@ -166,7 +166,9 @@ CONTAINS
        WRITE( OUTPUT_UNIT ,'(A)') "Could not allocate node"
        EXIT_ON_ERROR
     END IF
-
+#if defined(_OPENMP_OFFLOAD)
+    !$omp target enter data map(alloc:this%array)
+#endif
     this%array_size = new_size
 
     CALL align_array( this, ierr )
@@ -201,8 +203,10 @@ CONTAINS
        WRITE( OUTPUT_UNIT, '(A)' ) "Can not deallocate unallocated array"
        EXIT_ON_ERROR
     END IF
-
-    DEALLOCATE( this%array, STAT=ierr)
+#if defined(_OPENMP_OFFLOAD)
+    !$omp target exit data map(delete:this%array)
+#endif
+    DEALLOCATE( this%array, STAT = ierr )
     IF ( ierr /= 0 ) THEN
        WRITE( OUTPUT_UNIT, '(A)' ) "Can not deallocate node"
        EXIT_ON_ERROR

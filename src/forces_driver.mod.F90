@@ -21,6 +21,7 @@ MODULE forces_driver
   USE func,                            ONLY: func1
   USE geq0mod,                         ONLY: geq0
   USE gsize_utils,                     ONLY: gsize
+  USE gpu
   USE hfx_drivers,                     ONLY: hfx
   USE hfxmod,                          ONLY: hfxc3
   USE hnlmat_utils,                    ONLY: hnlmat
@@ -205,6 +206,12 @@ CONTAINS
        il_smat(1)=nstate
        il_smat(2)=nstate
        !In case of CP-MD we need to preserve the non-orthogonal orbitals to propagate them properly
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       update_first_to_gpu  =.FALSE.
+       update_second_to_gpu =.FALSE.
+       update_third_to_gpu  =.FALSE.
+       update_result_to_host=.FALSE.
+#endif
        IF(cntl%tmdcp)THEN
 #ifdef _USE_SCRATCHLIBRARY
           CALL request_scratch(il_c0_ort,c0_ort,procedureN//'_c0_ort',ierr)
@@ -213,7 +220,7 @@ CONTAINS
 #endif
           IF (ierr.NE.0) CALL stopgm(procedureN,'Allocation problem',&
                __LINE__,__FILE__)
-          CALL dcopy(2*ncpw%ngw*nstate,c0,1,c0_ort,1)
+          CALL cpmd_dcopy(2*ncpw%ngw*nstate,c0,1,c0_ort,1)
           c0_ptr=> c0_ort
        ELSE
           c0_ptr=>c0
@@ -225,7 +232,6 @@ CONTAINS
 #endif
        IF (ierr.NE.0) CALL stopgm(procedureN,'Allocation problem',&
             __LINE__,__FILE__)
-
        IF(parai%cp_nogrp.GT.1) CALL cp_grp_redist_array_f(c0_ptr,ncpw%ngw,nstate)
        IF(pslo_com%tivan) CALL rnlsm(c0_ptr(:,:,1),nstate,1,1,.FALSE.,&
             unpack_dfnl_fnl=.FALSE.)
@@ -233,13 +239,17 @@ CONTAINS
     ELSE
        c0_ptr=>c0
     END IF
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.TRUE.
+    update_second_to_gpu =.TRUE.
+    update_third_to_gpu  =.TRUE.
+    update_result_to_host=.TRUE.
+    comm_buffers_on_host =.TRUE.
+#endif
     !autotuning of rhoofr/vpsi/rnlsm
     IF(cntl%rnlsm_autotune.OR.cntl%fft_tune_batchsize)THEN
        IF(ibench(3).EQ.1) CALL autotune(c0_ptr(:,:,1),c2,rhoe,psi,nstate)
     END IF
-
-
     gnmax=0.0_real_8
     gnorm=0.0_real_8
     ehfx =0.0_real_8
@@ -279,8 +289,20 @@ CONTAINS
           ELSEIF(case2)THEN
              CALL rnlsm(c0_ptr(:,:,ikind),nstate,1,ikind,tfor,only_dfnl=.TRUE.)
           ELSEIF(case3)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             update_first_to_gpu  =.FALSE.
+             update_second_to_gpu =.FALSE.
+             update_third_to_gpu  =.FALSE.
+             update_result_to_host=.FALSE.
+#endif
              CALL rnlsm(c0_ptr(:,:,ikind),nstate,1,ikind,.FALSE.,&
                   unpack_dfnl_fnl=ropt_mod%calste)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             update_first_to_gpu  =.TRUE.
+             update_second_to_gpu =.TRUE.
+             update_third_to_gpu  =.TRUE.
+             update_result_to_host=.TRUE.
+#endif
           END IF
        ENDIF
     ENDDO
@@ -378,10 +400,20 @@ CONTAINS
        __NVTX_TIMER_START ( procedureN//'_b' )
 
        IF (pslo_com%tivan) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu  =.FALSE.
+          update_second_to_gpu =.FALSE.
+          update_third_to_gpu  =.FALSE.
+          update_result_to_host=.FALSE.
+#endif
           CALL ovlap(nstate,gam,c2,c0_ptr(:,:,ik),redist=.FALSE.,full=.FALSE.)
           CALL hnlmat(gam,crge%f,nstate)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          comm_buffers_on_host =.FALSE.
+#endif
           CALL summat(gam,nstate,lsd=.TRUE.,gid=parai%cp_grp,symmetrization=&
                ropt_mod%prteig.OR.ropt_mod%calste)
+          comm_buffers_on_host =.TRUE.
 #ifdef _USE_SCRATCHLIBRARY
           CALL request_scratch(il_fnl_packed,fnlgam_packed,procedureN//'_fnlgam_packed',ierr)
 #else
@@ -399,12 +431,20 @@ CONTAINS
              CALL rotate_fnl(int(il_fnl_packed(1)),fnl_packed,fnlgam_packed,nstate,gam)
           END IF
           CALL nlforce(c2,crge%f,fnl_packed,fnlgam_packed,nstate,redist=.NOT.cntl%nonort)
+
           IF (tfor) THEN
              CALL rnlsm(c0_ptr(:,:,ik),nstate,1,ik,tfor,unpack_dfnl_fnl=.FALSE.,&
                   only_dfnl=.TRUE.)
              CALL rnlfl(fion,nstate,nkpoint,fnl_packed,fnlgam_packed,dfnl_packed)
              IF (func1%mhfx.EQ.1.) call rnlfor_hfx(fion,crge%f,wk,nstate,ik,dfnl_packed)
           END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu  =.TRUE.
+          update_second_to_gpu =.TRUE.
+          update_third_to_gpu  =.TRUE.
+          update_result_to_host=.TRUE.
+#endif
+
 #ifdef _USE_SCRATCHLIBRARY
           CALL free_scratch(il_fnl_packed,fnlgam_packed,procedureN//'_fnlgam_packed',ierr)
 #else
@@ -414,6 +454,9 @@ CONTAINS
                __LINE__,__FILE__)
           IF (ropt_mod%calste) CALL nlsl(gam,nstate)
           IF (ropt_mod%prteig.AND.paral%io_parent) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target update from(gam)
+#endif
              CALL dscal(nstate*nstate,-1.0_real_8,gam,1)
              CALL reigs(nstate,gam,crge%f)
              CALL dscal(nstate*nstate,-1.0_real_8,gam,1)
@@ -537,6 +580,12 @@ CONTAINS
              ENDIF
           ENDIF
        ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       update_first_to_gpu  =.FALSE.
+       update_second_to_gpu =.FALSE.
+       update_third_to_gpu  =.FALSE.
+       update_result_to_host=.FALSE.
+#endif
        IF(cntl%nonort.AND.pslo_com%tivan.AND.cntl%tmdcp)THEN
           ! ==--------------------------------------------------------------==
           ! ==   ROTATE ELECTRONIC FORCE BACK INTO NONORTHOGONAL BASIS      ==
@@ -553,9 +602,13 @@ CONTAINS
              ENDIF
           ENDIF
        END IF
-
        IF(tcsize) CALL csize(c2,nstate,gemax,cnorm,use_cp_grps=cntl%nonort,special=cntl%nonort)
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       update_first_to_gpu  =.TRUE.
+       update_second_to_gpu =.TRUE.
+       update_third_to_gpu  =.TRUE.
+       update_result_to_host=.TRUE.
+#endif
        __NVTX_TIMER_STOP
        CALL tihalt(procedureN//'_b',isub3)
     ENDDO

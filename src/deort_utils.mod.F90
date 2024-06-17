@@ -6,6 +6,7 @@ MODULE deort_utils
                                              ncpw
   USE error_handling,                  ONLY: stopgm
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE kinds,                           ONLY: real_8,&
                                              int_8
   USE ovlap_utils,                     ONLY: ovlap
@@ -56,6 +57,13 @@ CONTAINS
 #endif
 ! ==--------------------------------------------------------------==
     CALL tiset(procedureN,isub)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.FALSE.
+    update_second_to_gpu =.FALSE.
+    update_third_to_gpu  =.FALSE.
+    update_result_to_host=.FALSE.
+    comm_buffers_on_host =.FALSE.
+#endif
     IF(cntl%tlsd) THEN
        il_smatpacked=spin_mod%nsup*(spin_mod%nsup+1)/2+&
             spin_mod%nsdown*(spin_mod%nsdown+1)/2
@@ -96,9 +104,15 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.TRUE.
+    update_second_to_gpu =.TRUE.
+    update_third_to_gpu  =.TRUE.
+    update_result_to_host=.TRUE.
+    comm_buffers_on_host =.TRUE.
+#endif
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
-    RETURN
   END SUBROUTINE deort
   ! ==================================================================
 
@@ -118,27 +132,48 @@ CONTAINS
     CALL ovlap(nstate,smat,c0,c0,redist=.FALSE.,full=.FALSE.)
     CALL summat(smat,nstate,symmetrization=.FALSE.,lsd=.TRUE.,gid=parai%cp_grp,&
          parent=.TRUE.)
-
     IF(paral%io_parent)THEN
        serr=0.0_real_8
        IF(cntl%tlsd)THEN
-          !$omp parallel private(i,j)reduction(+:serr)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams &
+#else
+          !$omp parallel &
+#endif
+          !$omp& private(i,j) reduction(+:serr)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp distribute parallel do
+#else
           !$omp do
+#endif
           DO i=1,spin_mod%nsup
              DO j=1,i
                 serr=serr+smat(j,i)
              ENDDO
           ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp distribute parallel do
+#else
           !$omp end do nowait
           !$omp do
+#endif
           DO i=spin_mod%nsup+1,nstate
              DO j=spin_mod%nsup+1,i
                 serr=serr+smat(j,i)
              ENDDO
           ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp end target teams
+#else
           !$omp end parallel
+#endif
        ELSE
-          !$omp parallel do private(i,j) reduction(+:serr)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do &
+#else
+          !$omp parallel do &
+#endif
+          !$omp& private(i,j) reduction(+:serr)
           DO i=1,nstate
              DO j=1,i
                 serr=serr+smat(j,i)
@@ -169,6 +204,7 @@ CONTAINS
             spin_mod%nsdown,use_cp=.TRUE.,redist=.TRUE.)
     END IF
     IF (geq0) CALL zclean(c0,nstate,ncpw%ngw)
+
     RETURN
   END SUBROUTINE deort_work
   ! ==================================================================

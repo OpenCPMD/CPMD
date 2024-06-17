@@ -5,6 +5,7 @@ MODULE csize_utils
   USE dotp_utils,                      ONLY: dotp_c1_cp
   USE elct,                            ONLY: crge
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE kinds,                           ONLY: real_8
   USE kpts,                            ONLY: tkpts
   USE mp_interface,                    ONLY: mp_max,&
@@ -79,6 +80,10 @@ CONTAINS
     gemax=0.0_real_8
     cnorm=0.0_real_8
     nocc=0
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(c2) if(update_first_to_gpu)
+#endif
+    
     IF(ngwk_local.GT.0) &
          CALL csize_r(c2_r,ibeg_c0,nkpt%ngwk,ngwk_local,nstate,geq0_local,sp,gemax,cnorm,nocc)
     CALL mp_sum(cnorm,gid)
@@ -99,7 +104,12 @@ CONTAINS
     INTEGER                                  :: i,ig
     REAL(real_8)                             :: cnorm_l, gemax_l, gemax_ll
     IF (tkpts%tkpnt) THEN
-       !$omp parallel do private(i,ig,cnorm_l,gemax_l,gemax_ll) &
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute &
+#else
+       !$omp parallel do &
+#endif
+       !$omp& private(i,ig,cnorm_l,gemax_l,gemax_ll) &
        !$omp& reduction(max:gemax) reduction(+:cnorm,nocc)
        DO i=1,nstate
           IF(crge%f(i,1).LE.1.e-5_real_8) CYCLE
@@ -107,6 +117,9 @@ CONTAINS
           cnorm_l=0._real_8
           gemax_l=0._real_8
           gemax_ll=0._real_8
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do reduction(max:gemax_l) reduction(+:cnorm_l) firstprivate(gemax_ll)
+#endif
           DO ig=ibeg,ngw_local
              cnorm_l=cnorm_l+c2_r(1,ig,i)**2+c2_r(2,ig,i)**2
              IF(gemax_ll.LT.ABS(c2_r(1,ig,i))+ABS(c2_r(2,ig,i)))THEN
@@ -123,7 +136,12 @@ CONTAINS
           END IF
        END DO
     ELSE
-       !$omp parallel do private(i,ig,cnorm_l,gemax_l,gemax_ll) &
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute &
+#else
+       !$omp parallel do &
+#endif
+       !$omp& private(i,ig,cnorm_l,gemax_l,gemax_ll) &
        !$omp& reduction(max:gemax) reduction(+:cnorm,nocc)
        DO i=1,nstate
           IF(crge%f(i,1).LE.1.e-5_real_8) CYCLE
@@ -137,6 +155,9 @@ CONTAINS
              gemax_l=ABS(c2_r(1,ibeg,i))**2+ABS(c2_r(2,ibeg,i))**2
              gemax_ll=ABS(c2_r(1,ibeg,i))+ABS(c2_r(2,ibeg,i))
           END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do reduction(max:gemax_l) reduction(+:cnorm_l) firstprivate(gemax_ll)
+#endif
           DO ig=ibeg+1,ngw_local
              cnorm_l=cnorm_l+c2_r(1,ig,i)**2+c2_r(2,ig,i)**2
              IF(gemax_ll.LT.ABS(c2_r(1,ig,i))+ABS(c2_r(2,ig,i)))THEN

@@ -4,6 +4,7 @@ MODULE rnlsm_helper
   USE beta_utils,                      ONLY: build_beta
   USE distribution_utils,              ONLY: dist_atoms
   USE error_handling,                  ONLY: stopgm
+  USE gpu
   USE ions,                            ONLY: ions1
   USE kinds,                           ONLY: real_8
   USE nlps,                            ONLY: nlps_com
@@ -167,7 +168,7 @@ CONTAINS
     REAL(real_8)                             :: tfac
     CHARACTER(*), PARAMETER                  :: procedureN = 'proj_beta'
     INTEGER                                  :: isub1,isub2,isub3,isub4
-
+    
     IF(deriv)THEN
        CALL tiset(procedureN//'build_beta_deriv',isub1)
        CALL build_beta(na,eigkr,eiscr,ld_eiscr,startg,ld_c0,ld_dai,igeq0,geq0,tkpnt,twnl_nghtol_gk=twnl_nghtol_gk)
@@ -177,6 +178,9 @@ CONTAINS
        CALL build_beta(na,eigkr,eiscr,ld_eiscr,startg,ld_c0,ld_dai,igeq0,geq0,tkpnt,twnl_nghtol=twnl_nghtol)
        CALL tihalt(procedureN//'build_beta',isub2)
     END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(eiscr(:,:ld_dai)) if(update_first_to_gpu)
+#endif
     IF(deriv)THEN
        CALL tiset(procedureN//'proj_beta_deriv',isub3)
     ELSE

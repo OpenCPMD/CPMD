@@ -35,7 +35,12 @@ CONTAINS
     INTEGER                                  :: i,offset,isa0,is,iv,ia,isa,k,im
 
     IF(PRESENT(unpacked_k))THEN
-       !$omp parallel do private(i,offset,k,isa0,is,iv,ia,isa,im) proc_bind(close)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do &
+#else
+       !$omp parallel do proc_bind(close) &
+#endif
+       !$omp& private(i,offset,isa0,is,iv,k,ia,isa,im)
        DO i=1,SIZE(packed,2)
           offset=0
           isa0=0
@@ -55,7 +60,12 @@ CONTAINS
           END DO
        END DO
     ELSEIF(PRESENT(unpacked))THEN
-       !$omp parallel do private(i,offset,k,isa0,is,iv,ia,isa) proc_bind(close)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do &
+#else
+       !$omp parallel do proc_bind(close) &
+#endif
+       !$omp& private(i,offset,k,isa0,is,iv,ia,isa) 
        DO i=1,SIZE(packed,2)
           offset=0
           isa0=0
@@ -87,7 +97,12 @@ CONTAINS
     INTEGER                                  :: i,offset,isa0,is,iv,ia,isa,k,im
 
     IF(PRESENT(unpacked_k))THEN
-       !$omp parallel do private(i,offset,isa0,is,iv,ia,isa,im) proc_bind(close)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do &
+#else       
+       !$omp parallel do proc_bind(close) &
+#endif
+       !$omp& private(i,offset,isa0,is,iv,ia,isa,im)
        DO i=1,SIZE(packed,2)
           isa0=0
           offset=0
@@ -105,7 +120,12 @@ CONTAINS
           END DO
        END DO
     ELSEIF(PRESENT(unpacked))THEN
-       !$omp parallel do private(i,offset,isa0,is,iv,ia,isa) proc_bind(close)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do &
+#else       
+       !$omp parallel do proc_bind(close) &
+#endif
+       !$omp& private(i,offset,isa0,is,iv,ia,isa) 
        DO i=1,SIZE(packed,2)
           isa0=0
           offset=0
@@ -188,7 +208,12 @@ CONTAINS
     INTEGER                                  :: i,offset,isa0,is,iv,ia,isa,k,im
 
     IF(PRESENT(unpacked_k))THEN
-       !$omp parallel do private(i,offset,isa0,is,iv,ia,isa,im) proc_bind(close)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do &
+#else
+       !$omp parallel do proc_bind(close) &
+#endif
+       !$omp& private(i,offset,isa0,is,iv,ia,isa,im) 
        DO i=1,SIZE(packed,2)
           isa0=0
           offset=0
@@ -206,7 +231,12 @@ CONTAINS
           END DO
        END DO
     ELSEIF(PRESENT(unpacked))THEN
-       !$omp parallel do private(i,offset,isa0,is,iv,ia,isa) proc_bind(close)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do &
+#else
+       !$omp parallel do proc_bind(close) &
+#endif
+       !$omp& private(i,offset,isa0,is,iv,ia,isa)
        DO i=1,SIZE(packed,2)
           isa0=0
           offset=0
@@ -236,7 +266,12 @@ CONTAINS
     INTEGER                                  :: i, offset(nchunks), is, iv, ia, ichunk,&
                                                 offset_sort
     ! ==--------------------------------------------------------------==
-    !$omp parallel do private(i,offset_sort,offset,is,iv,ichunk,ia)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(i,offset_sort,offset,is,iv,ichunk,ia)
     DO i=1,SIZE(sorted,2)
        offset_sort=0
        offset=(i-1)*ld_chunks+start_chunks-1
@@ -266,7 +301,12 @@ CONTAINS
     INTEGER                                  :: i, offset(nchunks), is, iv, ia, ichunk,&
                                                 offset_sort, im
     ! ==--------------------------------------------------------------==
-    !$omp parallel do private(i,offset_sort,offset,is,iv,ichunk,ia,im)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(i,offset_sort,offset,is,iv,ichunk,ia,im)
     DO i=1,SIZE(sorted,2)
        offset_sort=0
        offset=(i-1)*ld_chunks+start_chunks-1
@@ -297,7 +337,12 @@ CONTAINS
     INTEGER                                  :: i, offset(nchunks), is, iv, ia, ichunk,&
                                                 offset_sort, k
     ! ==--------------------------------------------------------------==
-    !$omp parallel do private(i,offset_sort,offset,is,iv,ichunk,ia,k)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(i,offset_sort,offset,is,iv,ichunk,ia,k)
     DO i=1,SIZE(sorted,2)
        offset_sort=0
        offset=(i-1)*ld_chunks+start_chunks-1
@@ -329,7 +374,12 @@ CONTAINS
     INTEGER                                  :: i, offset(nchunks), is, iv, ia, ichunk,&
                                                 offset_sort, im, k
     ! ==--------------------------------------------------------------==
-    !$omp parallel do private(i,offset_sort,offset,is,iv,ichunk,ia,im,k)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(i,offset_sort,offset,is,iv,ichunk,ia,im,k)
     DO i=1,SIZE(sorted,2)
        offset_sort=0
        offset=(i-1)*ld_chunks+start_chunks-1

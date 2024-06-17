@@ -137,7 +137,11 @@ CONTAINS
 #endif
        IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate eiscr',&
             __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD1)
+       !$omp target teams distribute  &
+#else
        !$omp parallel do &
+#endif
        !$omp& private (i,offset_fnl,offset_dai,isa0,is,ia_fnl,ia_sum,fnl_start)
        DO i=1,nstate
           !offset for packed fnl/fnlgam
@@ -151,7 +155,8 @@ CONTAINS
              ia_sum=na(2,is)-na(1,is)+1
              fnl_start=na(1,is)-na_fnl(1,is)
              IF(ia_sum.GT.0)THEN
-                CALL build_dai(dai(offset_dai:offset_dai-1+ia_sum*nlps_com%ngh(is),i,&
+                      !DIR$ forceinline
+                CALL build_dai(dai(offset_dai:,i,&
                      parai%cp_inter_me+1),&
                      fnl_p(offset_fnl,i),&
                      qq(:,:,is),nlps_com%ngh(is),ia_sum,ia_fnl,fnl_start,&
@@ -162,6 +167,9 @@ CONTAINS
              isa0=isa0+ions0%na(is)
           END DO
        END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update from(dai)
+#endif
        IF(cntl%overlapp_comm_comp)THEN
           nthreads=MIN(2,parai%ncpus)
           nested_threads=(MAX(parai%ncpus-1,1))
@@ -191,7 +199,7 @@ CONTAINS
           !$ IF(methread.EQ.1)THEN
           !$    CALL omp_set_max_active_levels(2)
           !$    CALL omp_set_num_threads(nested_threads)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
           !$    CALL mkl_set_dynamic(0)
           !$    ierr = mkl_set_num_threads_local(nested_threads)
 #endif
@@ -209,9 +217,9 @@ CONTAINS
           !$ IF (methread.EQ.1) THEN
           !$    CALL omp_set_max_active_levels(1)
           !$    CALL omp_set_num_threads(parai%ncpus)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
           !$    CALL mkl_set_dynamic(1)
-          !$    ierr = mkl_set_num_threads_local(parai%ncpus)
+          !$    ierr = mkl_set_num_threads_local(0)
 #endif
           !$ END IF
        END IF
@@ -252,7 +260,12 @@ CONTAINS
     RETURN
   END SUBROUTINE spsi
   ! ==================================================================
+  !DIR$ ATTRIBUTES FORCEINLINE::build_dai
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  SUBROUTINE build_dai(mat,fnl_p,qq_,ngh,ia_sum,ia_fnl,fnl_start,maxngh)
+#else
   PURE SUBROUTINE build_dai(mat,fnl_p,qq_,ngh,ia_sum,ia_fnl,fnl_start,maxngh)
+#endif
     INTEGER,INTENT(IN)                       :: ngh,ia_sum,ia_fnl,fnl_start,&
                                                 maxngh
     REAL(real_8),INTENT(IN)                  :: fnl_p(ia_fnl,ngh,*),&
@@ -260,11 +273,17 @@ CONTAINS
     REAL(real_8),INTENT(OUT)                 :: mat(ia_sum,ngh,*)
     INTEGER                                  :: iv,ia,jv
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel do private(iv,ia,jv)
+#endif
     DO iv=1,ngh
        DO ia=1,ia_sum
           mat(ia,iv,1)=0.0_real_8
        END DO
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel do private(iv,ia,jv)
+#endif
     DO iv=1,ngh
        DO jv=1,ngh
           IF (ABS(qq_(jv,iv)).GT.1.e-5_real_8) THEN

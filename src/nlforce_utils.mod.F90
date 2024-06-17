@@ -171,7 +171,11 @@ CONTAINS
 #endif
        IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate eiscr',&
             __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute map(to:f(1:nstate),cntl%tlsd)&
+#else
        !$omp parallel do &
+#endif
        !$omp& private (i,ffi,ispin,offset_fnl,offset_dai,isa0,is,ia_fnl,ia_sum,&
        !$omp& start_isa)
        DO i=1,nstate
@@ -192,6 +196,7 @@ CONTAINS
              ia_sum=na(2,is)-na(1,is)+1
              start_isa=isa0+na(1,is)-1
              IF(ia_sum.GT.0)THEN
+                !DIR$ forceinline
                 CALL build_dai(dai(offset_dai:,i,&
                      parai%cp_inter_me+1),&
                      fnl_p(offset_fnl,i),&
@@ -226,15 +231,21 @@ CONTAINS
        !$omp private(methread,grp) proc_bind(close)
        !$ methread = omp_get_thread_num()
        IF(methread.EQ.0.AND.parai%cp_nogrp.GT.1)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update from(dai)
+#endif
           !get data from other cp_grp other threads build local beta and perform dgemms
           CALL my_concat_inplace(dai,INT(il_dai(1),kind=int_4)*nstate,parai%cp_inter_grp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update to(dai)
+#endif
        END IF
        IF(methread.EQ.1.OR.nthreads.EQ.1)THEN
           !$ methread = omp_get_thread_num()
           !$ IF(methread.EQ.1)THEN
           !$    CALL omp_set_max_active_levels(2)
           !$    CALL omp_set_num_threads(nested_threads)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
           !$    CALL mkl_set_dynamic(0)
           !$    ierr = mkl_set_num_threads_local(nested_threads)
 #endif
@@ -251,9 +262,9 @@ CONTAINS
           !$ IF (methread.EQ.1) THEN
           !$    CALL omp_set_max_active_levels(1)
           !$    CALL omp_set_num_threads(parai%ncpus)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
           !$    CALL mkl_set_dynamic(1)
-          !$    ierr = mkl_set_num_threads_local(parai%ncpus)
+          !$    ierr = mkl_set_num_threads_local(0)
 #endif
           !$ END IF
        END IF
@@ -301,7 +312,12 @@ CONTAINS
     RETURN
   END SUBROUTINE nlforce
   ! ==================================================================
+  !DIR$ ATTRIBUTES FORCEINLINE::build_dai
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  SUBROUTINE build_dai(dai,fnl_,fnlgam_,ia_,ffi,start_isa,ngh_is,qq_,dvan_,deeq_,maxnhg,nat)
+#else
   PURE SUBROUTINE build_dai(dai,fnl_,fnlgam_,ia_,ffi,start_isa,ngh_is,qq_,dvan_,deeq_,maxnhg,nat)
+#endif
     INTEGER,INTENT(IN)                       :: ia_,start_isa,ngh_is,maxnhg,nat
     REAL(real_8),INTENT(IN)                  :: ffi
     REAL(real_8),INTENT(OUT)                 :: dai(ia_,ngh_is,*)
@@ -310,7 +326,9 @@ CONTAINS
                                                 qq_(maxnhg,*),dvan_(maxnhg,*),deeq_(nat,maxnhg,*)
     REAL(real_8)                             :: t1, fac1
     INTEGER                                  :: iv,jv,ia,isa
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel do private(iv,jv,ia,isa,t1,fac1)
+#endif
     DO iv=1,ngh_is
        DO ia=1,ia_
           dai(ia,iv,1)=0.0_real_8

@@ -10,6 +10,7 @@ MODULE newd_utils
   USE distribution_utils,              ONLY: dist_entity
   USE error_handling,                  ONLY: stopgm
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE ions,                            ONLY: ions0,&
                                              ions1
   USE kinds,                           ONLY: int_8,&
@@ -145,7 +146,13 @@ CONTAINS
        END IF
 
     END IF
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.FALSE.
+    update_second_to_gpu =.FALSE.
+    update_third_to_gpu  =.FALSE.
+    update_result_to_host=.FALSE.
+    comm_buffers_on_host =.FALSE.
+#endif
     IF (cntl%bigmem) THEN
        CALL prep_bigmem_newd(nstates_local,SIZE(nstates,2),ig_start,nhg_loc,na,deeq,f,fion,vpot,&
             tfor,do_hfx,sym)
@@ -153,6 +160,13 @@ CONTAINS
        CALL prep_smallmem_newd(nstates_local,SIZE(nstates,2),ig_start,nhg_loc,na,deeq,f,fnl_packed,&
             fion,vpot,tfor,do_hfx,sym)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.TRUE.
+    update_second_to_gpu =.TRUE.
+    update_third_to_gpu  =.TRUE.
+    update_result_to_host=.TRUE.
+    comm_buffers_on_host =.TRUE.
+#endif
 
     IF(tfor.AND..NOT.do_hfx)THEN
        IF (parai%cp_nogrp.gt.1 ) then
@@ -171,6 +185,9 @@ CONTAINS
     IF(tfor.AND.cntl%tverbosefor)THEN
        CALL print_debug_ions('DEBUG FORCES '//procedureN, fion)
     END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(deeq)
+#endif
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN
@@ -203,8 +220,13 @@ CONTAINS
     CHARACTER(*), PARAMETER                  :: procedureN='prep_bigmem'
 
     !blocking parameters
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    nthreads=1
+    blocksize=nhg
+#else
     nthreads=parai%ncpus
     blocksize=cnti%blocksize_uspp
+#endif
     blocksize=(((blocksize * 8 + 511) / 512) * 512 + 64) / 8
     blocksize=blocksize*nthreads
     IF(blocksize.GT.nhg)blocksize=nhg
@@ -273,7 +295,9 @@ CONTAINS
 #endif
     IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate ylm',&
          __LINE__,__FILE__)
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(vpot(:,:num_pot),fnl_packed)
+#endif
     isa0=0
     nhh0=1
     offset_fnl0=0
@@ -354,12 +378,17 @@ CONTAINS
 
     omtpiba=parm%omega*parm%tpiba
     methread=1
-    !$omp parallel private(loc_block,istart,qgstart,methread,iblock,my_start,my_end,my_size,fac)
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel private(loc_block,istart,qgstart,methread,iblock,my_start,my_end,my_size,fac) &
+    !$omp& num_threads(nthreads)
+#endif
     loc_block=CEILING(REAL(blocksize,real_8)/REAL(nthreads,real_8))
     istart=ig_start
     qgstart=ig_start-1
     methread=1
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$ methread=omp_get_thread_num()+1
+#endif
     fac=0.0_real_8
 
     DO iblock=1,blocks
@@ -396,14 +425,18 @@ CONTAINS
        CALL evaluate_block_newd(my_size,my_start,isa0,ia_sum, &
             nhh,fac,tfor,qg1(:,methread),fnlt(:,methread),vpot,qg_,num_pot,gk_trans)
     END IF
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$omp end parallel
+#endif
     
     CALL collect_ylm(ia_sum*nhh*len_qg1,ylm(1,1,start_ylm),fnlt,nthreads)
     IF(tfor)THEN
        ijv=0
        methread=1
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp parallel private(methread) num_threads(nthreads)
        !$ methread=omp_get_thread_num()+1
+#endif
        IF(do_hfx)THEN
           IF(num_pot.EQ.1)THEN
              CALL calc_rho12(nst(1,1),nst(2,1),ngh,ia_sum,offset_fnl0,&
@@ -416,7 +449,9 @@ CONTAINS
           CALL calc_rho(nst(1,1),nst(2,1),ngh,ia_fnl,offset_fnl0,num_orb,offset_ylm,ia_sum,&
                ylm,fnlt(:,methread),f,fnl_p,nhh)
        END IF
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp end parallel
+#endif
     END IF
 
     IF(do_hfx)then
@@ -432,7 +467,9 @@ CONTAINS
     END IF
 
     IF (tfor) THEN
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp parallel private(ipot,fac,ia,ft1,ft2,ft3,ijv,otr) num_threads(nthreads)
+#endif
        DO ipot=1,num_pot
           IF(do_hfx)THEN
              fac=2.0_real_8
@@ -440,11 +477,18 @@ CONTAINS
           ELSE
              fac=1.0_real_8
           END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute private(ia,ft1,ft2,ft3,ijv,otr)
+#else
           !$omp do schedule(static)
+#endif
           DO ia=1,ia_sum
              ft1=0._real_8
              ft2=0._real_8
              ft3=0._real_8
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp parallel do private(ijv,otr) reduction(+:ft1,ft2,ft3)
+#endif
              DO ijv=1,nhh
                 OTR=YLM(ia,ijv,ipot)*omtpiba
                 ft1=ft1+OTR*YLM(ia,ijv,num_pot*2+(ipot-1)*3+1)
@@ -455,9 +499,14 @@ CONTAINS
              fion(2,ia)=fion(2,ia)+ft2*fac
              fion(3,ia)=fion(3,ia)+ft3*fac
           END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
           !$omp end do nowait
+#endif
        END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp end parallel
+#endif
+
     ENDIF
   END SUBROUTINE evaluate_bigmem_newd
 
@@ -466,20 +515,39 @@ CONTAINS
     REAL(real_8),INTENT(OUT)             :: ylm(*)
     REAL(real_8),INTENT(IN) __CONTIGUOUS :: ylm_temp(:,:)
     INTEGER                              :: ithread,i
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do simd
+#else
     !$omp parallel private(i,ithread) num_threads(nthreads)
     !$omp do simd schedule(static)
+#endif
     DO i=1,ld_ylm
        ylm(i)=0.0_real_8
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute private(ithread,i)
+#else
     !$omp end do simd nowait
+#endif
     DO ithread=1,nthreads
-    !$omp do simd schedule(static)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(i)
+#else
+       !$omp do simd schedule(static)
+#endif
        DO i=1,ld_ylm
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp atomic
+#endif
           ylm(i)=ylm(i)+ylm_temp(i,ithread)
        END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp end do simd nowait
+#endif
     END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$omp end parallel
+#endif
 
   END SUBROUTINE collect_ylm
   ! ==================================================================
@@ -489,43 +557,58 @@ CONTAINS
                                                   ld_ylm,n1,n2,nhh
     REAL(real_8),INTENT(IN)                    :: fnl_p(il_fnl_packed(1),*),f(*)
     REAL(real_8),INTENT(OUT)                   :: ylm(ld_ylm,*),temp(norb,ngh,*)
-    INTEGER                                    :: ia,iv,i,ijv,jv,fnl_ia,ii,ijv_t,fnl_offset
+    INTEGER                                    :: ia,iv,i,ijv,jv,fnl_ia,ii,ijv_t
     REAL(real_8)                               :: ftmp,tmp
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do private(ia,ijv)
+#else
     !$omp do
+#endif
     DO ijv=1,nhh
        DO ia=1,ld_ylm
           ylm(ia,ijv)=0.0_real_8
        END DO
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+    !$omp& private(ia,iv,i,ijv,jv,fnl_ia,ii,ijv_t,ftmp,tmp) map(to:f(n1:n2)) &
+    !$omp& firstprivate(offset_fnl0,norb,n1,n2,ngh,offset_ylm,ia_fnl)
+#else
     !$omp do
+#endif
     DO ia=1,ia_fnl
-       fnl_offset=offset_fnl0
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do collapse(2) private (iv,i,ii,fnl_ia) 
+#endif
        DO iv=1,ngh
-          fnl_ia=ia+fnl_offset
           DO i=n1,n2
+             fnl_ia=ia+(iv-1)*ia_fnl+offset_fnl0
              ii=i-n1+1
              temp(ii,iv,ia)=fnl_p(fnl_ia,i)
           END DO
-          fnl_offset=fnl_offset+ia_fnl
        END DO
-       ijv=0
-       DO iv=1,ngh
-          DO jv=iv,ngh
-             ijv=ijv+1
-             tmp=0._real_8
-             DO i=1,norb
-                ii=i-1+n1
-                tmp=tmp+f(ii)*temp(i,iv,ia)*temp(i,jv,ia)
-             END DO
-             ftmp=1.0_real_8
-             IF(iv.NE.jv) ftmp=2._real_8
-             YLM(ia+offset_ylm,ijv)=tmp*ftmp
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private (ijv,ijv_t,iv,jv,tmp,i,ii,ftmp)
+#endif
+       do ijv=1,nhh
+          ijv_t=0
+          iv_loop:do iv=1,ngh
+             do jv=iv,ngh
+                ijv_t=ijv_t+1
+                if(ijv.eq.ijv_t) exit iv_loop
+             end do
+          end do iv_loop
+          tmp=0._real_8
+          DO i=1,norb
+             ii=i-1+n1
+             tmp=tmp+f(ii)*temp(i,iv,ia)*temp(i,jv,ia)
           END DO
+          ftmp=1.0_real_8
+          IF(iv.NE.jv) ftmp=2._real_8
+          YLM(ia+offset_ylm,ijv)=tmp*ftmp
        END DO
     END DO
   END SUBROUTINE calc_rho
-  ! ==================================================================
   ! ==================================================================
   SUBROUTINE calc_rho12(i,j,ngh,ia_fnl,offset_fnl0,ylm,fnl_p)
     ! ==--------------------------------------------------------------==
@@ -605,13 +688,16 @@ CONTAINS
     COMPLEX(real_8),INTENT(OUT)                :: qg1(blocksize,nhh,*)
     REAL(real_8)                               :: ylm(ia_sum,nhh,*)
     INTEGER                                    :: ijv,ig,k,ig2,len_qg1,ipot,ind
-
     IF(num_pot.NE.2)THEN
-       DO ijv=1,nhh
-          IF(tfor)THEN
+       IF(tfor)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do simd collapse(3) &
+          !$omp& private(ijv,ipot,ig,ind,ig2,k)
+#endif
+          DO ijv=1,nhh
              DO ipot=1, num_pot
-                ind=(ipot-1)*3+num_pot
                 DO ig=1,blocksize
+                   ind=(ipot-1)*3+num_pot
                    ig2=block_start-1+ig
                    qg1(ig,ijv,ipot)=CONJG(qg_local(ig2,ijv))*vpot(ig2,ipot)
                    DO k=1,3
@@ -621,18 +707,28 @@ CONTAINS
                    END DO
                 END DO
              END DO
-          ELSE
+          END DO
+       ELSE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do simd collapse(3) &
+          !$omp& private(ijv,ipot,ig,ig2)
+#endif
+          DO ijv=1,nhh
              DO ipot=1, num_pot
                 DO ig=1,blocksize
                    ig2=block_start-1+ig
                    qg1(ig,ijv,ipot)=CONJG(qg_local(ig2,ijv))*vpot(ig2,ipot)
-                ENDDO
+                END DO
              END DO
-          END IF
-       ENDDO
+          END DO
+       END IF
     ELSE
-       DO ijv=1,nhh
-          IF(tfor)THEN
+       IF(tfor)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do simd collapse(2) &
+          !$omp& private(ijv,ipot,ig,ind,ig2,k)
+#endif
+          DO ijv=1,nhh
              DO ig=1,blocksize
                 ig2=block_start-1+ig
                 qg1(ig,ijv,1)=CONJG(qg_local(ig2,ijv))*vpot(ig2,1)
@@ -646,14 +742,20 @@ CONTAINS
                         gk_trans_(ig2,k)*(-REAL(qg1(ig,ijv,2),kind=real_8)))
                 END DO
              END DO
-          ELSE
+          END DO
+       ELSE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do simd collapse(2) &
+          !$omp& private(ijv,ipot,ig,ind,ig2)
+#endif
+          DO ijv=1,nhh
              DO ig=1,blocksize
                 ig2=block_start-1+ig
                 qg1(ig,ijv,1)=CONJG(qg_local(ig2,ijv))*vpot(ig2,1)
                 qg1(ig,ijv,2)=CONJG(qg_local(ig2,ijv))*vpot(ig2,2)
-             ENDDO
-          END IF
-       ENDDO
+             END DO
+          END DO
+       END IF
     END IF
     len_qg1=num_pot
     IF(tfor)len_qg1=4*num_pot
@@ -664,13 +766,17 @@ CONTAINS
     RETURN
   END SUBROUTINE evaluate_block_newd
   ! ==================================================================
-  SUBROUTINE build_deeq_gga(ngh, ia_sum, isa0, fac,deeq, ylm, nthreads)
+  SUBROUTINE build_deeq_gga(ngh, ia_sum, isa0, fac,deeq, ylm,nthreads)
     INTEGER, INTENT(IN) :: ngh, ia_sum, isa0, nthreads
     REAL(real_8), INTENT(OUT) __CONTIGUOUS :: deeq(:,:,:)
     REAL(real_8), INTENT(IN)  :: ylm(ia_sum,ngh*(ngh+1)/2)
     REAL(real_8), INTENT(IN)  :: fac
     INTEGER                   :: ijv_c, iv, jv, ia, isa, ijv
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+#else
     !$omp parallel do num_threads(nthreads)&
+#endif
     !$omp& private(ijv_c, iv, jv, ia, isa, ijv)
     do ijv=1, ngh*(ngh+1)/2
        ijv_c=0
@@ -680,7 +786,9 @@ CONTAINS
              IF(ijv_c.EQ.ijv) EXIT count
           END DO
        END DO count
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(ia,isa)
+#endif
        DO ia=1,ia_sum
           isa=isa0+ia
           deeq(isa,iv,jv)=ylm(ia,ijv)*fac !parm%omega

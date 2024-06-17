@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE part_1d
   USE kinds,                           ONLY: real_8
   USE mp_interface,                    ONLY: mp_dims_create
@@ -27,6 +29,9 @@ CONTAINS
     INTEGER :: n_elem,proc,nproc
     ! Variables
     INTEGER :: nbr,res
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp declare target
+#endif
     ! ==--------------------------------------------------------------==
     res = MOD(n_elem,nproc)
     nbr = (n_elem-res)/nproc
@@ -47,6 +52,9 @@ CONTAINS
     INTEGER :: i_elem,n_elem,proc,nproc
     ! Variables
     INTEGER :: nbr,res
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp declare target
+#endif
     ! ==--------------------------------------------------------------==
     res = MOD(n_elem,nproc)
     nbr = (n_elem-res)/nproc
@@ -65,6 +73,9 @@ CONTAINS
     INTEGER :: n_elem,proc,nproc
     ! Variables
     INTEGER :: nbr
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp declare target
+#endif
     ! ==--------------------------------------------------------------==
     nbr = (n_elem-proc)/nproc
     IF (MOD(n_elem-proc,nproc).GT.0) nbr = nbr + 1
@@ -82,6 +93,9 @@ CONTAINS
     ! Arguments
     INTEGER :: i_elem,proc,nproc
     ! Variables
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp declare target
+#endif
     ! ==--------------------------------------------------------------==
     part_1d_get_elem = (i_elem - 1) * nproc + proc + 1
     ! ==--------------------------------------------------------------==

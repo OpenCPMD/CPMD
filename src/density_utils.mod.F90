@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE density_utils
   USE kinds,                           ONLY: real_8
 
@@ -74,6 +76,45 @@ CONTAINS
 
     INTEGER                                  :: l1,l2,l3
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    INTEGER, PARAMETER                       :: num_threads=16
+    REAL(real_8)                             :: temp1(2), temp2(2),temp
+    IF(nspin.EQ.1)THEN
+       !$omp target teams distribute parallel do collapse(2) private(l1,l2,l3,temp) &
+       !$omp& thread_limit(num_threads)
+       DO l3=1,n3
+          DO l1=1,n1
+             temp=0._real_8
+             !$omp simd reduction (+:temp)
+             DO l2=1,n2
+                temp=temp&
+                     +alpha_real(l2)*REAL(psi(l1,l2,l3),KIND=real_8)**2
+                temp=temp&
+                     +alpha_imag(l2)*AIMAG(psi(l1,l2,l3))**2
+             END DO
+             rho(l1,l3,1)=rho(l1,l3,1)+temp
+          END DO
+       END DO
+    ELSE
+       !$omp target teams distribute parallel do collapse(2) private(l1,l2,l3,temp1,temp2) &
+       !$omp& thread_limit(num_threads)
+       DO l3=1,n3
+          DO l1=1,n1
+             temp1=0._real_8
+             temp2=0._real_8
+             !$omp simd reduction (+:temp1,temp2)
+             DO l2=1,n2
+                temp1(spins(1,l2))=temp1(spins(1,l2))&
+                     +alpha_real(l2)*REAL(psi(l1,l2,l3),KIND=real_8)**2
+                temp2(spins(1,l2))=temp2(spins(1,l2))&
+                     +alpha_imag(l2)*AIMAG(psi(l1,l2,l3))**2
+             END DO
+             rho(l1,l3,:)=rho(l1,l3,:)+temp1
+             rho(l1,l3,:)=rho(l1,l3,:)+temp2
+          END DO
+       END DO
+    END IF
+#else
     IF(nspin.EQ.1)THEN
        !$omp parallel do private(l1,l2,l3)
        DO l3=1,n3
@@ -99,6 +140,7 @@ CONTAINS
           END DO
        END DO
     END IF
+#endif
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE build_density_sum_batch

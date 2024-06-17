@@ -100,7 +100,11 @@ CONTAINS
     REAL(real_8)                             :: ekinc_s
     
     ekinc=0.0_real_8
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+#else
     !$omp parallel do &
+#endif
     !$omp& private(i,ekinc_s,ig) reduction(+:ekinc)
     DO i=1,nstate
        IF(geq0_local)THEN
@@ -109,7 +113,12 @@ CONTAINS
           ekinc_s=cm_r(ibeg_c0,i)**2
           ekinc_s=ekinc_s+cm_r(ibeg_c0+1,i)**2
        END IF
-       !$omp simd reduction(+:ekinc_s)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do simd private(ig)  &
+#else
+       !$omp simd &
+#endif
+       !$omp& reduction(+:ekinc_s)
        DO ig=ibeg_c0+2,iend_c0
           ekinc_s=ekinc_s+cm_r(ig,i)**2
        END DO
@@ -117,6 +126,5 @@ CONTAINS
     END DO
 
   END SUBROUTINE calc_ekinc
-  ! ==================================================================
-
+  ! ================================================================== 
 END MODULE rekine_utils

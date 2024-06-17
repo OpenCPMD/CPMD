@@ -56,7 +56,7 @@ CONTAINS
        !$omp parallel do private(is,ia)
        DO is=1,ions1%nsp
           DO ia=1,ions0%na(is)
-             fion(:3,ia,is)=0._real_8
+             fion(:,ia,is)=0._real_8
           END DO
        END DO
     END IF
@@ -64,16 +64,27 @@ CONTAINS
     omtp=2._real_8*parm%omega*parm%tpiba
     IF(cntl%bigmem)THEN
        IF(cntl%tlsd)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams private(isa0,is,ft1,ft2,ft3,ia,isa)
+#else
           !$omp parallel private(isa0,is,ia,ft1,ft2,ft3,isa,ig,vxc,vcgs,k)
+#endif
           isa0=0
           DO is=1,ions1%nsp
              IF(corel%tnlcc(is))THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+                !$omp distribute
+#else
                 !$omp do
+#endif
                 DO ia=1,ions0%na(is)
                    ft1=0._real_8
                    ft2=0._real_8
                    ft3=0._real_8
                    isa=isa0+ia
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+                   !$omp parallel do reduction (+:ft1,ft2,ft3) private(vxc,vcgs)
+#endif
                    DO ig=ig_start,ig_end
                       vxc=0.5_real_8*(vpot(ig,1)+vpot(ig,2)-2*vnlt(ig)-&
                            vnlcc(ig,1)-vnlcc(ig,2))
@@ -86,22 +97,39 @@ CONTAINS
                    fion(2,ia,is)=fion(2,ia,is)+ft2*omtp
                    fion(3,ia,is)=fion(3,ia,is)+ft3*omtp
                 END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
                 !$omp end do nowait
+#endif
              END IF
              isa0=isa0+ions0%na(is)
           END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp end target teams
+#else
           !$omp end parallel
+#endif
        ELSE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams private(isa0,is,ft1,ft2,ft3,ia,isa)
+#else
           !$omp parallel private(isa0,is,ia,ft1,ft2,ft3,isa,ig,vxc,vcgs,k)
+#endif
           isa0=0
           DO is=1,ions1%nsp
              IF(corel%tnlcc(is))THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+                !$omp distribute
+#else
                 !$omp do
+#endif
                 DO ia=1,ions0%na(is)
                    ft1=0._real_8
                    ft2=0._real_8
                    ft3=0._real_8
                    isa=isa0+ia
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+                   !$omp parallel do reduction (+:ft1,ft2,ft3) private(vxc,vcgs)
+#endif
                    DO ig=ig_start,ig_end
                       vxc=vpot(ig,1)-vnlt(ig)-vnlcc(ig,1)
                       vcgs=-AIMAG(CONJG(vxc)*eigrb(ig,isa)*rhoc(ig,is))
@@ -113,11 +141,17 @@ CONTAINS
                    fion(2,ia,is)=fion(2,ia,is)+ft2*omtp
                    fion(3,ia,is)=fion(3,ia,is)+ft3*omtp
                 END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
                 !$omp end do nowait
+#endif
              END IF
              isa0=isa0+ions0%na(is)
           END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp end target teams
+#else
           !$omp end parallel
+#endif
        END IF
     ELSE
        !$omp parallel do private(isa,ia,is,ig,ei123,vxc,vcgs)

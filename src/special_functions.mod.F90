@@ -28,6 +28,9 @@ CONTAINS
     END INTERFACE
     my_res=ERF(REAL(x,c_double))
 #else
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp declare target
+#endif
     ! use default f08 function
     my_res=ERF(x)
 #endif

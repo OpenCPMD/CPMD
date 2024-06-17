@@ -7,6 +7,7 @@ MODULE rortv_utils
   USE dotp_utils,                      ONLY: dotp_c2_cp
   USE error_handling,                  ONLY: stopgm
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE harm,                            ONLY: dtan2w,&
                                              xmu
   USE jrotation_utils,                 ONLY: set_orbdist
@@ -16,7 +17,7 @@ MODULE rortv_utils
   USE mp_interface,                    ONLY: mp_sum
   USE nort,                            ONLY: nort_com
   USE ovlap_utils,                     ONLY: ovlap
-  USE parac,                           ONLY: parai
+  USE parac,                           ONLY: parai,paral
   USE rotate_utils,                    ONLY: rotate
   USE reshaper,                        ONLY: reshape_inplace
   USE spin,                            ONLY: spin_mod
@@ -88,7 +89,6 @@ CONTAINS
     ELSE
        cp_active=.FALSE.
     END IF
-    
     IF(cp_active)THEN
        CALL cp_grp_get_sizes(ngw_l=ngw_local,geq0_l=geq0_local,&
          first_g=ibeg_c0,last_g=iend_c0)
@@ -160,8 +160,15 @@ CONTAINS
           CALL reshape_inplace(c0,(/ncpw%ngw*2,nstate/),c0_r)
           CALL reshape_inplace(cm,(/ncpw%ngw*2,nstate/),cm_r)
           CALL calc_yi(cm_r,c0_r,yi_n,ibeg_c0*2-1,iend_c0*2,nstate,geq0_local)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          comm_buffers_on_host=.FALSE.
+#endif
           CALL mp_sum(yi_n,nstate,gid)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          comm_buffers_on_host=.TRUE.
+#endif
           CALL update_cm(cm_r,c0_r,yi_n,ibeg_c0*2-1,iend_c0*2,nstate)
+
 #ifdef _USE_SCRATCHLIBRARY
           CALL free_scratch(il_yi_n,yi_n,procedureN//'_yi_n',ierr)
 #else
@@ -244,7 +251,12 @@ CONTAINS
     INTEGER                                  :: i,ig
     REAL(real_8)                             :: yi
 
-    !$omp parallel do private(i,yi)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(i,yi)
     DO i=1,nstate
        IF(geq0_local)THEN
           yi=c0_r(ibeg_c0,i)*cm_r(ibeg_c0,i)*0.5_real_8
@@ -252,7 +264,12 @@ CONTAINS
           yi=c0_r(ibeg_c0,i)*cm_r(ibeg_c0,i)
           yi=yi+c0_r(ibeg_c0+1,i)*cm_r(ibeg_c0+1,i)
        END IF
-       !$omp simd reduction(+:yi)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do simd &
+#else
+       !$omp simd &
+#endif
+       !$omp& reduction(+:yi)
        do ig=ibeg_c0+2,iend_c0
           yi=yi+c0_r(ig,i)*cm_r(ig,i)
        END DO
@@ -269,7 +286,12 @@ CONTAINS
 
     INTEGER                                  :: i,ig
 
-    !$omp parallel do private(i,ig)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do simd collapse(2)&
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(i,ig)
     DO i=1,nstate
        DO ig=ibeg_c0,iend_c0
           cm_r(ig,i)=cm_r(ig,i)+yi_n(i)*c0_r(ig,i)

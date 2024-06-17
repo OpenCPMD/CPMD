@@ -47,6 +47,7 @@ MODULE mdmain_utils
                                              ener_com
   USE epr_efg_utils,                   ONLY: epr_efg
   USE error_handling,                  ONLY: stopgm
+  use gpu
   USE fileopen_utils,                  ONLY: fileclose,&
                                              fileopen
   USE fileopenmod,                     ONLY: fo_app,&
@@ -421,6 +422,9 @@ CONTAINS
     ENDIF
     ! 
     IF (pslo_com%tivan) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(C0(:,:,1))
+#endif
        IF (cntl%tlsd) THEN
           bsclcs=1
           IF (cntl%bsymm)CALL setbsstate
@@ -520,11 +524,25 @@ CONTAINS
        IF (paral%io_parent)&
             WRITE(6,'(1X,64("="))')
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.FALSE.
+    update_second_to_gpu =.FALSE.
+    update_third_to_gpu  =.FALSE.
+    update_result_to_host=.FALSE.
+    comm_buffers_on_host =.FALSE.
+#endif
     IF (tkpts%tkpnt) THEN
        IF (geq0) CALL zclean_k(c0,nstate,ncpw%ngw)
     ELSE
        IF (geq0) CALL zclean(c0,nstate,ncpw%ngw)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.TRUE.
+    update_second_to_gpu =.TRUE.
+    update_third_to_gpu  =.TRUE.
+    update_result_to_host=.TRUE.
+    comm_buffers_on_host =.TRUE.
+#endif
     ! FORCES FOR BROKEN SYMMETRY STATE 
     IF (cntl%bsymm)THEN
        bsclcs=1

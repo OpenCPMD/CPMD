@@ -8,6 +8,7 @@ MODULE rnlsm1_utils
   USE fnl_utils,                       ONLY: unpack_fnl,&
                                              sort_fnl
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE ions,                            ONLY: ions0,&
                                              ions1
   USE kinds,                           ONLY: real_8,&
@@ -50,7 +51,7 @@ MODULE rnlsm1_utils
 #ifdef _INTEL_MKL
   use mkl_service
 #endif
-
+  use mpi_f08
   IMPLICIT NONE
 
   PRIVATE
@@ -92,11 +93,10 @@ CONTAINS
                                                 tot_work, start_dai, ld_dai, end_dai, &
                                                 ld_buffer(maxbuff), start_buffer(maxbuff), &
                                                 isub4, isub5
-    INTEGER(int_8)                           :: il_eiscr(2), il_dai(1)
+    INTEGER(int_8)                           :: il_eiscr(2), il_dai(1),il_dai1(1)
     INTEGER,ALLOCATABLE                      :: na_buff(:,:,:), na_grp(:,:,:)
 
-    REAL(real_8),POINTER __CONTIGUOUS &
-                       , ASYNCHRONOUS        :: dai(:)
+    REAL(real_8),POINTER __CONTIGUOUS        :: dai(:),dai1(:)
 #ifdef _USE_SCRATCHLIBRARY
     COMPLEX(real_8),POINTER __CONTIGUOUS &
                        , ASYNCHRONOUS        :: eiscr(:,:)
@@ -139,18 +139,27 @@ CONTAINS
     il_fnl_packed(1)=tot_work
     il_fnl_packed(2)=nstate
     il_dai(1)=tot_work*nstate
+    il_dai1(1)=tot_work*nstate
     il_eiscr(1)=nkpt%ngwk
     il_eiscr(2)=MAXVAL(ld_buffer)/imagp
+    
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_dai,dai,procedureN//'_dai',ierr)
+#else
+    ALLOCATE(dai(il_dai(1)), stat=ierr)
+#endif
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dai',&
+         __LINE__,__FILE__)
     IF(buffcount.GT.1)THEN
 #ifdef _USE_SCRATCHLIBRARY
-       CALL request_scratch(il_dai,dai,procedureN//'_dai',ierr)
+       CALL request_scratch(il_dai1,dai1,procedureN//'_dai1',ierr)
 #else
-       ALLOCATE(dai(il_dai(1)), stat=ierr)
+       ALLOCATE(dai1(il_dai1(1)), stat=ierr)
 #endif
-       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dai',&
+       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dai1',&
             __LINE__,__FILE__)
     ELSE
-       CALL reshape_inplace(fnl_packed, (/INT(il_dai(1),kind=int_4)/), dai)
+       CALL reshape_inplace(fnl_packed, (/INT(il_dai(1),kind=int_4)/), dai1)
     END IF
 #ifdef _USE_SCRATCHLIBRARY
     CALL request_scratch(il_eiscr,eiscr,procedureN//'_eiscr',ierr)
@@ -168,13 +177,15 @@ CONTAINS
     start_dai=start_buffer(buff)
     ld_dai=ld_buffer(buff)
     end_dai=start_dai-1+ld_dai*nstate
-    IF(autotune_it.GT.0.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit) temp=m_walltime()
+    IF(autotune_it.GT.1.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit) temp=m_walltime()
     IF(ld_dai.GT.0)THEN
+       CALL tiset(procedureN//'_proj',isub4)
        CALL proj_beta(na_buff(:,:,buff),igeq0,nstate,c0,nkpt%ngwk,eigkr(:,:,ikind),&
             eiscr,nkpt%ngwk,1,dai(start_dai:end_dai),ld_dai/imagp,&
             .FALSE.,tkpts%tkpnt,geq0,twnl_nghtol=twnl_nghtol(:,:,:,ikind))
+       CALL tihalt(procedureN//'_proj',isub4)
     END IF
-    IF(autotune_it.GT.0.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit)timings(1)=&
+    IF(autotune_it.GT.1.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit)timings(1)=&
          timings(1)+m_walltime()-temp
 
     !now we split up the threads, thread=0 is used to communicate,
@@ -207,7 +218,7 @@ CONTAINS
     !$ IF(methread.EQ.1)THEN
     !$    CALL omp_set_max_active_levels(2)
     !$    CALL omp_set_num_threads(nested_threads)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL mkl_set_dynamic(0)
     !$    ierr = mkl_set_num_threads_local(nested_threads)
 #endif
@@ -241,13 +252,15 @@ CONTAINS
           !$omp flush(locks)
           !$ END DO
           CALL TIHALT(procedureN//'_barrier',ISUB2)
-          IF(autotune_it.GT.0.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit) temp=m_walltime()
+          IF(autotune_it.GT.1.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit) temp=m_walltime()
           IF(ld_dai.GT.0)THEN
-             CALL tiset(procedureN//'_reduce',isub5)
-             CALL mp_sum(dai(start_dai:),end_dai-start_dai+1,parai%allgrp)
+             comm_buffers_on_host=.FALSE.
+             CALL tiset(procedureN//'_reduce',isub5)            
+             CALL mp_sum(dai(start_dai:),dai1(start_dai:),end_dai-start_dai+1,parai%allgrp)
              CALL tihalt(procedureN//'_reduce',isub5)
+             comm_buffers_on_host=.TRUE.
           END IF
-          IF(autotune_it.GT.0.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit)&
+          IF(autotune_it.GT.1.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit)&
                timings(2)=timings(2)+m_walltime()-temp
        ENDDO
     ENDIF
@@ -255,7 +268,7 @@ CONTAINS
     !$ IF (methread.EQ.1) THEN
     !$    CALL omp_set_max_active_levels(1)
     !$    CALL omp_set_num_threads(parai%ncpus)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL mkl_set_dynamic(1)
     !$    ierr = mkl_set_num_threads_local(0)
 #endif
@@ -263,9 +276,12 @@ CONTAINS
 
     !$OMP end parallel
     IF(buffcount.GT.1)THEN
-       CALL sort_fnl(buffcount,na_buff(:,:,:),dai,fnl_packed,start_buffer,&
+       CALL sort_fnl(buffcount,na_buff(:,:,:),dai1,fnl_packed,start_buffer,&
             ld_buffer)
     END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(fnl_packed)
+#endif
     IF(unpack)THEN
        IF(tkpts%tkpnt)THEN
           CALL unpack_fnl(na_grp(:,:,parai%cp_inter_me),fnl_packed,&
@@ -285,13 +301,20 @@ CONTAINS
          __LINE__,__FILE__)
     IF(buffcount.GT.1)THEN
 #ifdef _USE_SCRATCHLIBRARY
-       CALL free_scratch(il_dai,dai,procedureN//'_dai',ierr)
+       CALL free_scratch(il_dai1,dai1,procedureN//'_dai1',ierr)
 #else
        DEALLOCATE(dai, stat=ierr)
 #endif
-       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate dai',&
+       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate dai1',&
             __LINE__,__FILE__)
     END IF
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_dai,dai,procedureN//'_dai',ierr)
+#else
+    DEALLOCATE(dai, stat=ierr)
+#endif
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate dai',&
+         __LINE__,__FILE__)
     DEALLOCATE(na_buff, stat=ierr)
     IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate na_buff',&
          __LINE__,__FILE__)

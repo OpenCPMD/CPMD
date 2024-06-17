@@ -23,6 +23,7 @@ MODULE atomwf_utils
   USE func,                            ONLY: func1,&
                                              mfxcc_is_pade,&
                                              mfxcc_is_skipped
+  USE gpu
   USE gs_disortho_utils,               ONLY: gs_disortho
   USE gsortho_utils,                   ONLY: gs_ortho,&
                                              gs_ortho_c
@@ -120,7 +121,7 @@ CONTAINS
     REAL(real_8)                             :: dummy
     REAL(real_8), POINTER                    :: xmatat(:,:)
 
-    CALL phfac(tau0)
+    CALL phfac(tau0,force_update=.TRUE.)
     ! ==--------------------------------------------------------------==
     IF (nstate.EQ.0) RETURN
     ! ==--------------------------------------------------------------==
@@ -386,10 +387,31 @@ CONTAINS
           IF (pslo_com%tivan) THEN
              CALL fnl_set('SAVE')
              CALL fnlalloc(atwp%nattot,.FALSE.,.FALSE.)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             update_first_to_gpu  =.FALSE.
+             update_second_to_gpu =.FALSE.
+             update_third_to_gpu  =.FALSE.
+             update_result_to_host=.FALSE.
+             !$omp target enter data map (alloc:catom,xsmat,xxmat)
+             !$omp target update to(catom,xsmat,xxmat)
+#endif
              CALL rnlsm(catom,atwp%nattot,ikpt,ikind,.FALSE.)
-             CALL csmat(xsmat,catom,atwp%nattot,ikind,full=.TRUE.,store_nonort=.FALSE.,&
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             comm_buffers_on_host =.FALSE.
+#endif
+             CALL csmat(xsmat,catom,atwp%nattot,ikind,full=.FALSE.,store_nonort=.FALSE.,&
                   only_parent=.TRUE.)
-             CALL summat(xxmat,atwp%nattot)
+             CALL summat(xxmat,atwp%nattot,symmetrization=.false.,parent=.true.)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             update_first_to_gpu  =.TRUE.
+             update_second_to_gpu =.TRUE.
+             update_third_to_gpu  =.TRUE.
+             update_result_to_host=.TRUE.
+             comm_buffers_on_host =.TRUE.
+             !$omp target update from(xxmat,xsmat)
+             !$omp target exit data map (release:catom,xsmat,xxmat)
+#endif
+
              CALL fnldealloc(.FALSE.,.FALSE.)
              CALL fnl_set('RECV')
           ELSE

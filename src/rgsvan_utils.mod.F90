@@ -5,6 +5,7 @@ MODULE rgsvan_utils
   USE cp_grp_utils,                    ONLY: cp_grp_split_atoms,&
                                              cp_grp_redist_dfnl_fnl
   USE error_handling,                  ONLY: stopgm
+  USE gpu
   USE geq0mod,                         ONLY: geq0
   USE fnl_utils,                       ONLY: unpack_fnl
   USE ions,                            ONLY: ions1
@@ -129,7 +130,6 @@ CONTAINS
             spin_mod%nsdown,use_cp=.TRUE.,redist=.TRUE.)
     END IF
     IF (geq0) CALL zclean(c0,nstate,ncpw%ngw)
-
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN

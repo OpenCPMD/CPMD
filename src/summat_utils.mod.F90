@@ -36,7 +36,7 @@ CONTAINS
   SUBROUTINE summat(a,nstate,symmetrization,lsd,gid,parent)
     ! ==--------------------------------------------------------------==
     INTEGER, INTENT(IN)                      :: nstate
-    REAL(real_8),INTENT(OUT)                 :: a(nstate,nstate)
+    REAL(real_8),INTENT(INOUT)               :: a(nstate,nstate)
 #ifdef __PARALLEL
     type(MPI_COMM),INTENT(IN),OPTIONAL       :: gid
 #else
@@ -47,7 +47,7 @@ CONTAINS
     CHARACTER(*), PARAMETER                  :: procedureN = 'summat'
 
     INTEGER                                  :: ierr, isub
-    INTEGER(int_8)                           :: il_aux(1)
+    INTEGER(int_8)                           :: il_aux(1),il_aux1(1)
     LOGICAL                                  :: full,lsd_active,is_parent,&
          only_parent
 #ifdef __PARALLEL
@@ -57,7 +57,7 @@ CONTAINS
     INTEGER                                  :: mpi_com,parent_rank
 #endif
 #ifdef _USE_SCRATCHLIBRARY
-    REAL(real_8), POINTER __CONTIGUOUS       :: aux(:)
+    REAL(real_8), POINTER __CONTIGUOUS       :: aux(:),aux1(:)
 #else
     REAL(real_8), ALLOCATABLE                :: aux(:)
 #endif
@@ -112,12 +112,20 @@ CONTAINS
        il_aux(1)=spin_mod%nsup*(spin_mod%nsup+1)/2+&
          spin_mod%nsdown*(spin_mod%nsdown+1)/2
     ELSE
-       il_aux=nstate*(nstate+1)/2
+       il_aux(1)=nstate*(nstate+1)/2
     END IF
+    il_aux1=il_aux
 #ifdef _USE_SCRATCHLIBRARY
     CALL request_scratch(il_aux,aux,procedureN//'_aux',ierr)
 #else
     ALLOCATE(aux(il_aux(1)),STAT=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
+         __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_aux1,aux1,procedureN//'_aux1',ierr)
+#else
+    ALLOCATE(aux1(il_aux1(1)),STAT=ierr)
 #endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
@@ -127,17 +135,24 @@ CONTAINS
        CALL symmat_pack(a,aux,nstate,nstate,0)
     END IF
     IF(only_parent)THEN
-       CALL mp_sum(aux,INT(il_aux(1),KIND=int_4),parent_rank,mpi_com)
+       CALL mp_sum(aux,aux1,INT(il_aux(1),KIND=int_4),parent_rank,mpi_com)
     ELSE
-       CALL mp_sum(aux,INT(il_aux(1),KIND=int_4),mpi_com)
+       CALL mp_sum(aux,aux1,INT(il_aux(1),KIND=int_4),mpi_com)
     END IF
     IF(.NOT.(only_parent.AND..NOT.is_parent))THEN
        IF(lsd_active.AND.cntl%tlsd)THEN
-          CALL symmat_unpack(a,aux,nstate,spin_mod%nsup,spin_mod%nsdown,full)
+          CALL symmat_unpack(a,aux1,nstate,spin_mod%nsup,spin_mod%nsdown,full)
        ELSE
-          CALL symmat_unpack(a,aux,nstate,nstate,0,full)
+          CALL symmat_unpack(a,aux1,nstate,nstate,0,full)
        END IF
     END IF
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_aux1,aux1,procedureN//'_aux1',ierr)
+#else
+    DEALLOCATE(aux1,STAT=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+         __LINE__,__FILE__)
 #ifdef _USE_SCRATCHLIBRARY
     CALL free_scratch(il_aux,aux,procedureN//'_aux',ierr)
 #else

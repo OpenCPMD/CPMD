@@ -19,6 +19,7 @@ MODULE initrun_driver
   USE error_handling,                  ONLY: stopgm
   USE fint,                            ONLY: fint1
   USE geofile_utils,                   ONLY: geofile
+  USE gpu
   USE isos,                            ONLY: isos1
   USE kinds,                           ONLY: real_8
   USE kpts,                            ONLY: tkpts
@@ -257,9 +258,23 @@ CONTAINS
                         ikpt,ikind,.FALSE.)
                    CALL ortho(sh02%nst_s1,c0(:,sh02%nst_s0+1:sh02%nst_s0+sh02%nst_s1,ikind),cm)
                 ELSE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+                   update_first_to_gpu  =.FALSE.
+                   update_second_to_gpu =.FALSE.
+                   update_third_to_gpu  =.FALSE.
+                   update_result_to_host=.FALSE.
+                   !$omp target update to(c0(:,:nstate,ikind))
+#endif
                    IF (pslo_com%tivan) CALL rnlsm(c0(:,1:nstate,ikind),nstate,&
                         ikpt,ikind,.FALSE.)
                    CALL ortho(nstate,c0(:,1:nstate,ikind),cm)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+                   update_first_to_gpu  =.TRUE.
+                   update_second_to_gpu =.TRUE.
+                   update_third_to_gpu  =.TRUE.
+                   update_result_to_host=.TRUE.
+                   !$omp target update from(c0(:,:nstate,ikind))
+#endif
                 ENDIF
              ENDDO
              IF (tkpts%tkblock) CALL wkpt_swap(c0,nstate,ikpt,'C0')
@@ -348,6 +363,9 @@ CONTAINS
     iteropt%ndisrs=0
     iteropt%ndistp=0
     CALL mm_dim(mm_revert,status)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to (C0)
+#endif
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN

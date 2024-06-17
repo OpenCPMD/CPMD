@@ -15,7 +15,13 @@ subroutine mp_bcast_${NAME}(data, ${ARG_LEN_NAME}, root,comm)
   cmcal(ipar_cast)=cmcal(ipar_cast)+1.0d0
   cmlen(ipar_cast)=cmlen(ipar_cast)+${MPI_LEN}*${SIZE_IN_BYTES}
   tim1=m_walltime()      
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#endif
   call mpi_bcast(data,${MPI_LEN},${MPI_TYPE},root,comm,ierr)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  !$omp end target data
+#endif
   call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()
   cmtim(ipar_cast)=cmtim(ipar_cast)+tim2-tim1

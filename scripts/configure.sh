@@ -933,6 +933,11 @@ do
                SkipInclude["rhjsx.inc"] = 0;
                SkipInclude["uhjsx.inc"] = 0;
                SkipInclude["mkl_service"] = 0;
+	       SkipInclude["onemkl_blas_omp_offload_lp64"] =0;
+	       SkipInclude["onemkl_lapack_omp_offload_lp64"] =0;
+	       SkipInclude["fftw3_omp_offload"] =0;
+	       SkipInclude["omp_lib"] =0;
+	       SkipInclude["iso_fortran_env"] =0;
                SkipInclude["elpa"] = 0;
                if (qmmm != 1) {
                   SkipInclude["coordsz"] = 0;

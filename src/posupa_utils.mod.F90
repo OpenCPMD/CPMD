@@ -5,6 +5,7 @@ MODULE posupa_utils
   USE dotp_utils,                      ONLY: dotp_c1_cp,&
                                              dotp_c2_cp
   USE error_handling,                  ONLY: stopgm
+  USE gpu
   USE geq0mod,                         ONLY: geq0
   USE harm,                            ONLY: dcgt,&
                                              dsgtw,&
@@ -76,15 +77,15 @@ CONTAINS
                                                 iend_c0, ngw_local, ierr, &
                                                 gid
 #endif
-    INTEGER(int_8)                           :: il_ai(2)
+    INTEGER(int_8)                           :: il_ai(2), il_ai1(2)
     LOGICAL                                  :: prtev, tnon, cp_active, geq0_local
     REAL(real_8)                             :: odt, pf1, pf2, pf3, &
                                                 pf4, xi, xi_dt_elec
     REAL(real_8),POINTER __CONTIGUOUS        :: c2_r(:,:),cm_r(:,:),c0_r(:,:)
 #ifdef _USE_SCRATCHLIBRARY
-    REAL(real_8),POINTER __CONTIGUOUS        :: ai(:,:)
+    REAL(real_8),POINTER __CONTIGUOUS        :: ai(:,:), ai1(:,:)
 #else
-    REAL(real_8),ALLOCATABLE                 :: ai(:,:)
+    REAL(real_8),ALLOCATABLE                 :: ai(:,:), ai1(:,:)
 #endif
     CHARACTER(*), PARAMETER                  :: procedureN = 'posupa'
 ! Variables
@@ -120,12 +121,20 @@ CONTAINS
           il_ai(1)=nstate
           il_ai(2)=1
        END IF
+       il_ai1=il_ai
 #ifdef _USE_SCRATCHLIBRARY
        CALL request_scratch(il_ai,ai,procedureN//'_ai',ierr)
 #else
        ALLOCATE(ai(il_ai(1),il_ai(2)),STAT=ierr)
 #endif
        IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate ai',&
+         __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+       CALL request_scratch(il_ai1,ai1,procedureN//'_ai1',ierr)
+#else
+       ALLOCATE(ai1(il_ai(1),il_ai1(2)),STAT=ierr)
+#endif
+       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate ai1',&
          __LINE__,__FILE__)
        ! ..LINEAR CONSTRAINTS
        IF (cntl%tharm) THEN
@@ -167,9 +176,22 @@ CONTAINS
           CALL calc_ai(c0_r,cm_r,c2_r,ai,nstate,dt_elec,ibeg_c0*2-1,iend_c0*2,geq0_local,&
                nort_com%scond,nort_com%slimit)
        ENDIF
-       CALL mp_sum(ai,INT(il_ai(1)*il_ai(2)),gid)
-       CALL update_cm_c0(c0_r,cm_r,c2_r,ai,nstate,dt_elec,ibeg_c0*2-1,iend_c0*2,geq0_local,&
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       comm_buffers_on_host=.FALSE.
+#endif
+       CALL mp_sum(ai,ai1,INT(il_ai(1)*il_ai(2)),gid)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       comm_buffers_on_host=.TRUE.
+#endif
+       CALL update_cm_c0(c0_r,cm_r,c2_r,ai1,nstate,dt_elec,ibeg_c0*2-1,iend_c0*2,geq0_local,&
             nort_com%scond,nort_com%slimit)
+#ifdef _USE_SCRATCHLIBRARY
+       CALL free_scratch(il_ai1,ai1,procedureN//'_ai1',ierr)
+#else
+       DEALLOCATE(ai1,STAT=ierr)
+#endif
+       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate ai1',&
+         __LINE__,__FILE__)
 #ifdef _USE_SCRATCHLIBRARY
        CALL free_scratch(il_ai,ai,procedureN//'_ai',ierr)
 #else
@@ -266,7 +288,6 @@ CONTAINS
     ai=dotp_c1_cp(n,c2,geq0_l)
 
   END FUNCTION lagrange_norot
-
   ! ==================================================================
   SUBROUTINE calc_ai(c0_r,cm_r,c2_r,ai,nstate,dt_elec,ibeg_c0,iend_c0,geq0_local,scond,slimit)
     ! ==--------------------------------------------------------------==
@@ -279,7 +300,12 @@ CONTAINS
     INTEGER                                  :: i,ig
     REAL(real_8)                             :: ai_1,ai_2,ai_3
 
-    !$omp parallel do private (i,ig,ai_1,ai_2,ai_3)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute&
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private (i,ig,ai_1,ai_2,ai_3)
     DO i=1,nstate
        IF(geq0_local)THEN
           c2_r(ibeg_c0,i)=c0_r(ibeg_c0,i)+dt_elec*cm_r(ibeg_c0,i)
@@ -306,7 +332,12 @@ CONTAINS
              ai_1=ai_1+c2_r(ibeg_c0+1,i)**2
           END IF
        END IF
-       !$omp simd reduction(+:ai_1,ai_2,ai_3)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do simd private(ig) &
+#else
+       !$omp simd &
+#endif
+       !$omp& reduction(+:ai_1,ai_2,ai_3)
        DO ig=ibeg_c0+2,iend_c0
           c2_r(ig,i)=c0_r(ig,i)+dt_elec*cm_r(ig,i)
           IF(scond.GT.slimit)THEN
@@ -314,7 +345,7 @@ CONTAINS
              ai_2=ai_2+c0_r(ig,i)*c2_r(ig,i)
              ai_3=ai_3+c2_r(ig,i)**2
           ELSE
-             ai_1=ai_3+c2_r(ig,i)**2
+             ai_1=ai_1+c2_r(ig,i)**2
           END IF
        END DO
        IF(scond.GT.slimit)THEN
@@ -339,23 +370,37 @@ CONTAINS
     INTEGER                                  :: i,ig
     REAL(real_8)                             :: xi,xi_dt_elec
     IF(scond.GT.slimit)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute &
+#else
        !$omp parallel do &
+#endif
        !$omp& private(i,ig,xi,xi_dt_elec)
        DO i=1,nstate
           ai(3,i)=ai(3,i)-1.0_real_8
           xi=(-ai(2,i)+SQRT(ai(2,i)*ai(2,i)-ai(1,i)*ai(3,i)))/(ai(1,i))
           xi_dt_elec=xi/dt_elec
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do
+#endif
           DO ig=ibeg_c0,iend_c0
              cm_r(ig,i)=cm_r(ig,i)+c0_r(ig,i)*xi_dt_elec
              c0_r(ig,i)=c2_r(ig,i)+c0_r(ig,i)*xi
           END DO
        END DO
     ELSE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute &
+#else
        !$omp parallel do &
+#endif
        !$omp& private(i,ig,xi,xi_dt_elec)
        DO i=1,nstate
           xi=(-1+SQRT(2._real_8-ai(i,1)))
           xi_dt_elec=xi/dt_elec
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do
+#endif
           DO ig=ibeg_c0,iend_c0
              cm_r(ig,i)=cm_r(ig,i)+c0_r(ig,i)*xi_dt_elec
              c0_r(ig,i)=c2_r(ig,i)+c0_r(ig,i)*xi
@@ -364,8 +409,6 @@ CONTAINS
     ENDIF
     ! ==--------------------------------------------------------------==
   END SUBROUTINE update_cm_c0
-  ! ==================================================================
-
   ! ==================================================================
   SUBROUTINE give_scr_posupa(lposupa,tag,nstate)
     ! ==--------------------------------------------------------------==

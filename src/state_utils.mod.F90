@@ -230,16 +230,54 @@ CONTAINS
     COMPLEX(real_8),INTENT(IN) __CONTIGUOUS  :: c0(:,:)
     COMPLEX(real_8),INTENT(OUT)              :: psi(ld_psi,bsize)
 
-    INTEGER                                  :: count, ist, is1, is2, offset_state,ir
+    INTEGER                                  :: count, ist, is1, is2, ir
 
-    !$omp parallel private (count,ist,is1,is2,offset_state,ir)
-    offset_state=ist_start
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    INTEGER, PARAMETER                       :: num_threads=32, end_ir=num_threads-1
+    INTEGER                                  :: ir0
+    !$omp target teams distribute parallel do simd collapse(2) private(count,ir)
+    DO count=1,bsize    
+       DO ir=1,ld_psi
+          psi(ir,count)=CMPLX(0.0_real_8,0.0_real_8,kind=real_8)
+       END DO
+    END DO
+
+    !$omp target teams distribute thread_limit(num_threads) collapse(2) &
+    !$omp& private(ist,is1,is2,ir0,ir)
     DO count=1,bsize
-       ist=offset_state+1
+       DO ir0=1,jgw,num_threads
+          ist=ist_start + (count-1)*2 +1
+          is1=part_1d_get_el_in_blk(ist,maxstate,me_grp,n_grp)
+          is2=maxstate+1
+          ist=ist+1
+          IF (ist.LE.part_1d_nbr_el_in_blk(maxstate,me_grp,n_grp))&
+               is2 = part_1d_get_el_in_blk(ist,maxstate,me_grp,n_grp)
+          IF (ist.LE.part_1d_nbr_el_in_blk(maxstate,me_grp,n_grp))&
+               is2 = part_1d_get_el_in_blk(ist,maxstate,me_grp,n_grp)
+          IF (is2.GT.maxstate) THEN
+             !$omp parallel do private(ir)
+             DO ir=ir0,min(ir0+end_ir,jgw)
+                psi(nzfs(ir),count)=c0(ir,is1)
+                psi(inzs(ir),count)=CONJG(c0(ir,is1))
+             ENDDO
+             IF (geq0) psi(nzfs(1),count)=c0(1,is1)
+          ELSE
+             !$omp parallel do private(ir)
+             DO ir=ir0,min(ir0+end_ir,jgw)
+                psi(nzfs(ir),count)=c0(ir,is1)+uimag*c0(ir,is2)
+                psi(inzs(ir),count)=CONJG(c0(ir,is1))+uimag*CONJG(c0(ir,is2))
+             ENDDO
+             IF (geq0) psi(nzfs(1),count)=c0(1,is1)+uimag*c0(1,is2)
+          ENDIF
+       END DO
+    END DO
+#else
+    !$omp parallel private (count,ist,is1,is2,ir)
+    DO count=1,bsize
+       ist=ist_start + (count-1)*2 +1
        is1=part_1d_get_el_in_blk(ist,maxstate,me_grp,n_grp)
        is2=maxstate+1
-       ist=offset_state+2
-       offset_state=offset_state+2
+       ist=ist+1
        IF (ist.LE.part_1d_nbr_el_in_blk(maxstate,me_grp,n_grp))&
             is2 = part_1d_get_el_in_blk(ist,maxstate,me_grp,n_grp)
        !$omp do 
@@ -247,7 +285,6 @@ CONTAINS
           psi(ir,count)=CMPLX(0.0_real_8,0.0_real_8,kind=real_8)
        END DO
        IF (is2.GT.maxstate) THEN
-          !                      CALL set_psi_1_state_g(zone,c0(:,is1),psi(:,count))
           !$omp do
           DO ir=1,jgw
              psi(nzfs(ir),count)=c0(ir,is1)
@@ -265,10 +302,10 @@ CONTAINS
           !$omp single
           IF (geq0) psi(nzfs(1),count)=c0(1,is1)+uimag*c0(1,is2)
           !$omp end single
-          !                      CALL set_psi_2_states_g(c0(:,is1),c0(:,is2),psi(:,count))
        ENDIF
     END DO
     !$omp end parallel
+#endif
     
   END SUBROUTINE set_psi_batch_g
   

@@ -12,6 +12,7 @@ MODULE ksmat_utils
                                              fnldealloc
   USE fnonloc_utils,                   ONLY: fnonloc
   USE hnlmat_utils,                    ONLY: hnlmat
+  USE gpu
   USE ions,                            ONLY: ions0,&
                                              ions1
   USE kinds,                           ONLY: real_8,&
@@ -63,15 +64,18 @@ CONTAINS
     COMPLEX(real_8)                          :: pab(1)
     INTEGER                                  :: ia, is, ierr, &
                                                 ist, isub, natst
-    INTEGER(int_8)                           :: il_gam(2), il_fnl_save(3), il_fnlgam_packed(2)
+    INTEGER(int_8)                           :: il_gam(2), il_fnl_save(3), &
+                                                il_fnlgam_packed(2)
     LOGICAL                                  :: tfdist2
     REAL(real_8), DIMENSION(20)              :: foc = 1.0_real_8
 #ifdef _USE_SCRATCHLIBRARY
     REAL(real_8), POINTER __CONTIGUOUS       :: gam(:,:), fnlp_save(:,:), &
-         fnl_save(:,:,:), fnlgam_packed(:,:)
+                                                fnl_save(:,:,:),&
+                                                fnlgam_packed(:,:)
 #else
     REAL(real_8), ALLOCATABLE                :: gam(:,:), fnlp_save(:,:), &
-         fnl_save(:,:,:), fnlgam_packed(:,:)
+                                               fnl_save(:,:,:), &
+                                               fnlgam_packed(:,:)
 #endif
     CHARACTER(*), PARAMETER                  :: procedureN = 'ksmat'
 ! ==--------------------------------------------------------------==
@@ -86,6 +90,15 @@ CONTAINS
     cntl%tfdist=.FALSE.
     CALL fnl_set('SAVE')
     CALL fnlalloc(atwp%nattot,.FALSE.,.FALSE.)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.FALSE.
+    update_second_to_gpu =.FALSE.
+    update_third_to_gpu  =.FALSE.
+    update_result_to_host=.FALSE.
+    !$omp target update to(catom)
+    !$omp target enter data map(alloc:xxmat)
+    !$omp target update to(xxmat)
+#endif
     CALL rnlsm(catom,atwp%nattot,1,ikind,.FALSE.,unpack_dfnl_fnl=.NOT.pslo_com%tivan)
     IF(pslo_com%tivan)THEN
 #ifdef _USE_SCRATCHLIBRARY
@@ -96,7 +109,7 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
             __LINE__,__FILE__)
 
-       CALL dcopy(product(int(il_fnl_packed)),fnl_packed,1,fnlp_save,1)
+       CALL cpmd_dcopy(PRODUCT(INT(il_fnl_packed)),fnl_packed,1,fnlp_save,1)
     ELSE
        il_fnl_save(1)=ions1%nat
        il_fnl_save(2)=maxsys%nhxs
@@ -119,23 +132,44 @@ CONTAINS
 #ifdef _USE_SCRATCHLIBRARY
        CALL request_scratch(il_gam,gam,procedureN//'_gam',ierr)
 #else
-       ALLOCATE(gam(natst,natst),STAT=ierr)
+       ALLOCATE(gam(il_gam(1),il_gam(2)),STAT=ierr)
 #endif
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
             __LINE__,__FILE__)
 
        DO ia=1,ions0%na(is)
           IF(pslo_com%tivan)THEN
-             CALL dcopy(il_fnl_packed(1)*natst,fnlp_save(1,ist),1,fnl_packed,1)
+             CALL cpmd_dcopy(il_fnl_packed(1)*natst,fnlp_save(1,ist),1,fnl_packed,1)
           ELSE
              CALL dcopy(ions1%nat*maxsys%nhxs*natst,fnl_save(1,1,ist),1,fnl,1)
           END IF
           CALL zeroing(c2(:,1:natst))!,nkpt%ngwk*natst)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu  =.TRUE.
+          update_second_to_gpu =.TRUE.
+          update_third_to_gpu  =.TRUE.
+          update_result_to_host=.TRUE.
+#endif
           CALL vpsi(catom(:,ist:ist+natst-1),c2,foc,vpot,psi,natst,ikind,1,.TRUE.)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu  =.FALSE.
+          update_second_to_gpu =.FALSE.
+          update_third_to_gpu  =.FALSE.
+          update_result_to_host=.FALSE.
+#endif
           IF(pslo_com%tivan)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target update to(c2)
+#endif
              CALL ovlap(natst,gam,c2,catom(:,ist:ist+natst-1),redist=.FALSE.,full=.FALSE.)
              CALL hnlmat(gam,foc,natst)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             comm_buffers_on_host =.FALSE.
+#endif
              CALL summat(gam,natst,lsd=.TRUE.,gid=parai%cp_grp,symmetrization=.FALSE.)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             comm_buffers_on_host =.TRUE.
+#endif
              il_fnlgam_packed(1)=il_fnl_packed(1)
              il_fnlgam_packed(2)=natst
 #ifdef _USE_SCRATCHLIBRARY
@@ -175,6 +209,15 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
             __LINE__,__FILE__)
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(xxmat)
+    !$omp target exit data map(delete:xxmat)
+    update_first_to_gpu  =.true.
+    update_second_to_gpu =.true.
+    update_third_to_gpu  =.true.
+    update_result_to_host=.true.
+#endif
+
     IF(pslo_com%tivan)THEN
 #ifdef _USE_SCRATCHLIBRARY
        CALL free_scratch(il_fnl_packed,fnlp_save,procedureN//'_fnlp_save',ierr)

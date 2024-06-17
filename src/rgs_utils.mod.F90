@@ -124,7 +124,7 @@ CONTAINS
        END DO
     END IF
 
-    CALL dpotrf(uplo,n,smat,lda,info)
+    CALL cpmd_dpotrf(uplo,n,smat,lda,info)
 
     ! debug statements
     IF (get_condition_number) THEN
@@ -153,7 +153,7 @@ CONTAINS
        CALL stopgm('UINV','ILLEGAL RESULTS DPOTRF',& 
             __LINE__,__FILE__)
     ENDIF
-    CALL dtrtri(uplo,'N',n,smat,lda,info)
+    CALL cpmd_dtrtri(uplo,'N',n,smat,lda,info)
     IF (info.NE.0) CALL stopgm('UINV','ILLEGAL RESULTS DTRTRI',& 
          __LINE__,__FILE__)
     ! ==--------------------------------------------------------------==

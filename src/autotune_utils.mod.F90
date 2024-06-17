@@ -2,6 +2,7 @@
 
 MODULE autotune_utils
   USE elct,                            ONLY: crge
+  USE gpu
   USE spin,                            ONLY: clsd
   USE rhoofr_utils,                    ONLY: rhoofr_batchfft
   USE vpsi_utils,                      ONLY: vpsi_batchfft
@@ -43,7 +44,19 @@ CONTAINS
        DO it=1,num_it
           WRITE(6,'(A,I7,A,I7,A)') 'Autotuning, iteration: ',it,' of ', num_it,' iterations'
           IF(it.LE.cnti%rnlsm_autotune_maxit.AND.cntl%overlapp_comm_comp)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu  =.FALSE.
+          update_second_to_gpu =.FALSE.
+          update_third_to_gpu  =.FALSE.
+          update_result_to_host=.FALSE.
+#endif
              CALL rnlsm(c0,nstate,1,1,.FALSE.,unpack_dfnl_fnl=.FALSE.)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu  =.TRUE.
+          update_second_to_gpu =.TRUE.
+          update_third_to_gpu  =.TRUE.
+          update_result_to_host=.TRUE.
+#endif
           END IF
           IF(it.LE.fft_tune_max_it.AND.batch_fft)THEN
              rsactive = cntl%krwfn

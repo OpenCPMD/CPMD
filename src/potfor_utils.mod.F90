@@ -54,14 +54,22 @@ CONTAINS
     ig1=1
     IF (geq0) ig1=2
     IF (cntl%bigmem) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute private(isa,ia,is,ft1,ft2,ft3)
+#else
        !$omp parallel do private(ISA,IA,IS,IG,EI123,RP,RHET,RHOG,RHETS,RHOGS, &
        !$omp  GX,GY,GZ,VCGS,ft1,ft2,ft3)
+#endif
        DO isa=1,ions1%nat
           ia=iatpt(1,isa)
           is=iatpt(2,isa)
           ft1=0._real_8
           ft2=0._real_8
           ft3=0._real_8
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do private(ig,ei123,rp,rhet,rhog,rhets,rhogs,gx,gy,gz,vcgs)&
+          !$omp& reduction(+:ft1,ft2,ft3)
+#endif
           DO ig=ig1,ncpw%nhg
              ei123=eigrb(ig,isa)
              rp=eirop(ig)

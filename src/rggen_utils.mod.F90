@@ -203,9 +203,15 @@ CONTAINS
     ALLOCATE(gk(3,ncpw%nhg),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:gk)
+#endif
     ALLOCATE(gk_trans(ncpw%nhg,3),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:gk_trans)
+#endif
     ALLOCATE(igl(ncpw%nhg),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
@@ -407,6 +413,9 @@ CONTAINS
        ig=isptr(ish)
        gl(ish)=hg(ig)
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(gk,gk_trans)
+#endif
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE gvector

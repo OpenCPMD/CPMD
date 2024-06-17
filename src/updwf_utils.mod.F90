@@ -5,6 +5,7 @@ MODULE updwf_utils
   USE forcedr_driver,                  ONLY: forcedr
   USE forcedr_utils,                   ONLY: give_scr_forcedr
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE hesele_utils,                    ONLY: hesele
   USE hubbardu,                        ONLY: hubbu
   USE kinds,                           ONLY: real_8
@@ -91,7 +92,6 @@ CONTAINS
           CALL zeroing(fion)!,3*maxsys%nax*maxsys%nsx)
        ENDIF
     ENDIF
-
     !
     IF(cntl%thubb) hubbu%tpom=.false. 
     IF (paral%qmnode.AND..NOT.clc%classical)THEN
@@ -103,6 +103,9 @@ CONTAINS
           IF (cntl%diis) THEN
              IF (ropt_mod%sdiis) THEN
                 CALL hesele(dt2bye,vpp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+                !$omp target update to(vpp)
+#endif
              ENDIF
              CALL odiis(c0,c2,vpp,nstate,pme,gde,dt2bye,ropt_mod%sdiis)
              IF (ropt_mod%sdiis) THEN
@@ -144,9 +147,23 @@ CONTAINS
        ! ==  ORTHOGONALIZATION                                           ==
        ! ==--------------------------------------------------------------==
        IF (cntl%nonort) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu  =.FALSE.
+          update_second_to_gpu =.FALSE.
+          update_third_to_gpu  =.FALSE.
+          update_result_to_host=.FALSE.
+          comm_buffers_on_host =.FALSE.
+#endif
           IF (geq0) THEN
              CALL zclean(c0,nstate,ncpw%ngw)
           ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu  =.TRUE.
+          update_second_to_gpu =.TRUE.
+          update_third_to_gpu  =.TRUE.
+          update_result_to_host=.TRUE.
+          comm_buffers_on_host =.TRUE.
+#endif
        ELSE
           IF (.NOT.pslo_com%tivan) THEN
              CALL preortho(c0,nstate)

@@ -51,8 +51,11 @@ CONTAINS
     ELSE
        clean_geq0=.FALSE.
     END IF
-    !$omp parallel private(offset0,isa0,is,start_ia,end_ia,ia_sum,iv,&
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel &
+    !$omp& private(offset0,isa0,is,start_ia,end_ia,ia_sum,iv,&
     !$omp& k,ci,cir,twnl,ia,isa,offset)
+#endif
     offset0=0
     isa0=0
     DO is=1,ions1%nsp
@@ -71,52 +74,84 @@ CONTAINS
                    cir=REAL(ci,kind=real_8)
                    twnl(1:)=>twnl_nghtol(ig_start:,iv,is,1)
                 END IF
-                !$omp do
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+                !$omp target teams distribute &
+#else
+                !$omp do&
+#endif
+                !$omp& private (ia,isa,offset)
                 DO ia=start_ia,end_ia
                    isa=isa0+ia
                    offset=offset0+ia-start_ia+1
                    IF (ABS(cir).GT.0.5_real_8) THEN
+                      !DIR$ forceinline
                       CALL build_betaproj_r(eiscr(:,offset),eigkr(ig_start,isa),twnl,ld_eiscr)
                    ELSE
+                      !DIR$ forceinline
                       CALL build_betaproj_i(eiscr(:,offset),eigkr(ig_start,isa),twnl,ld_eiscr)
                    END IF
                 END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
                 !$omp end do nowait
+#endif
                 offset0=offset0+ia_sum
              END DO
           END DO
        END IF
        isa0=isa0+ions0%na(is)
     END DO
-
+    !$omp taskwait
     IF(clean_geq0)THEN
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp barrier
+#endif
        IF(tkpnt)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do simd
+#else
           !$omp do
+#endif
           DO i=1,td_eiscr
              eiscr(igeq0,i)=zzero
           END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
           !$omp end do nowait
+#endif
        ELSE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do simd
+#else
           !$omp do
+#endif
           DO i=1,td_eiscr
              eiscr(igeq0,i)=eiscr(igeq0,i)*0.5_real_8
           END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
           !$omp end do nowait
+#endif
        END IF
     END IF
-    !$omp end parallel 
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp end parallel
+#endif
     RETURN
   END SUBROUTINE build_beta
   ! ==================================================================
+  !DIR$ ATTRIBUTES FORCEINLINE::build_betaproj_r
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  SUBROUTINE build_betaproj_r(eiscr,eigr_,twnl_,lda)
+#else
   PURE SUBROUTINE build_betaproj_r(eiscr,eigr_,twnl_,lda)
+#endif
     INTEGER,INTENT(IN)                       :: lda
     COMPLEX(real_8), INTENT(OUT)             :: eiscr(lda)
     COMPLEX(real_8),INTENT(IN)               :: eigr_(lda,*)
     REAL(real_8),INTENT(IN)                  :: twnl_(lda,*)
     REAL(real_8)                             :: t1, t2
     INTEGER                                  :: ig
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel do private(ig,t1,t2)
+#endif
     DO ig=1,lda
        t1=REAL(eigr_(ig,1))*twnl_(ig,1)
        t2=AIMAG(eigr_(ig,1))*twnl_(ig,1)
@@ -125,14 +160,21 @@ CONTAINS
 
   END SUBROUTINE build_betaproj_r
   ! ==================================================================
+  !DIR$ ATTRIBUTES FORCEINLINE::build_betaproj_i
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  SUBROUTINE build_betaproj_i(eiscr,eigr_,twnl_,lda)
+#else
   PURE SUBROUTINE build_betaproj_i(eiscr,eigr_,twnl_,lda)
+#endif
     INTEGER,INTENT(IN)                       :: lda
     COMPLEX(real_8),INTENT(OUT)              :: eiscr(lda)
     COMPLEX(real_8),INTENT(IN)               :: eigr_(lda,*)
     REAL(real_8),INTENT(IN)                  :: twnl_(lda,*)
     REAL(real_8)                             :: t1, t2
     INTEGER                                  :: ig
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel do private(ig,t1,t2)
+#endif
     DO ig=1,lda
        t1=REAL(eigr_(ig,1))*twnl_(ig,1)
        t2=AIMAG(eigr_(ig,1))*twnl_(ig,1)

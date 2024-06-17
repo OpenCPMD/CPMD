@@ -592,20 +592,33 @@ CONTAINS
 
     n=krmax-krmin+1
     n1=krmin-1
-    !$omp parallel private (i,is,k,j) proc_bind(close)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do collapse(4) &
+#else
+    !$omp parallel proc_bind(close) &
+#endif
+    !$omp& private (i,is,k,j)
     DO is=1,nperbatch
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp do
+#endif
        DO i=1,kr2s
           DO k=1,kr1
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
              !$omp simd
+#endif
              DO j=1,n
                 b(j,k,is,i)=a(n1+j,k,i,is)
              END DO
           END DO
        END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp end do nowait
+#endif
     END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$omp end parallel
+#endif
 
     IF (HAS_LOW_LEVEL_TIMERS) THEN
        IF(cntl%fft_tune_batchsize) THEN
@@ -652,22 +665,38 @@ CONTAINS
        offset=0
     END IF
 
-    !$omp parallel private(is,ip,mxrp,i,ii,jj,k) proc_bind(close)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute collapse(3) &
+#else
+    !$omp parallel proc_bind(close) &
+#endif
+    !$omp& private(is,ip,mxrp,i,ii,jj,k) 
     DO is=1,nstate
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp do
+#endif
        DO ip=0,mproc-1
-          mxrp = sp8(ip)
           DO i=1,lr1
+             mxrp = sp8(ip)
              ii = ip*lda*nstate + (i-1)*mxrp + (is-1)*lda
              jj = (i-1)*m + (is-1)*offset
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp parallel do simd
+#else
+!             !$omp simd
+#endif
              DO k=1,mxrp
                 xf(ii+k) = yf(jj+msp(k,ip+1))
              ENDDO
           ENDDO
        ENDDO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp end do nowait
+#endif
     end do
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$omp end parallel
+#endif
 
     IF (HAS_LOW_LEVEL_TIMERS) THEN
        IF(cntl%fft_tune_batchsize) THEN
@@ -690,7 +719,7 @@ CONTAINS
     INTEGER,INTENT(IN),OPTIONAL              :: count
 
     INTEGER                                  :: ip, ipp, isub1, isub2, k, nrs, &
-                                                nrx, i,is,nstate
+                                                nrx, i,is,nstate,sp5_max
 
     CHARACTER(*),PARAMETER :: procedureN='UNPACK_Y2X_n'
     ! ==--------------------------------------------------------------==
@@ -710,13 +739,29 @@ CONTAINS
        nstate=1
     END IF
 
-    !$omp parallel do private(ip,i,is,nrs,ipp,k) proc_bind(close)
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    sp5_max=maxval(sp5)
+    !$omp target teams distribute collapse(3) &
+#else
+    !$omp parallel do proc_bind(close) &
+#endif
+    !$omp& private(ip,i,is,nrs,ipp,k)
     DO ip=0,mproc-1
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       DO i=1,sp5_max
+#else
        DO i=1,sp5(ip)
+#endif
           DO is=1,nstate
+             IF(i.GT.sp5(ip))CYCLE
              nrs = (jrxpl(ip)-1)*nrays*nstate + (i-1)*nrays*nstate +(is-1)*nrays
              ipp = ip*lda*nstate + (i-1)*nrays + (is-1)*lda
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp parallel do simd
+#else
              !$omp simd
+#endif
              DO k=1,nrays
                 xf(nrs+k)=yf(ipp+k)
              END DO
@@ -746,7 +791,8 @@ CONTAINS
     INTEGER,INTENT(IN),OPTIONAL              :: count
 
     INTEGER                                  :: ip, ipp, isub1, isub2, &
-                                                k, nrs, nrx, i,is,nstate
+                                                 k, nrs, nrx, i,is,nstate,&
+                                                 sp5_max
     CHARACTER(*),PARAMETER :: procedureN='PACK_X2Y_n'
     ! ==--------------------------------------------------------------==
     IF (HAS_LOW_LEVEL_TIMERS) THEN
@@ -763,13 +809,28 @@ CONTAINS
        nstate=1
     END IF
 
-    !$omp parallel do private(ip,i,is,nrs,ipp,k) proc_bind(close)
+    sp5_max=maxval(sp5)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute collapse(3) &
+#else
+    !$omp parallel do proc_bind(close) &
+#endif
+    !$omp& private(ip,i,is,nrs,ipp,k) 
     DO ip=0,mproc-1
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       DO i=1,sp5_max
+#else
        DO i=1,sp5(ip)
+#endif
           DO is=1,nstate
+             IF(i.GT.sp5(ip))CYCLE
              nrs = (jrxpl(ip)-1)*nrays*nstate + (i-1)*nrays*nstate +(is-1)*nrays
              ipp = ip*lda*nstate + (i-1)*nrays + (is-1)*lda
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp parallel do simd
+#else
              !$omp simd
+#endif
              DO k=1,nrays
                 yf(ipp+k)=xf(nrs+k)
              END DO
@@ -850,19 +911,30 @@ CONTAINS
     INTEGER, INTENT(IN)                    :: offset,nstate
     INTEGER                                  :: i, ii, ip, isub1, jj, k, mxrp,is,kk
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do simd
+#else
     !$omp parallel private(is,ip,mxrp,i,ii,jj,k,kk) proc_bind(close)
-    !    call zero(yf_r,nstate*offset*2)
     !$omp do
+#endif
     do is=1,nstate*offset*2
        yf_r(is)=0._real_8
     end do
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute collapse(3) private(is,ip,i,mxrp,ii,jj,k,kk)
+#endif
     DO is=1,nstate
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp do schedule (static)
+#endif
        DO ip=0,mproc-1
-          mxrp = sp8(ip)
           DO i=1,lr1
+             mxrp = sp8(ip)
              ii = ip*lda*nstate + (i-1)*mxrp + (is-1)*lda
              jj = (i-1)*m + (is-1)*offset
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp parallel do simd
+#endif
              DO k=1,mxrp
                 do kk=-1,0
                    yf_r((jj+msp(k,ip+1))*2+kk) = xf_r((ii+k)*2+kk)
@@ -870,9 +942,13 @@ CONTAINS
              END DO
           END DO
        END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp end do nowait
+#endif
     END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$omp end parallel
+#endif
 
   END SUBROUTINE unpack_x2y_n_r
   SUBROUTINE putz_n_r(a_r,b_r,krmin,krmax,kr,kr1,kr2s,nperbatch)
@@ -892,49 +968,58 @@ CONTAINS
     kr_loc=kr*2
     krmin_loc=krmin*2-1
 
-    !$omp parallel private (i,is,k,j) proc_bind(close)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute collapse(3) &
+#else
+    !$omp parallel proc_bind(close) &
+#endif
+    !$omp& private (i,is,k,j)
     DO is=1,nperbatch
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp do
+#endif
        DO i=1,kr2s
           DO k=1,kr1
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp parallel private(j)
+             !$omp do simd
+#else
              !$omp simd
+#endif
              DO j=1,n1
                 b_r(j,k,i,is)=0.0_real_8
              END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp end do simd nowait
+             !$omp do simd
+#else
              !$omp simd
+#endif
              DO j=krmin_loc,n2
                 b_r(j,k,i,is)=a_r(j-n4,k,is,i)
              END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp end do simd nowait
+             !$omp do simd
+#else
              !$omp simd
+#endif
              DO j=n3,kr_loc
                 b_r(j,k,i,is)=0.0_real_8
              END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp end do simd nowait
+             !$omp end parallel
+#endif
           END DO
        END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp end do nowait
+#endif
     END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$omp end parallel
-
+#endif
     ! ==--------------------------------------------------------------==
   END SUBROUTINE putz_n_r
-
-  subroutine zero(in,len)
-    real(real_8), intent(out) __CONTIGUOUS :: in(:)
-    integer, intent(in) :: len
-    integer :: i
-    !$omp do simd
-    do i=1,len
-       in(i)=0.0_real_8
-    end do
-  end subroutine zero
-  subroutine zero_noomp(in,len)
-    real(real_8), intent(out) __CONTIGUOUS :: in(:)
-    integer, intent(in) :: len
-    integer :: i
-    !$omp simd
-    do i=1,len
-       in(i)=0.0_real_8
-    end do
-  end subroutine zero_noomp
-  !TK
 END MODULE fftutil_utils

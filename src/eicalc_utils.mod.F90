@@ -15,6 +15,7 @@ MODULE eicalc_utils
                                              eigrb
   USE system,                          ONLY: cntl,&
                                              iatpt,&
+                                             maxsys,&
                                              ncpw,&
                                              parm
   USE timer,                           ONLY: tihalt,&
@@ -49,8 +50,12 @@ CONTAINS
 
     CALL tiset(procedureN,isub)
     __NVTX_TIMER_START ( procedureN )
-
-    !$omp parallel do private(IG,ISA,IA,IS,ER,EI,EI123,ISA0,eivps_s,eirop_s,&
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute num_teams(ncpw%nhg) &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(IG,ISA,IA,IS,ER,EI,EI123,ISA0,eivps_s,eirop_s,&
     !$omp& ind1,ind2,ind3,vps_s,rhops_s) shared(EIVPS,EIROP)
     DO ig=1,ncpw%nhg
        eivps_s=(0.0_real_8,0.0_real_8)
@@ -62,6 +67,10 @@ CONTAINS
        DO is=1,ions1%nsp
           rhops_s=rhops(is,ig)
           vps_s=vps(is,ig)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do reduction(+:eivps_s,eirop_s), &
+          !$omp& private(ia,isa,ei123,er,ei) num_threads(16)
+#endif
           DO ia=1,ions0%na(is)
              isa=isa0+ia
              ei123=ei1(isa,ind1)*ei2(isa,ind2)*&
@@ -78,6 +87,9 @@ CONTAINS
        eivps(ig)=eivps_s
        eirop(ig)=eirop_s
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(eivps,eirop)
+#endif
 
     __NVTX_TIMER_STOP
     CALL tihalt(procedureN,isub)

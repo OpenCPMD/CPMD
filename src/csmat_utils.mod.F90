@@ -9,6 +9,7 @@ MODULE csmat_utils
   USE distribution_utils,              ONLY: dist_atoms
   USE kinds,                           ONLY: real_8,&
                                              int_8
+  USE gpu
   USE mp_interface,                    ONLY: mp_sum
   USE nlps,                            ONLY: nlps_com
   USE nort,                            ONLY: nort_com,&
@@ -135,7 +136,12 @@ CONTAINS
              off_i=0
              IF(ispin.EQ.2) off_i=spin_mod%nsup
              n=ns(ispin)
-             !$omp parallel do private(i,off_mat,off_fnl,is,ia_fnl,ia_sum,fnl_start)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target teams distribute &
+#else
+             !$omp parallel do &
+#endif
+             !$omp& private(i,off_mat,off_fnl,is,ia_fnl,ia_sum,fnl_start)
              DO i=1,n
                 off_mat=1
                 off_fnl=1
@@ -146,6 +152,7 @@ CONTAINS
                    IF(ia_sum.GT.0)THEN
                       !starting index fnl_packed
                       fnl_start=na(1,is)-na_fnl(1,is)
+                      !DIR$ forceinline
                       CALL prepare_matrix(fnl_packed(off_fnl:,i+off_i),&
                            fnlat(off_mat:,i),&
                            fnlatj(off_mat:,i),qq(:,:,is),nlps_com%ngh(is),&
@@ -155,6 +162,10 @@ CONTAINS
                    off_fnl=off_fnl+ia_fnl*nlps_com%ngh(is)
                 END DO
              END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target update from(fnlat) if(update_first_to_gpu)
+             !$omp target update from(fnlatj) if(update_second_to_gpu)
+#endif
 #ifdef _HAS_DGEMMT
              CALL cpmd_dgemmt('U','T','N',n,tot_work,1.0_real_8,&
                   fnlat(1,1),tot_work,fnlatj(1,1),tot_work,1.0_real_8,&
@@ -188,7 +199,6 @@ CONTAINS
     END IF
     CALL summat(a,nstate,symmetrization=full,lsd=.TRUE.,gid=parai%cp_grp,&
          parent=only_parent)
-
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN
@@ -208,34 +218,57 @@ CONTAINS
        ALLOCATE(nort_ovlap(nstate,nstate), stat=ierr)
        IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate nort_ovlap',&
             __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:nort_ovlap)
+#endif
     ELSE
        IF(SIZE(nort_ovlap).NE.nstate*nstate)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target exit data map(delete:nort_ovlap)
+#endif
           DEALLOCATE(nort_ovlap, stat=ierr)
           IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate nort_ovlap',&
                __LINE__,__FILE__)
           ALLOCATE(nort_ovlap(nstate,nstate), stat=ierr)
           IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate nort_ovlap',&
                __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target enter data map(alloc:nort_ovlap)
+#endif
        END IF
     END IF
     IF(cntl%tlsd)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do simd private(i,j)
+#else
        !$omp parallel private(i,j)
        !$omp do
+#endif
        DO i=1,spin_mod%nsup
           DO j=1,i
              nort_ovlap(j,i)=a(j,i)
           END DO
        END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do simd private(i,j)
+#else
        !$omp end do nowait
        !$omp  do
+#endif
        DO i=spin_mod%nsup+1,nstate
           DO j=spin_mod%nsup+1,i
              nort_ovlap(j,i)=a(j,i)
           END DO
        END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp end parallel
+#endif
     ELSE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do simd private(i,j)
+#else
        !$omp parallel do private(i,j)
+#endif
        DO i=1,nstate
           DO j=1,i
              nort_ovlap(j,i)=a(j,i)
@@ -248,25 +281,42 @@ CONTAINS
     !always check threshold.
     temp=0.0_real_8
     IF(cntl%tlsd)THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do simd private(i,j,selem)&
+       !$omp& reduction(max:temp)
+#else
        !$omp parallel private(i,j,selem)reduction(max:temp)
        !$omp do
+#endif
        DO i=1,spin_mod%nsup
           DO j=1,i-1
              selem=ABS(nort_ovlap(j,i))
              IF (temp.LT.selem) temp=selem
           ENDDO
        ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do simd private(i,j,selem)&
+       !$omp& reduction(max:temp)
+#else
        !$omp end do nowait
        !$omp do
+#endif
        DO i=spin_mod%nsup+1,nstate
           DO j=spin_mod%nsup+1,i-1
              selem=ABS(nort_ovlap(j,i))
              IF (temp.LT.selem) temp=selem
           ENDDO
        ENDDO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp end parallel
+#endif
     ELSE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do simd private(i,j,selem)&
+       !$omp& reduction(max:temp)
+#else
        !$omp parallel do private(i,j,selem)reduction(max:temp)
+#endif
        DO i=1,nstate
           DO j=1,i-1
              selem=ABS(nort_ovlap(j,i))
@@ -276,21 +326,30 @@ CONTAINS
     END IF
     nort_com%scond=temp
 
-    RETURN
   END SUBROUTINE store_ovlap
   ! ==================================================================
+  !DIR$ ATTRIBUTES FORCEINLINE::prepare_matrix
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  SUBROUTINE prepare_matrix(fnl_p,fnli,fnlj,qq_,ngh,ia_sum,ia_fnl,fnl_start,maxngh)
+#else
   PURE SUBROUTINE prepare_matrix(fnl_p,fnli,fnlj,qq_,ngh,ia_sum,ia_fnl,fnl_start,maxngh)
+#endif
     INTEGER,INTENT(IN)                       :: ngh,ia_sum,ia_fnl,fnl_start,maxngh
-    REAL(real_8),INTENT(IN)                  :: fnl_p(ia_fnl,ngh,*), qq_(maxngh,*)
+    REAL(real_8),INTENT(IN)                  :: fnl_p(ia_fnl,ngh,*),qq_(maxngh,*)
     REAL(real_8),INTENT(OUT)                 :: fnli(ia_sum,ngh,*),fnlj(ia_sum,ngh,*)
     INTEGER                                  :: iv,ia,jv
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel do private(iv,ia)
+#endif
     DO iv=1,ngh
        DO ia=1,ia_sum
           fnli(ia,iv,1)=fnl_p(ia+fnl_start,iv,1)
           fnlj(ia,iv,1)=0.0_real_8
        END DO
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel do private(iv,jv,ia)
+#endif
     DO iv=1,ngh
        DO jv=1,ngh
           IF (ABS(qq_(jv,iv)).GT.1.e-5_real_8) THEN

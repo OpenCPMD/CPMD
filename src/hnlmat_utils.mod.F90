@@ -8,6 +8,7 @@ MODULE hnlmat_utils
   USE error_handling,                  ONLY: stopgm
   USE ions,                            ONLY: ions0,&
                                              ions1
+  USE gpu
   USE kinds,                           ONLY: real_8,&
                                              int_8
   USE nlps,                            ONLY: imagp,&
@@ -162,7 +163,12 @@ CONTAINS
              off_i=0
              IF(ispin.EQ.2) off_i=spin_mod%nsup
              n=ns(ispin)
-             !$omp parallel do private(i,isa0,off_mat,off_fnl,is,ia_fnl,ia_sum,&
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target teams distribute &
+#else
+             !$omp parallel do &
+#endif
+             !$omp& private(i,isa0,off_mat,off_fnl,is,ia_fnl,ia_sum,&
              !$omp& isa_start,fnl_start)
              DO i=1,n
                 isa0=0
@@ -177,6 +183,7 @@ CONTAINS
                       isa_start=isa0+na(1,is)-1
                       !starting index fnl_packed
                       fnl_start=na(1,is)-na_fnl(1,is)
+                      !DIR$ forceinline
                       CALL prepare_matrix(fnl_packed(off_fnl:,i+off_i),&
                            fnlat(off_mat:,i),&
                            fnlatj(off_mat:,i),deeq(:,:,:,ispin),dvan(:,:,is),&
@@ -188,6 +195,10 @@ CONTAINS
                    isa0=isa0+ions0%na(is)
                 END DO
              END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target update from(fnlat) if(update_first_to_gpu)
+             !$omp target update from(fnlatj) if(update_second_to_gpu)
+#endif
 #ifdef _HAS_DGEMMT
              CALL cpmd_dgemmt('U','T','N',n,tot_work,fac,&
                   fnlat(1,1),tot_work,fnlatj(1,1),tot_work,1.0_real_8,&
@@ -247,20 +258,33 @@ CONTAINS
 
   END SUBROUTINE hnlmat
   ! ==================================================================
-  PURE SUBROUTINE prepare_matrix(fnl_p,fnli,fnlj,deeq_,dvan_,ngh,ia_sum,ia_fnl,fnl_start,&
+  !DIR$ ATTRIBUTES FORCEINLINE::prepare_matrix
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  SUBROUTINE prepare_matrix(fnl_p,fnli,fnlj,deeq_,dvan_,ngh,ia_sum,ia_fnl,fnl_start,&
        isa_start,maxngh,nat)
-    INTEGER,INTENT(IN)                       :: ngh,ia_sum,ia_fnl,isa_start,fnl_start,maxngh,nat
+#else
+  PURE  SUBROUTINE prepare_matrix(fnl_p,fnli,fnlj,deeq_,dvan_,ngh,ia_sum,ia_fnl,fnl_start,&
+       isa_start,maxngh,nat)
+#endif
+    INTEGER,INTENT(IN)                       :: ngh,ia_sum,ia_fnl,isa_start,fnl_start,&
+                                                maxngh,nat
     REAL(real_8),INTENT(IN)                  :: fnl_p(ia_fnl,ngh,*),dvan_(maxngh,*),&
                                                 deeq_(nat,maxngh,*)
     REAL(real_8),INTENT(OUT)                 :: fnli(ia_sum,ngh,*),fnlj(ia_sum,ngh,*)
     INTEGER                                  :: iv,ia,jv,isa
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel do private(iv,ia)
+#endif
     DO iv=1,ngh
        DO ia=1,ia_sum
           fnli(ia,iv,1)=fnl_p(ia+fnl_start,iv,1)
           fnlj(ia,iv,1)=0.0_real_8
        END DO
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel do private(iv,jv,isa,ia)
+#endif
     DO iv=1,ngh
        DO jv=1,ngh
           isa=isa_start

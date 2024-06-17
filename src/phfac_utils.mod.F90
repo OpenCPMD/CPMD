@@ -13,7 +13,8 @@ MODULE phfac_utils
                                              rk
   USE kpts,                            ONLY: tkpts
   USE mp_interface,                    ONLY: mp_sum
-  !$ USE omp_lib,                         ONLY: omp_get_thread_num
+  !$ USE omp_lib,                         ONLY: omp_get_thread_num,&
+  !$                                            omp_get_team_num
   USE parac,                           ONLY: paral, &
                                              parai
   USE prmem_utils,                     ONLY: prmem
@@ -80,9 +81,10 @@ CONTAINS
   END SUBROUTINE phfac_dipole
   
   ! ==================================================================
-  SUBROUTINE phfac(tau0)
+  SUBROUTINE phfac(tau0,force_update)
     ! ==--------------------------------------------------------------==
     REAL(real_8), INTENT(IN) __CONTIGUOUS    :: tau0(:,:,:)
+    LOGICAL, OPTIONAL                        :: force_update
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'phfac'
 
@@ -118,11 +120,15 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     CALL tiset(procedureN,isub)
     IF (ifirst.EQ.0) THEN
+       !TK either eigrb or ei1-3
        IF (cntl%bigmem) THEN
           ALLOCATE(eigrb(ncpw%nhg,ions1%nat),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
-       END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target enter data map(alloc:eigrb)
+#endif
+       ENDIF
        ALLOCATE(ei1(natx,(2*spar%nr1s-1)),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
@@ -136,6 +142,9 @@ CONTAINS
        ALLOCATE(eigr(ncpw%ngw,ions1%nat,1),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)! FIXME deallocate missing
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:eigr,ei1,ei2,ei3)
+#endif
        IF (tkpts%tkpnt) THEN
           ALLOCATE(eikr(nkpt%nkpts,ions1%nat),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
@@ -151,7 +160,11 @@ CONTAINS
        ENDIF
     ENDIF
     !TK temporary arrays
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    nthreads=ions1%nat
+#else
     nthreads=parai%ncpus
+#endif
     il_ei1t(1)=2*spar%nr1s-1
     il_ei1t(2)=nthreads
     il_ei2t(1)=2*spar%nr2s-1
@@ -184,12 +197,23 @@ CONTAINS
     nh2=spar%nr2s/2
     nh3=spar%nr3s/2
     methread=1
-    !$omp parallel private(isa,ia,is,sum1,sum2,sum3,ar1,ar2,ar3) &
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams num_teams(ions1%nat) &
+    !$omp& map (to:tau0,gvec_com,iatpt,parm) &
+#else
+    !$omp parallel &
+#endif
+    !$omp& private(isa,ia,is,sum1,sum2,sum3,ar1,ar2,ar3) &
     !$omp private(ctep1,ctep2,ctep3,ctem1,ctem2,ctem3) &
     !$omp private(svtmpp,svtmpm,i,j,k,ei10,ei20,ei30,methread) &
     !$omp shared(nh1,nh2,nh3)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$ methread=omp_get_team_num()+1
+    !$omp distribute
+#else
     !$ methread=omp_get_thread_num()+1
     !$omp do
+#endif
     DO isa=1,ions1%nat
        ia=iatpt(1,isa)
        is=iatpt(2,isa)
@@ -211,68 +235,90 @@ CONTAINS
 
        ei10=ctep1**(-nh1)
        ei1t(1,methread)=CMPLX(1.0_real_8,0.0_real_8,kind=real_8)*ei10
-       svtmpp=ctep1
-       svtmpm=ctem1
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(i)
+#endif     
        DO i=2,spar%nr1s
-          ei1t(i,methread)=svtmpp*ei10
-          svtmpp=svtmpp*ctep1
-          ei1t(spar%nr1s+i-1,methread)=svtmpm*ei10
-          svtmpm=svtmpm*ctem1
+          ei1t(i,methread)=ctep1**(i-1)*ei10
+          ei1t(spar%nr1s+i-1,methread)=ctem1**(i-1)*ei10
        END DO
 
        ei20=ctep2**(-nh2)
        ei2t(1,methread)=CMPLX(1.0_real_8,0.0_real_8,kind=real_8)*ei20
-       svtmpp=ctep2
-       svtmpm=ctem2
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(j)
+#endif
        DO j=2,spar%nr2s
-          ei2t(j,methread)=svtmpp*ei20
-          svtmpp=svtmpp*ctep2
-          ei2t(spar%nr2s+j-1,methread)=svtmpm*ei20
-          svtmpm=svtmpm*ctem2
+          ei2t(j,methread)=ctep2**(j-1)*ei20
+          ei2t(spar%nr2s+j-1,methread)=ctem2**(j-1)*ei20
        END DO
 
        ei30=ctep3**(-nh3)
        ei3t(1,methread)=CMPLX(1.0_real_8,0.0_real_8,kind=real_8)*ei30
-       svtmpp=ctep3
-       svtmpm=ctem3
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(k)
+#endif
        DO k=2,spar%nr3s
-          ei3t(k,methread)=svtmpp*ei30
-          svtmpp=svtmpp*ctep3
-          ei3t(spar%nr3s+k-1,methread)=svtmpm*ei30
-          svtmpm=svtmpm*ctem3
+          ei3t(k,methread)=ctep3**(k-1)*ei30
+          ei3t(spar%nr3s+k-1,methread)=ctem3**(k-1)*ei30
        END DO
 
        ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(ig)
+#endif
+       DO ig=1,2*spar%nr1s-1
+          ei1(isa,ig)=ei1t(ig,methread)
+       END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(ig)
+#endif
+       DO ig=1,2*spar%nr2s-1
+          ei2(isa,ig)=ei2t(ig,methread)
+       END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(ig)
+#endif
+       DO ig=1,2*spar%nr3s-1
+          ei3(isa,ig)=ei3t(ig,methread)
+       END DO
+
        IF (cntl%bigmem) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do private(ig)
+#endif
           DO ig=1,ncpw%ngw
              eigr(ig,isa,1)=ei1t(inyh(1,ig),methread)*ei2t(inyh(2,ig),methread)&
                   *ei3t(inyh(3,ig),methread)
              eigrb(ig,isa)=ei1t(inyh(1,ig),methread)*ei2t(inyh(2,ig),methread)&
                   *ei3t(inyh(3,ig),methread)
           END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do private(ig)
+#endif
           DO ig=ncpw%ngw+1,ncpw%nhg
              eigrb(ig,isa)=ei1t(inyh(1,ig),methread)*ei2t(inyh(2,ig),methread)&
                   *ei3t(inyh(3,ig),methread)
           END DO
        ELSE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do private(ig)
+#endif
           DO ig=1,ncpw%ngw
              eigr(ig,isa,1)=ei1t(inyh(1,ig),methread)*ei2t(inyh(2,ig),methread)&
                   *ei3t(inyh(3,ig),methread)
           END DO
        END IF
-       DO ig=1,2*spar%nr1s-1
-          ei1(isa,ig)=ei1t(ig,methread)
-       END DO
-       DO ig=1,2*spar%nr2s-1
-          ei2(isa,ig)=ei2t(ig,methread)
-       END DO
-       DO ig=1,2*spar%nr3s-1
-          ei3(isa,ig)=ei3t(ig,methread)
-       END DO
-
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp end target teams
+    IF(PRESENT(force_update))THEN
+       !$omp target update from(eigr,eigrb,ei1,ei2,ei3) IF(force_update)
+    END IF
+#else
     !$omp end do nowait
     !$omp end parallel
+#endif
     ! ==--------------------------------------------------------------==
     IF (tkpts%tkpnt) THEN
        DO ikpt=1,nkpt%nblkp

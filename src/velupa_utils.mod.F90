@@ -101,7 +101,12 @@ CONTAINS
     INTEGER,INTENT(IN)                       :: nstate, ibeg_c0, iend_c0
 
     INTEGER                                  :: i,ig
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do simd collapse(2)&
+#else
     !$omp parallel do &
+#endif
     !$omp& private(i,ig)
     DO i=1,nstate
        DO ig=ibeg_c0,iend_c0

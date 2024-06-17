@@ -62,6 +62,7 @@ MODULE vpsi_utils
                                              invfftn_batch
   USE fftnew_utils,                    ONLY: setfftn
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE kinds,                           ONLY: real_8,&
                                              int_8
   USE kpclean_utils,                   ONLY: c_clean
@@ -1207,6 +1208,12 @@ CONTAINS
     CALL reshape_inplace(vpot, (/fpar%kr1*fpar%kr2s,fpar%kr3s,ispin/), vpotdg)
 
     methread=0
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(vpot)
+#endif
+    comm_buffers_on_host=.FALSE.
+    update_first_to_gpu=.FALSE.
+    update_result_to_host=.FALSE.
 
     IF(.NOT.rsactive) wfn_r1=>wfn_r(:,1)
     IF(cntl%fft_tune_batchsize) temp_time=m_walltime()
@@ -1219,10 +1226,10 @@ CONTAINS
     !$ IF(methread.EQ.1)THEN
     !$    CALL omp_set_max_active_levels(2)
     !$    CALL omp_set_num_threads(nested_threads)
-#if defined(_HAS_FFT_FFTW3)
+#if defined(_HAS_FFT_FFTW3) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL dfftw_plan_with_nthreads(nested_threads)
 #endif
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL mkl_set_dynamic(0)
     !$    ierr = mkl_set_num_threads_local(nested_threads)
 #endif
@@ -1402,18 +1409,24 @@ CONTAINS
     !$ IF (methread.EQ.1) THEN
     !$    CALL omp_set_max_active_levels(1)
     !$    CALL omp_set_num_threads(parai%ncpus)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL mkl_set_dynamic(1)
     !$    ierr = mkl_set_num_threads_local(0)
 #endif
-#if defined(_HAS_FFT_FFTW3)
+#if defined(_HAS_FFT_FFTW3) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL dfftw_plan_with_nthreads(parai%ncpus)
 #endif
     !$ END IF
     !$OMP barrier
 
     !$omp end parallel
+    comm_buffers_on_host=.TRUE.
+    update_first_to_gpu=.TRUE.
+    update_result_to_host=.TRUE.
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(c2)
+#endif
     IF(cntl%fft_tune_batchsize) fft_time_total(fft_tune_num_it)=fft_time_total(fft_tune_num_it)+m_walltime()-temp_time
 
     DO i=1,2
@@ -1535,8 +1548,12 @@ CONTAINS
     REAL(real_8), INTENT(IN)                 :: vpot(n1,n3,nspin)
 
     INTEGER                                  :: l1,l2,l3
-    
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do collapse(3) private(l1,l2,l3)
+#else
     !$omp parallel do private(l1,l2,l3)
+#endif
     DO l3=1,n3
        DO l2=1,n2
           DO l1=1,n1
@@ -1547,27 +1564,6 @@ CONTAINS
        END DO
     END DO
   END SUBROUTINE mult_vpot_psi
-  ! ==================================================================
-  SUBROUTINE mult_vpot_psi_rsactive(psi_in,psi_out,vpot,n1,n2,n3,spins,nspin)
-    ! ==--------------------------------------------------------------==
-    INTEGER, INTENT(IN)                      :: n1, n2, n3, nspin, spins(2,n2)
-    COMPLEX(real_8), INTENT(OUT)             :: psi_out(n1,n2,n3)
-    COMPLEX(real_8), INTENT(IN)              :: psi_in(n1,n2,n3)
-    REAL(real_8), INTENT(IN)                 :: vpot(n1,n3,nspin)
-
-    INTEGER                                  :: l1,l2,l3
-    
-    !$omp parallel do private(l1,l2,l3)
-    DO l3=1,n3
-       DO l2=1,n2
-          DO l1=1,n1
-             psi_out(l1,l2,l3)=&
-                  vpot(l1,l3,spins(1,l2))*REAL(psi_in(l1,l2,l3),KIND=real_8)&
-                  +uimag*vpot(l1,l3,spins(2,l2))*AIMAG(psi_in(l1,l2,l3))
-          END DO
-       END DO
-    END DO
-  END SUBROUTINE mult_vpot_psi_rsactive
   ! ==================================================================
   SUBROUTINE mult_extf_psi(psi,vpot,n1,n2,n3,l2)
     ! ==--------------------------------------------------------------==
@@ -1674,21 +1670,108 @@ CONTAINS
   ! ==================================================================
   SUBROUTINE calc_c2(c2,c0,psi,f,n,is_start,njump,nostat)
     ! ==--------------------------------------------------------------==
-    INTEGER, INTENT(IN)                      :: n, is_start, njump, nostat
-    COMPLEX(real_8),INTENT(IN)               :: psi(fpar%kr1s*msrays,n)
-    COMPLEX(real_8),INTENT(IN) __CONTIGUOUS  :: c0(:,:)
-    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: c2(:,:)
-    REAL(real_8), INTENT(IN) __CONTIGUOUS    :: f(:)
-    COMPLEX(real_8)                          :: fm, fp, psii, psin
-    INTEGER                                  :: is, is1, is2, ig, offset
-    REAL(real_8)                             :: fi, fip1, xskin, g2
+    INTEGER, INTENT(IN)                       :: n, is_start, njump, nostat
+    COMPLEX(real_8), INTENT(IN)               :: psi(fpar%kr1s*msrays,n)
+    COMPLEX(real_8), INTENT(IN) __CONTIGUOUS  :: c0(:,:)
+    COMPLEX(real_8), INTENT(OUT) __CONTIGUOUS :: c2(:,:)
+    REAL(real_8), INTENT(IN) __CONTIGUOUS     :: f(:)
+    COMPLEX(real_8)                           :: fm, fp, psii, psin
+    INTEGER                                   :: is, is1, is2, ig, offset
+    REAL(real_8)                              :: fi, fip1, xskin, g2
 
-    !$omp parallel private(is,is1,is2,ig,fp,fm,psin,psii,fi,fip1,xskin,g2)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    INTEGER, PARAMETER                       :: num_threads=32, end_jgw=num_threads-1
+    INTEGER                                  :: ig0
+
+    !$omp target teams distribute thread_limit(num_threads)  collapse(2)
     DO is=1,n
-       IF(njump.EQ.1)THEN
+       DO ig0=1,jgw,num_threads
+          !$omp parallel private(is1,is2,ig,fp,fm,psin,psii,fi,fip1,xskin,g2)
+          IF(njump.EQ.1)then
+             is1=is_start + is
+             is2=nostat + 1
+          ELSE IF(njump.EQ.2)then
+             is1=is_start + (is-1)*2 + 1
+             is2=is1+1
+          END IF
+          fi=f(is1)*0.5_real_8
+          IF (fi.EQ.0._real_8.AND..NOT.cntl%tksham) fi=1._real_8
+          IF (fi.EQ.0._real_8.AND.cntl%tksham) fi=0.5_real_8
+          fip1=0._real_8
+          IF (is2.LE.nostat) fip1=f(is2)*0.5_real_8
+          IF (fip1.EQ.0._real_8.AND..NOT.cntl%tksham) fip1=1._real_8
+          IF (fip1.EQ.0._real_8.AND.cntl%tksham) fip1=0.5_real_8
+          IF (prcp_com%akin.GT.1.e-10_real_8) THEN
+             xskin=1._real_8/prcp_com%gskin
+             IF(is2.LE.nostat)THEN
+                !$omp do
+                DO ig=ig0,min(ig0+end_jgw,jgw)
+                   psin=psi(nzhs(ig),is)! access only once
+                   psii=psi(indzs(ig),is)! these mem locations
+                   fp=psin+psii
+                   fm=psin-psii
+                   g2=parm%tpiba2*(hg(ig)+&
+                        prcp_com%gakin*(1._real_8+cp_erf((hg(ig)-prcp_com%gckin)*xskin)))
+                   C2(ig,is1)=-fi*(g2*c0(ig,is1)+&
+                        CMPLX(REAL(fp),AIMAG(fm),kind=real_8))
+                   C2(ig,is2)=-fip1*(g2*c0(ig,is2)+&
+                        CMPLX(AIMAG(fp),-REAL(fm),kind=real_8))
+                END DO
+                !$omp end do nowait
+             ELSE
+                !$omp do
+                DO ig=ig0,min(ig0+end_jgw,jgw)
+                   psin=psi(nzhs(ig),is)! access only once
+                   psii=psi(indzs(ig),is)! these mem locations
+                   fp=psin+psii
+                   fm=psin-psii
+                   g2=parm%tpiba2*(hg(ig)+&
+                        prcp_com%gakin*(1._real_8+cp_erf((hg(ig)-prcp_com%gckin)*xskin)))
+                   C2(ig,is1)=-fi*(g2*c0(ig,is1)+&
+                        CMPLX(REAL(fp),AIMAG(fm),kind=real_8))
+                END DO
+                !$omp end do nowait
+             END IF
+          ELSE
+             IF(is2.LE.nostat)THEN
+                !$omp do
+                DO ig=ig0,min(ig0+end_jgw,jgw)
+                   psin=psi(nzhs(ig),is)! access only once
+                   psii=psi(indzs(ig),is)! these mem locations
+                   fp=psin+psii
+                   fm=psin-psii
+                   C2(ig,is1)=-fi*((parm%tpiba2*hg(ig))*c0(ig,is1)+&
+                        CMPLX(REAL(fp),AIMAG(fm),kind=real_8))
+                   C2(ig,is2)=-fip1*&
+                        ((parm%tpiba2*hg(ig))*&
+                        c0(ig,is2)+CMPLX(AIMAG(fp),-REAL(fm),kind=real_8))
+                END DO
+                !$omp end do nowait
+             ELSE
+                !$omp do
+                DO ig=ig0,min(ig0+end_jgw,jgw)
+                   psin=psi(nzhs(ig),is)! access only once
+                   psii=psi(indzs(ig),is)! these mem locations
+                   fp=psin+psii
+                   fm=psin-psii
+                   C2(ig,is1)=-fi*((parm%tpiba2*hg(ig))*c0(ig,is1)+&
+                        CMPLX(REAL(fp),AIMAG(fm),kind=real_8))
+                END DO
+                !$omp end do nowait
+             END IF
+          END IF
+          !$omp end parallel
+       END DO
+    END DO
+
+#else
+    !$omp parallel private(is,is1,is2,ig,fp,fm,psin,psii,fi,fip1,xskin,g2,offset)
+    offset=is_start
+    DO is=1,n
+       IF(njump.EQ.1)then
           is1=is_start + is
           is2=nostat + 1
-       ELSE
+       ELSE IF(njump.EQ.2)then
           is1=is_start + (is-1)*2 + 1
           is2=is1+1
        END IF
@@ -1760,6 +1843,7 @@ CONTAINS
        END IF
     END DO
     !$omp end parallel
+#endif
   END SUBROUTINE calc_c2
 
 END MODULE vpsi_utils

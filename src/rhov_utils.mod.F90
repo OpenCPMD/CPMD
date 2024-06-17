@@ -15,6 +15,7 @@ MODULE rhov_utils
   USE fftnew_utils,                    ONLY: setfftn
   USE fft_maxfft,                      ONLY: maxfftn
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE ions,                            ONLY: ions0,&
                                              ions1
   USE kinds,                           ONLY: real_8,&
@@ -168,20 +169,42 @@ CONTAINS
        deltar_ptr=>deltar
     END IF
    ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.FALSE.
+    update_second_to_gpu =.FALSE.
+    update_third_to_gpu  =.FALSE.
+    update_result_to_host=.FALSE.
+    comm_buffers_on_host =.FALSE.
+#endif
     IF (cntl%bigmem) THEN
        CALL prep_bigmem_rhov(nstates_local,ig_start,nhg_loc,na,deltar_ptr,fnl_packed,do_hfx,do_dipole)
     ELSE
        CALL prep_smallmem_rhov(nstates_local,ig_start,nhg_loc,na,deltar_ptr,fnl_packed)
     ENDIF
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.TRUE.
+    update_second_to_gpu =.TRUE.
+    update_third_to_gpu  =.TRUE.
+    update_result_to_host=.TRUE.
+    comm_buffers_on_host =.TRUE.
+#endif
     IF(.NOT.do_hfx.AND..NOT.do_dipole)THEN
        IF (parai%cp_nogrp.GT.1) THEN
           CALL TISET(procedureN//'_grpsb',isub1)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update from(deltar)
+#endif         
           CALL cp_grp_redist_array(deltar(:,1),ncpw%nhg)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update to(deltar)
+#endif         
           CALL TIHALT(procedureN//'_grpsb',isub1)
        END IF
        IF(PRESENT(rsumv))THEN
           IF (geq0) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target update from(deltar(1,1))
+#endif
              rsumv=REAL(deltar(1,1))
           ELSE
              rsumv=0.0_real_8
@@ -190,12 +213,24 @@ CONTAINS
     ! ==--------------------------------------------------------------==
 
        IF (PRESENT(psi)) THEN
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do
+          do ig=1,maxfftn
+             psi(ig) = cmplx(0.0_real_8,0.0_real_8)
+          end do
+          !$omp target teams distribute parallel do
+#else
           CALL zeroing(psi(:maxfftn))!,maxfft)
           !$omp parallel do private(IG) shared(PSI)
+#endif
           DO ig=1,ncpw%nhg
              psi(nzh(ig))=deltar(ig,1)
              psi(indz(ig))=CONJG(deltar(ig,1))
           ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update from(psi(:maxfftn))
+#endif
        END IF
 #ifdef _USE_SCRATCHLIBRARY
        CALL free_scratch(il_deltar,deltar,procedureN//'_deltar',ierr)
@@ -250,8 +285,13 @@ CONTAINS
     CHARACTER(*), PARAMETER                  :: procedureN='prep_bigmem_rhov'
 
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    nthreads=1
+    blocksize=nhg
+#else
     nthreads=parai%ncpus
     blocksize=cnti%blocksize_uspp
+#endif
     blocksize=(((blocksize * 8 + 511) / 512) * 512 + 64) / 8
     blocksize=blocksize*nthreads
     IF(blocksize.GT.nhg)blocksize=nhg
@@ -273,7 +313,7 @@ CONTAINS
     END DO
     il_dia(2)=num_pairs
     
-    il_ctmp(1)=CEILING(REAL(blocksize,real_8)/REAL(nthreads,real_8)) &
+    il_ctmp(1)=ceiling(real(blocksize,real_8)/real(nthreads,real_8)) &
          *(maxsys%nhxs*(maxsys%nhxs+1))/2 &
          *num_pairs
     il_ctmp(1)=(((il_ctmp(1) * 8 + 511) / 512) * 512 + 64) / 8
@@ -282,6 +322,7 @@ CONTAINS
        il_fnlt=1
     ELSE
        il_fnlt(1)=num_orb*maxsys%nhxs*maxsys%nax
+       il_fnlt(1)=(((il_fnlt(1) * 8 + 511) / 512) * 512 + 64) / 8
        il_fnlt(2)=nthreads
     END IF
 #ifdef _USE_SCRATCHLIBRARY
@@ -305,8 +346,13 @@ CONTAINS
 #endif
     IF(ierr/=0) CALL stopgm(procedureN,'cannot allocate ctmp', &
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do simd collapse(2) private(ipair,ig)
+#endif
     DO ipair=1,num_pairs
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp parallel do private(ig)
+#endif
        DO ig=ig_start,ig_start+nhg-1
           deltar(ig,ipair)=CMPLX(0.0_real_8,0.0_real_8,kind=real_8)
        END DO
@@ -377,9 +423,11 @@ CONTAINS
        qg_ptr => qg
     END IF
     methread=1
-    
+
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$omp parallel private(methread) num_threads(nthreads)
     !$ methread=omp_get_thread_num()+1
+#endif
     IF(do_hfx.OR.do_dipole)THEN
        IF(num_pairs.EQ.1)THEN
           CALL calc_rho12(nst(1,1),nst(2,1),ngh,ia_fnl,offset_fnl0,dia,fnl_p)
@@ -390,17 +438,23 @@ CONTAINS
        CALL calc_rho(nst(1,1),nst(2,1),ngh,ia_fnl,offset_fnl0,num_orb,offset_ylm,ia_sum,dia,&
             fnlt(:,methread),f,fnl_p,nhh)
     END IF
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$omp end parallel
-    IF(.NOT.do_hfx.AND..NOT.do_dipole) CALL mp_sum(dia,nhh*ia_sum,parai%cp_grp)
+#endif
+    IF(.NOT.do_hfx.AND..NOT.do_dipole) THEN
+       CALL mp_sum(dia,nhh*ia_sum,parai%cp_grp)
+    END IF
     methread=1
-
-    !$omp parallel private(loc_block,istart,qgstart,methread,iblock,my_start,my_end,my_size),&
-    !$omp& num_threads(nthreads)
-    loc_block=CEILING(REAL(blocksize,real_8)/REAL(nthreads,real_8))
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel private(loc_block,istart,qgstart,methread,iblock,my_start,my_end,my_size)
+#endif
+    loc_block=ceiling(real(blocksize,real_8)/real(nthreads,real_8))
     istart=ig_start
     qgstart=ig_start-1
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$ methread=omp_get_thread_num()+1
-
+#endif
+    
     DO iblock=1,blocks
        my_start=istart+loc_block*(methread-1)
        my_end=istart+loc_block*methread-1
@@ -415,7 +469,7 @@ CONTAINS
        qgstart=qgstart+blocksize
        istart=istart+blocksize
     END DO
-    IF(last_block.GT.0)THEN
+    IF(last_block.gt.0)THEN
        loc_block=CEILING(REAL(last_block,real_8)/REAL(nthreads,real_8))
        my_start=istart+loc_block*(methread-1)
        my_end=istart+loc_block*methread-1
@@ -427,7 +481,9 @@ CONTAINS
                deltar,eigrb_ptr(:,isa0:),qg_ptr(:,nhh0:),num_pairs)
        END IF
     END IF
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$omp end parallel
+#endif
   END SUBROUTINE evaluate_bigmem_rhov
   ! ==================================================================
   SUBROUTINE prep_smallmem_rhov(nst,ig_start,nhg,na,deltar,fnl_p)
@@ -532,39 +588,55 @@ CONTAINS
                                                   ld_ylm,n1,n2,nhh
     REAL(real_8),INTENT(IN)                    :: fnl_p(il_fnl_packed(1),*),f(*)
     REAL(real_8),INTENT(OUT)                   :: ylm(ld_ylm,*),temp(norb,ngh,*)
-    INTEGER                                    :: ia,iv,i,ijv,jv,fnl_ia,ii,ijv_t,fnl_offset
+    INTEGER                                    :: ia,iv,i,ijv,jv,fnl_ia,ii,ijv_t
     REAL(real_8)                               :: ftmp,tmp
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do private(ia,ijv)
+#else
     !$omp do
+#endif
     DO ijv=1,nhh
        DO ia=1,ld_ylm
           ylm(ia,ijv)=0.0_real_8
        END DO
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+    !$omp& private(ia,iv,i,ijv,jv,fnl_ia,ii,ijv_t,ftmp,tmp) map(to:f(n1:n2)) &
+    !$omp& firstprivate(offset_fnl0,norb,n1,n2,ngh,offset_ylm,ia_fnl)
+#else
     !$omp do
+#endif
     DO ia=1,ia_fnl
-       fnl_offset=offset_fnl0
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do collapse(2) private (iv,i,ii,fnl_ia) 
+#endif
        DO iv=1,ngh
-          fnl_ia=ia+fnl_offset
           DO i=n1,n2
+             fnl_ia=ia+(iv-1)*ia_fnl+offset_fnl0
              ii=i-n1+1
              temp(ii,iv,ia)=fnl_p(fnl_ia,i)
           END DO
-          fnl_offset=fnl_offset+ia_fnl
        END DO
-       ijv=0
-       DO iv=1,ngh
-          DO jv=iv,ngh
-             ijv=ijv+1
-             tmp=0._real_8
-             DO i=1,norb
-                ii=i-1+n1
-                tmp=tmp+f(ii)*temp(i,iv,ia)*temp(i,jv,ia)
-             END DO
-             ftmp=1.0_real_8
-             IF(iv.NE.jv) ftmp=2._real_8
-             YLM(ia+offset_ylm,ijv)=tmp*ftmp
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private (ijv,ijv_t,iv,jv,tmp,i,ii,ftmp)
+#endif
+       do ijv=1,nhh
+          ijv_t=0
+          iv_loop:do iv=1,ngh
+             do jv=iv,ngh
+                ijv_t=ijv_t+1
+                if(ijv.eq.ijv_t) exit iv_loop
+             end do
+          end do iv_loop
+          tmp=0._real_8
+          DO i=1,norb
+             ii=i-1+n1
+             tmp=tmp+f(ii)*temp(i,iv,ia)*temp(i,jv,ia)
           END DO
+          ftmp=1.0_real_8
+          IF(iv.NE.jv) ftmp=2._real_8
+          YLM(ia+offset_ylm,ijv)=tmp*ftmp
        END DO
     END DO
   END SUBROUTINE calc_rho
@@ -650,7 +722,11 @@ CONTAINS
             ,DIA,na_is,0.0_real_8,CTMP,2*size(ctmp,1))
        DO irho=1,num_rho
           DO ijv=1,nhh
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target teams distribute parallel do simd private(ig2)
+#else
              !$omp simd
+#endif
              DO ig=1, block_size
                 ig2=ig -1 + block_start
                 deltar(ig2,irho)=deltar(ig2,irho)+qg_local(ig2,ijv)*ctmp(ig,ijv,irho)

@@ -9,6 +9,7 @@ MODULE mp_interface
                                              c_f_pointer,&
                                              c_ptr
   USE error_handling,                  ONLY: stopgm
+  USE gpu,                             ONLY: comm_buffers_on_host
   USE kinds,                           ONLY: int_1,&
                                              int_4,&
                                              int_8,&

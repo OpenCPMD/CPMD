@@ -5,6 +5,9 @@
 #endif
 
 #include "cpmd_global.h"
+#if defined(_HAS_OMP_TARGET_OFFLOAD_INTEL)
+  include "fftw/offload/fftw3_omp_offload.f90"
+#endif
 
 MODULE mltfft_utils
 
@@ -20,6 +23,7 @@ MODULE mltfft_utils
                                              CuUser_setblock2zero_scale
   USE error_handling,                  ONLY: stopgm
   USE gfft_utils,                      ONLY: ctrig
+  USE gpu
   USE kinds,                           ONLY: int_4,&
                                              int_8,&
                                              real_8
@@ -499,6 +503,9 @@ CONTAINS
   SUBROUTINE mltfft_fftw(transa,transb,a,ldax,lday,b,ldbx,ldby,n,m,&
        isign,scale,use_wisdom)
     ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD_INTEL)
+    USE FFTW3_OMP_OFFLOAD
+#endif
     CHARACTER(len=1)                         :: transa, transb
     INTEGER                                  :: ldax
     COMPLEX(real_8)                          :: a(ldax,*)
@@ -540,6 +547,13 @@ CONTAINS
           CALL tiset(procedureN1,isub2)
        END IF
     END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:a(1:ldax,1:lday),b(1:ldbx,1:ldby))
+    !$omp target update to(a(1:ldax,1:lday)) if(update_first_to_gpu)
+#endif
+#if defined(_HAS_OMP_TARGET_OFFLOAD_INTEL)    
+    !$omp dispatch
+#endif
     CALL dfftw_execute_dft(plan,a,b)
     IF (HAS_LOW_LEVEL_TIMERS) THEN
        IF(cntl%fft_tune_batchsize) THEN
@@ -552,14 +566,22 @@ CONTAINS
     END IF
     IF (tscal) THEN
        IF (transb.EQ.'N'.OR.transb.EQ.'n') THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do simd collapse(2)
+#else
           !$omp parallel do private(I,J)
+#endif
           DO i = 1,m
              DO j = 1,n
                 b(j,i)=scale*b(j,i)
              ENDDO
           ENDDO
        ELSE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do simd collapse(2)
+#else
           !$omp parallel do private(I,J)
+#endif
           DO i = 1,n
              DO j = 1,m
                 b(j,i)=scale*b(j,i)
@@ -569,34 +591,67 @@ CONTAINS
     ENDIF
 #endif
     IF (transb.EQ.'N'.OR.transb.EQ.'n') THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams
+       !$omp distribute parallel do simd collapse(2)
+#else
        !$omp parallel do private (I,J)
+#endif
        DO j=m+1,ldby
           DO i=1,ldbx
              b(i,j)=CMPLX(0.0_real_8,0.0_real_8,kind=real_8)
           ENDDO
        ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp distribute parallel do simd collapse(2)
+#else
        !$omp parallel do private (I,J)
+#endif
        DO j=1,m
           DO i=n+1,ldbx
              b(i,j)=CMPLX(0.0_real_8,0.0_real_8,kind=real_8)
           ENDDO
        ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp end target teams
+#endif
     ELSE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams
+       !$omp distribute parallel do simd collapse(2)
+#else
        !$omp parallel do private (I,J)
+#endif
        DO j=n+1,ldby
           DO i=1,ldbx
              b(i,j)=CMPLX(0.0_real_8,0.0_real_8,kind=real_8)
           ENDDO
        ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp distribute parallel do simd collapse(2)
+#else
        !$omp parallel do private (I,J)
+#endif
        DO j=1,n
           DO i=m+1,ldbx
              b(i,j)=CMPLX(0.0_real_8,0.0_real_8,kind=real_8)
           ENDDO
        ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp end target teams
+#endif       
     ENDIF
-    ! ==--------------------------------------------------------------==
-    RETURN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)    
+    !$omp target update from(b(1:ldbx,1:ldby)) if(update_result_to_host)
+    !$omp target exit data map(release:a(1:ldax,1:lday),b(1:ldbx,1:ldby))
+#endif
+    IF (HAS_LOW_LEVEL_TIMERS) THEN
+       IF(cntl%fft_tune_batchsize) THEN
+          CALL tihalt(procedureN2//'_tuning',isub3)
+       ELSE
+          CALL tihalt(procedureN2,isub4)
+       END IF
+    END IF
   END SUBROUTINE mltfft_fftw
   ! ==================================================================
 #if defined(_HAS_FFT_FFTW3)
@@ -687,9 +742,9 @@ CONTAINS
 #endif
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
             __LINE__,__FILE__)
-       CALL dcopy(ldax*lday*2, a, 1, asave,  1 )
+       CALL cpmd_dcopy(ldax*lday*2, a, 1, asave,  1 )
        CALL create_fftw_plan(plan,params(:,num_plans),a,b,ldax,lday,ldbx,ldby)
-       CALL dcopy(ldax*lday*2, asave, 1, a,  1 )
+       CALL cpmd_dcopy(ldax*lday*2, asave, 1, a,  1 )
 #ifdef _USE_SCRATCHLIBRARY
        CALL free_scratch(il_asave,asave,procedureN//'_asave',ierr)
 #else
@@ -778,14 +833,17 @@ CONTAINS
   END SUBROUTINE clean_fftw_plans
   ! ==================================================================
   SUBROUTINE create_fftw_plan(plan,params,a,b,ldax,lday,ldbx,ldby)
+#if defined(_HAS_OMP_TARGET_OFFLOAD_INTEL)
+    USE FFTW3_OMP_OFFLOAD
+#endif
     INTEGER(int_8),INTENT(OUT)      :: plan
     INTEGER,INTENT(IN)              :: params(7),ldax,lday,ldbx,ldby
     COMPLEX(real_8),INTENT(INOUT)   :: a(ldax,*)
     COMPLEX(real_8),INTENT(INOUT)   :: b(ldbx,*)
 
-    INTEGER                         :: n, m, istride, idist, ostride, odist, fftw_dir, rank, size, &
-                                       howmany, inembed, onembed
-    INTEGER, PARAMETER              :: fftw_exhaustive = 8
+    INTEGER                         :: n, m, istride, idist, ostride, odist, fftw_dir, rank, size(1), &
+                                       howmany, inembed(1), onembed(1)
+    INTEGER, PARAMETER              :: fftw_exhaustive = 8, fftw_measure=0, fftw_estimate=64
     n        = params( 1 )
     m        = params( 2 )
     istride  = params( 3 )
@@ -798,9 +856,18 @@ CONTAINS
     howmany = m   
     inembed = n
     onembed = n
-
+    
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:a(1:ldax,1:lday),b(1:ldbx,1:ldby))
+#endif
+#if defined(_HAS_OMP_TARGET_OFFLOAD_INTEL)
+    !$omp dispatch
+#endif
     CALL dfftw_plan_many_dft(plan,rank,size,howmany,a,inembed,istride,idist,b,onembed,ostride,odist,&
-         fftw_dir,fftw_exhaustive)
+         fftw_dir,fftw_estimate)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(release:a(1:ldax,1:lday),b(1:ldbx,1:ldby))
+#endif
 
   END SUBROUTINE create_fftw_plan
 #endif

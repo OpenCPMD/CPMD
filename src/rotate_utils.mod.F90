@@ -5,6 +5,7 @@ MODULE rotate_utils
                                              cp_grp_redist_array_f
   USE distribution_utils,              ONLY: dist_entity
   USE error_handling,                  ONLY: stopgm
+  USE gpu
   USE kinds,                           ONLY: real_8,&
                                              int_8,&
                                              int_4
@@ -97,6 +98,9 @@ CONTAINS
           CALL C_F_POINTER(baseptr(proc), iproc(proc)%temp,arrayshape)
        END DO
        loc=>iproc(parai%node_me)%temp(:,:)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:loc)
+#endif
     ELSE
        loc_work=ldf
        lda=ldf
@@ -127,7 +131,9 @@ CONTAINS
             fnl_p(start_work,nmin_2),ldf,&
             0.0_real_8,loc(1,nmin_2),lda)
     END IF
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(loc)
+#endif
     IF(parai%node_nproc.GT.1)THEN
        !sync shared memory window
        CALL mp_win_sync(parai%node_grp)
@@ -143,6 +149,10 @@ CONTAINS
        IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate iproc',&
             __LINE__,__FILE__)
        CALL mp_win_unlock_all_shared(parai%node_grp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(fnlgam_p)
+       !$omp target exit data map(delete:loc)
+#endif
     END IF
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
@@ -212,6 +222,7 @@ CONTAINS
        nmin_2=0
        nchunk_2=0
     ENDIF
+    
     IF(loc_work.GT.0)THEN
        CALL cpmd_dtrmm('R','U','N','N',loc_work,nchunk,1.0_real_8,gam(nmin,nmin),nstate, &
             fnl_p(start_work,nmin),ldf)
@@ -220,7 +231,11 @@ CONTAINS
                fnl_p(start_work,nmin_2),ldf)
        END IF
     END IF
-
+    
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(fnl_p(:,:nstate)) if(.NOT.update_result_to_host.OR.(parai%node_nproc.EQ.1))
+#endif
+    
     IF(parai%node_nproc.GT.1)THEN
        !copy local chunk into shared mem
        proc=parai%node_me
@@ -240,10 +255,12 @@ CONTAINS
           END DO
        END DO
        CALL mp_win_unlock_all_shared(parai%node_grp)
-       
        DEALLOCATE(iproc, stat=ierr)
        IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate iproc',&
             __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(fnl_p(:,:nstate))
+#endif
     END IF
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
@@ -343,7 +360,7 @@ CONTAINS
     !$ IF(methread.EQ.1)THEN
     !$    CALL omp_set_max_active_levels(2)
     !$    CALL omp_set_num_threads(nested_threads)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL mkl_set_dynamic(0)
     !$    ierr = mkl_set_num_threads_local(nested_threads)
 #endif
@@ -367,9 +384,9 @@ CONTAINS
     !$ IF (methread.EQ.1) THEN
     !$    CALL omp_set_max_active_levels(1)
     !$    CALL omp_set_num_threads(parai%ncpus)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL mkl_set_dynamic(1)
-    !$    ierr = mkl_set_num_threads_local(parai%ncpus)
+    !$    ierr = mkl_set_num_threads_local(0)
 #endif
     !$ END IF
 
@@ -474,7 +491,7 @@ CONTAINS
     !$ IF(methread.EQ.1)THEN
     !$    CALL omp_set_max_active_levels(2)
     !$    CALL omp_set_num_threads(nested_threads)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL mkl_set_dynamic(0)
     !$    ierr = mkl_set_num_threads_local(nested_threads)
 #endif
@@ -497,9 +514,9 @@ CONTAINS
     !$ IF (methread.EQ.1) THEN
     !$    CALL omp_set_max_active_levels(1)
     !$    CALL omp_set_num_threads(parai%ncpus)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL mkl_set_dynamic(1)
-    !$    ierr = mkl_set_num_threads_local(parai%ncpus)
+    !$    ierr = mkl_set_num_threads_local(0)
 #endif
     !$ END IF
     !$omp end parallel

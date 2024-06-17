@@ -65,6 +65,7 @@ MODULE rhoofr_utils
                                              invfftn_batch
   USE fftnew_utils,                    ONLY: setfftn
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE ions,                            ONLY: ions0,&
                                              ions1
   USE kin_energy_utils,                ONLY: kin_energy
@@ -807,7 +808,6 @@ CONTAINS
     END IF
     ! ==--------------------------------------------------------------==
     CALL kin_energy(c0,nstate,rsum)
-
     ! ==--------------------------------------------------------------==
     ! CASPUR 2/5/04
     ! Initialize FFT datastructure
@@ -822,7 +822,16 @@ CONTAINS
     ! ==--------------------------------------------------------------==
 
     ! Initialize
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do collapse(2)
+    do is2=1,clsd%nlsd
+       do is1=1,fpar%nnr1
+          rhoe(is1,is2)=cmplx(0.0_real_8,0.0_real_8)
+       end do
+    end do
+#else
     CALL zeroing(rhoe)!,clsd%nlsd*nnr1)
+#endif
 
     CALL reshape_inplace(rhoe, (/fpar%kr1*fpar%kr2s,fpar%kr3s,clsd%nlsd/), rhoe_p)
 
@@ -927,7 +936,9 @@ CONTAINS
     IF(.NOT.rsactive) wfn_r1=>wfn_r(:,1)
     IF(cntl%fft_tune_batchsize) temp_time=m_walltime()
     methread=0
-
+    comm_buffers_on_host=.FALSE.
+    update_first_to_gpu=.FALSE.
+    update_result_to_host=.FALSE.
     !$ locks_inv=.TRUE.
     !$OMP parallel IF(nthreads.EQ.2) num_threads(nthreads) &
     !$omp private(methread,ibatch,bsize,offset_state,swap,count,is1,is2) &
@@ -936,10 +947,10 @@ CONTAINS
     !$ IF(methread.EQ.1)THEN
     !$    CALL omp_set_max_active_levels(2)
     !$    CALL omp_set_num_threads(nested_threads)
-#if defined(_HAS_FFT_FFTW3)
+#if defined(_HAS_FFT_FFTW3) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL dfftw_plan_with_nthreads(nested_threads)
 #endif
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL mkl_set_dynamic(0)
     !$    ierr = mkl_set_num_threads_local(nested_threads)
 #endif
@@ -1075,17 +1086,22 @@ CONTAINS
     !$ IF (methread.EQ.1) THEN
     !$    CALL omp_set_max_active_levels(1)
     !$    CALL omp_set_num_threads(parai%ncpus)
-#ifdef _INTEL_MKL
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL mkl_set_dynamic(1)
     !$    ierr = mkl_set_num_threads_local(0)
 #endif
-#if defined(_HAS_FFT_FFTW3)
+#if defined(_HAS_FFT_FFTW3) && !defined(_HAS_OMP_TARGET_OFFLOAD)
     !$    CALL dfftw_plan_with_nthreads(parai%ncpus)
 #endif
     !$ END IF
 
     !$omp end parallel
-
+    comm_buffers_on_host=.TRUE.
+    update_first_to_gpu=.TRUE.
+    update_result_to_host=.TRUE.
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(rhoe_p)
+#endif
     IF(cntl%fft_tune_batchsize) fft_time_total(fft_tune_num_it)=m_walltime()-temp_time
     !$ DEALLOCATE(locks_inv,STAT=ierr)
     !$ IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
@@ -1252,7 +1268,6 @@ CONTAINS
     chrg%csumr    = temp(2)
     chrg%csums    = temp(3)
     chrg%csumsabs = temp(4)
-
     IF (paral%parent.AND.ABS(chrg%csumr-chrg%csumg).GT.delta) THEN
        IF (paral%io_parent)&
             WRITE(6,'(A,T46,F20.12)') ' IN FOURIER SPACE:', chrg%csumg

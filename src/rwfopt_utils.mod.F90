@@ -308,6 +308,7 @@ CONTAINS
        GOTO 150
     ENDIF
     CALL initrun(irec,c0,c2,sc0,rhoe,psi,eigv)
+    !$omp target update to(c0)
     IF (cntl%tksham)THEN
        CALL write_ksham(c0,c2,sc0,rhoe,psi,eigv)
        GOTO 150

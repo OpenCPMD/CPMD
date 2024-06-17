@@ -119,7 +119,7 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ==  PHASE FACTORS                                               ==
     ! ==--------------------------------------------------------------==
-    CALL phfac(tau0)
+    CALL phfac(tau0,force_update=.TRUE.)
     ! ==--------------------------------------------------------------==
 
     ALLOCATE(CATOM_loc(nkpt%ngwk,atwp%nattot),overlap(atwp%nattot,nstate),stat=ierr)
@@ -220,7 +220,7 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ==  PHASE FACTORS                                               ==
     ! ==--------------------------------------------------------------==
-    CALL phfac(tau0)
+    CALL phfac(tau0,force_update=.TRUE.)
     ! ==--------------------------------------------------------------==
     ! ==  RANDOM INITIALIZATION COEFFICIENTS FOR THE WAVEFUNCTIONS    ==
     ! ==--------------------------------------------------------------==
@@ -234,9 +234,15 @@ CONTAINS
           ikk=kpbeg(ikpt)+ik
           CALL randtowf(c0(:,:,ik),nstate,ik,ikk)
           ! Orthogonalization
+#if defined(_HAS_OMP_TARGET_OFFLOAD)          
+          !$omp target update to(c0(:,:,ik))
+#endif
           IF (pslo_com%tivan) CALL rnlsm(c0(:,:,ik),nstate,&
                ikpt,ik,.FALSE.)
           CALL ortho(nstate,c0(:,:,ik),c2(:,:,ik))
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update from(c0(:,:,ik))
+#endif
        ENDDO
        IF (tkpts%tkblock) THEN
           CALL wkpt_swap(c0,nstate,ikpt,'C0')
@@ -269,9 +275,15 @@ CONTAINS
        ! ==------------------------------------------------------------==
        IF (.NOT.cntl%nonort) THEN
           DO ik=1,nkpoint
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target update to(c0(:,:,ik))
+#endif
              IF (pslo_com%tivan) CALL rnlsm(c0(:,:,ik),nstate,&
                   1,ik,.FALSE.)
              CALL ortho(nstate,c0(:,:,ik),c2(:,:,ik))
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target update from(c0(:,:,ik))
+#endif
           ENDDO
        ENDIF
        DEALLOCATE(eigv,STAT=ierr)

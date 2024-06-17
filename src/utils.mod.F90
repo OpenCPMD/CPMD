@@ -5,6 +5,7 @@ MODULE utils
   USE geq0mod,                         ONLY: geq0
   USE ions,                            ONLY: ions0,&
                                              ions1
+  USE gpu
   USE kinds,                           ONLY: int_8,&
                                              real_8
   USE mp_interface,                    ONLY: mp_sum
@@ -129,10 +130,24 @@ CONTAINS
     CALL reshape_inplace(a, (/2, ngw, n/), pa)
 
     IF (ngw.GT.0) THEN
-       !$omp parallel do private(I)
+       if(update_first_to_gpu) then
+          CALL stopgm('zclean','zclean wrong', &
+               __LINE__,__FILE__)
+       end if
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(a) if(update_first_to_gpu)
+       !$omp target teams distribute parallel do simd &
+#else
+       !$omp parallel do simd &
+       
+#endif
+       !$omp& private(I)
        DO i=1,n
           pa(2,1,i)=0._real_8
        ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update from(a) if(update_result_to_host)
+#endif
     ENDIF
     ! ==--------------------------------------------------------------==
     RETURN
@@ -164,24 +179,55 @@ CONTAINS
     REAL(real_8),INTENT(IN)                  :: a(n,n)
     REAL(real_8),INTENT(OUT) __CONTIGUOUS    :: packeda(:)
 
-    INTEGER                                  :: offset, i, j
+    INTEGER                                  :: offset, i, j, k
     !for lsd=>n=nstate,n1=spind_mod%nsup,n2=spin_mod%nsdown
     !else=>n=nstate,n1=nstate,n2=0
     ! ==--------------------------------------------------------------==
     offset=n1*(n1+1)/2
-    !$omp parallel private(i,j)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:a,packeda)
+    !$omp target update to(a) if(update_first_to_gpu)
+    !$omp target teams &
+#else
+    !$omp parallel &
+#endif
+    !$omp& private(i,j,k)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp distribute 
+#else
     !$omp do schedule(static)
+#endif
     DO i=0,n1-1
-       j=i*(i-1)/2+i+1
-       packeda(j:j+i)=a(1:i+1,i+1)
+       k=i*(i-1)/2+i+1
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do
+#endif
+       DO j=k,k+i
+          packeda(j)=a(j-k+1,i+1)
+       END DO
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp distribute 
+#else
     !$omp end do nowait
     !$omp do schedule(static)
+#endif
     DO i=0,n2-1
-       j=i*(i-1)/2+i+1+offset
-       packeda(j:j+i)=a(n1+1:n1+i+1,n1+i+1)
+       k=i*(i-1)/2+i+1+offset
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do
+#endif
+       DO j=k,k+i
+          packeda(j)=a(n1+j-k+1+i+1,n1+i+1)
+       END DO
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp end target teams
+    !$omp target update from(packeda) if(update_result_to_host)
+    !$omp target exit data map(release:a,packeda)
+#else
     !$omp end parallel
+#endif
     RETURN
   END SUBROUTINE symmat_pack
   ! ==================================================================
@@ -192,42 +238,92 @@ CONTAINS
     REAL(real_8),INTENT(IN)  __CONTIGUOUS    :: packeda(:)
     LOGICAL,INTENT(IN)                       :: full
 
-    INTEGER                                  :: offset, i, j
+    INTEGER                                  :: offset, i, j, k
     !for lsd=>n=nstate,n1=spind_mod%nsup,n2=spin_mod%nsdown
     !else=>n=nstate,n1=nstate,n2=0
     ! ==--------------------------------------------------------------==
     offset=n1*(n1+1)/2
-    !$omp parallel private(i,j)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:a,packeda)
+    !$omp target update to(packeda) if(update_first_to_gpu)
+    !$omp target teams &
+#else
+    !$omp& parallel &
+#endif
+    !$omp& private(i,j,k)
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp distribute 
+#else
     !$omp do schedule(static)
+#endif
     DO i=0,n1-1
-       j=i*(i-1)/2+i+1
-       a(1:i+1,i+1)=packeda(j:j+i)
+       k=i*(i-1)/2+i+1
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do
+#endif
+       DO j=k,k+i
+          a(j-k+1,i+1)=packeda(j)
+       END DO      
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp distribute
+#else
     !$omp end do nowait
     !$omp do schedule(static)
+#endif
     DO i=0,n2-1
-       j=i*(i-1)/2+i+1+offset
-       a(n1+1:n1+i+1,n1+i+1)=packeda(j:j+i)
+       k=i*(i-1)/2+i+1+offset
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do
+#endif
+       DO j=k,k+i
+          a(n1+j-k+1+i+1,n1+i+1)=packeda(j)
+       END DO
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp end target teams
+#else
     !$omp end parallel
+#endif
     IF(full)THEN
-       !$omp parallel private(i,j)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams&
+#else
+       !$omp parallel &
+#endif
+       !$omp& private(i,j)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp distribute parallel do
+#else
        !$omp do schedule(static)
+#endif
        DO i=1,n1
           DO j=i,n1
              a(j,i)=a(i,j)
           END DO
        END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp distribute parallel do
+#else
        !$omp end do nowait
        !$omp do schedule(static)
+#endif
        DO i=n1+1,n
           DO j=i,n
              a(j,i)=a(i,j)
           END DO
        END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp end target teams
+#else
        !$omp end parallel
+#endif
     END IF
-    RETURN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(a) if(update_result_to_host)
+    !$omp target exit data map(release:a,packeda)
+#endif
   END SUBROUTINE symmat_unpack
   ! ==================================================================
   SUBROUTINE numcpus(ncpus)
@@ -466,20 +562,23 @@ CONTAINS
     ! Date March 2019
 
     INTEGER,INTENT(IN)                       :: iopt, n
-    REAL(real_8),INTENT(INOUT)               :: w(:), a(:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: w(:), a(:,:)
     !local
-    INTEGER                                  :: il_iwork, dummy_int(1)
-    INTEGER(int_8)                           :: il_work(1)
+    INTEGER                                  :: dummy_int(1)
+    INTEGER(int_8)                           :: il_work(1), il_iwork(1)
 #ifdef _USE_SCRATCHLIBRARY
     REAL(real_8), POINTER __CONTIGUOUS       :: work(:)
+    INTEGER, POINTER __CONTIGUOUS            :: iwork(:)
 #else
     REAL(real_8), ALLOCATABLE                :: work(:)
-#endif
     INTEGER, ALLOCATABLE                     :: iwork(:)
+#endif
+
     REAL(real_8)                             :: dummy_real(1)
     CHARACTER(1)                             :: jobz, uplo
     CHARACTER(*),PARAMETER                   :: procedureN='dsyevd_driver'
     INTEGER                                  :: info, ierr
+    integer, save                            :: n_save=0, il_work_save=0, il_iwork_save=0, iopt_save=0
     IF(iopt.EQ.0)THEN
        jobz='N'
        uplo='L'
@@ -493,12 +592,26 @@ CONTAINS
        jobz='V'
        uplo='U'
     END IF
-    !workspace query
+
     il_work(1)=-1
     il_iwork=-1
-    CALL dsyevd(jobz,uplo,n,a,n,w,dummy_real,il_work(1),dummy_int,il_iwork,info)
-    il_work(1)=INT(dummy_real(1))
-    il_iwork=dummy_int(1)
+    IF(iopt_save.eq.iopt) then
+       if(n_save.eq.n)then
+          il_work(1)=il_work_save
+          il_iwork(1)=il_iwork_save
+       end if
+    end IF
+    if(il_work(1).eq.-1)then
+       !workspace query
+       CALL cpmd_dsyevd(jobz,uplo,n,a,n,w,dummy_real,INT(il_work(1)),dummy_int,INT(il_iwork(1))&
+            ,info)
+       il_work(1)=INT(dummy_real(1))
+       il_iwork=dummy_int(1)
+       il_work_save=il_work(1)
+       il_iwork_save=il_iwork(1)
+       n_save=n
+       iopt_save=iopt
+    end if
 #ifdef _USE_SCRATCHLIBRARY
     CALL request_scratch(il_work,work,procedureN//'_work',ierr)
 #else
@@ -506,21 +619,29 @@ CONTAINS
 #endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
-    ALLOCATE(iwork(il_iwork),STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_iwork,iwork,procedureN//'_iwork',ierr)
+#else
+    ALLOCATE(iwork(il_iwork(1)),STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
     !actual calculation
-    CALL dsyevd(jobz,uplo,n,a,n,w,work,il_work(1),iwork,il_iwork,info)
+    CALL cpmd_dsyevd(jobz,uplo,n,a,n,w,work,INT(il_work(1)),iwork,INT(il_iwork(1)),info)
     IF (info.NE.0) CALL stopgm(procedureN,'FAILED TO DIAGONALIZE',&
+         __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_iwork,iwork,procedureN//'_iwork',ierr)
+#else
+    DEALLOCATE(work,STAT=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
 #ifdef _USE_SCRATCHLIBRARY
     CALL free_scratch(il_work,work,procedureN//'_work',ierr)
 #else
     DEALLOCATE(work,STAT=ierr)
 #endif
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-         __LINE__,__FILE__)
-    DEALLOCATE(iwork,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
   END SUBROUTINE dsyevd_driver

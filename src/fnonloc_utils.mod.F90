@@ -705,7 +705,12 @@ CONTAINS
     IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate eiscr',&
          __LINE__,__FILE__)
       
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+    !$omp& map(to:crge%f(:,1)) &
+#else
     !$omp parallel do &
+#endif
     !$omp& private(i,weight,ispin,offset_dai,isa0,is)
     DO i=1,nstate
        !setup spin settings
@@ -719,6 +724,7 @@ CONTAINS
        !fill local part of dai
        DO is=1,ions1%nsp
           IF(pslo_com%tvan(is))THEN
+             !DIR$ forceinline
              CALL build_dai_deeq_fnl_hfx(dai(offset_dai:,i),&
                   isa0,weight,deeq_fnl_hfx(:,:,i),ions0%na(is),nlps_com%ngh(is))
              offset_dai=offset_dai+nlps_com%ngh(is)*ions0%na(is)
@@ -754,13 +760,21 @@ CONTAINS
   ! ==================================================================
 
   ! ==================================================================
+  !DIR$ ATTRIBUTES FORCEINLINE::build_dai_deeq_fnl_hfx
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  SUBROUTINE build_dai_deeq_fnl_hfx(dai,isa0,weight,deeq_fnl_hfx,na_is,ngh_is)
+#else
   PURE SUBROUTINE build_dai_deeq_fnl_hfx(dai,isa0,weight,deeq_fnl_hfx,na_is,ngh_is)
+#endif
     INTEGER,INTENT(IN)                       :: isa0,na_is,ngh_is
     REAL(real_8),INTENT(IN)                  :: weight
     REAL(real_8),INTENT(IN) __CONTIGUOUS     :: deeq_fnl_hfx(:,:)
     REAL(real_8),INTENT(OUT)                 :: dai(na_is,ngh_is,*)
     INTEGER                                  :: iv,jv,ia,isa
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel do private(iv,ia,isa) collapse(2)
+#endif
     DO iv=1,ngh_is
        DO ia=1,na_is
           isa=isa0+ia

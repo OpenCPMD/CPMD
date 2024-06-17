@@ -94,11 +94,16 @@ CONTAINS
     
     rsum=0.0_real_8
     xkin=0.0_real_8
-    !$omp parallel do private(I,SK1,XSKIN,IS1,ARG,G2,IG,TEMP) &
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(I,SK1,XSKIN,IS1,ARG,G2,IG,TEMP) &
     !$omp  reduction(+:RSUM,XKIN)
     DO i=1,nstate
        IF (crge%f(i,1).NE.0._real_8) THEN! TODO check F(I,1) === F(I)
-          !rsum=rsum+crge%f(i,1)*dotp(ncpw%ngw,c0(:,i),c0(:,i))
+
           sk1=0.0_real_8
           temp=0._real_8
           is1=1
@@ -111,6 +116,9 @@ CONTAINS
                 sk1=sk1+g2*(c0_r(1,1,i)**2+c0_r(2,1,i)**2)
                 temp=c0_r(1,1,i)**2*0.5_real_8
              ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)             
+             !$omp parallel do reduction(+:temp,sk1)
+#endif
              DO ig=is1,ngw
                 arg=(hg(ig)-prcp_com%gckin)*xskin
                 g2=hg(ig)+prcp_com%gakin*(1._real_8+cp_erf(arg))
@@ -122,6 +130,9 @@ CONTAINS
                 temp=c0_r(1,1,i)**2*0.5_real_8
                 is1=2
              END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)             
+             !$omp parallel do reduction(+:temp,sk1)
+#endif
              DO ig=is1,ngw
                 sk1=sk1+hg(ig)*(c0_r(1,ig,i)**2+c0_r(2,ig,i)**2)
                 temp=temp+c0_r(1,ig,i)**2+c0_r(2,ig,i)**2

@@ -254,7 +254,13 @@ CONTAINS
     REAL(real_8),INTENT(IN)                  :: sctot
     INTEGER                                  :: i,ig
 
-    !$omp parallel do private (i,ig)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(ig,i)
+
     DO i=1,nstate
        DO ig=ibeg_c0,iend_c0
           cm_r(ig,i)=cm_r(ig,i)*sctot

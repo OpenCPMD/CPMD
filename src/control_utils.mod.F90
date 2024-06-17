@@ -3829,6 +3829,8 @@ CONTAINS
                       something_went_wrong = .true.
                       go_on_reading        = .false.
                    ENDIF
+                   !we skip the first iteration as warmup iteration
+                   cnti%rnlsm_autotune_maxit=cnti%rnlsm_autotune_maxit+1
                 ENDIF
              ELSEIF ( keyword_contains(line,'SPLINE') ) THEN
                 IF ( keyword_contains(line,'POINTS') ) THEN

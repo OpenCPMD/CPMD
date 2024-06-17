@@ -3,6 +3,7 @@
 MODULE crotwf_utils
   USE cp_grp_utils,                    ONLY: cp_grp_get_sizes
   USE error_handling,                  ONLY: stopgm
+  USE gpu
   USE kinds,                           ONLY: real_8,&
                                              int_8
   USE mp_interface,                    ONLY: mp_bcast,&
@@ -28,7 +29,6 @@ MODULE crotwf_utils
   USE scratch_interface,               ONLY: request_scratch,&
                                              free_scratch
 #endif
-
   IMPLICIT NONE
 
   PRIVATE
@@ -48,7 +48,7 @@ CONTAINS
     CHARACTER(*), PARAMETER                  :: procedureN = 'crotwf'
 
     INTEGER                                  :: i, ierr, j, isub, &
-                                                ibeg, iend, ig
+                                                ibeg, iend, ig, isub1
     INTEGER(int_8)                           :: il_eigval(1), il_temp(2)
 #ifdef _USE_SCRATCHLIBRARY
     REAL(real_8), POINTER __CONTIGUOUS       :: eigval(:),temp(:,:),temp1(:,:)
@@ -57,11 +57,19 @@ CONTAINS
 #endif
     LOGICAL                                  :: nopara
     CALL tiset(procedureN,isub)
+
     IF(cntl%tlsd)THEN
        il_eigval(1)=max(spin_mod%nsup,spin_mod%nsdown)
     ELSE
        il_eigval(1)=nstate
     END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.FALSE.
+    update_second_to_gpu =.FALSE.
+    update_third_to_gpu  =.FALSE.
+    update_result_to_host=.FALSE.
+    comm_buffers_on_host =.FALSE.
+#endif
 #ifdef _USE_SCRATCHLIBRARY
     CALL request_scratch(il_eigval,eigval,procedureN//'_eigval',ierr)
 #else
@@ -70,6 +78,8 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
     nopara=(nort_com%scond.LT.1.e-9_real_8.OR.parai%cp_nproc.LT.17.OR.nstate.LT.1000)
+
+    CALL tiset(procedureN//'solve',isub1)
     IF (.NOT.cntl%tlsd) THEN
        CALL solve_eigenvector(nstate,eigval,nort_ovlap,gam,nopara)
     ELSE
@@ -163,6 +173,7 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
             __LINE__,__FILE__)
     ENDIF
+    CALL tihalt(procedureN//'solve',isub1)
 
     IF(use_cp_grps)THEN
        CALL cp_grp_get_sizes(first_g=ibeg,last_g=iend)
@@ -172,7 +183,11 @@ CONTAINS
     END IF
     CALL rotate(1.0_real_8,c0,0.0_real_8,sc0,nort_ovlap,nstate,2*ncpw%ngw,cntl%tlsd,&
          spin_mod%nsup,spin_mod%nsdown,redist=.NOT.use_cp_grps,use_cp=use_cp_grps)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do collapse(2)
+#else
     !$omp parallel do private(ig,i)
+#endif
     DO i=1,nstate
        DO ig=ibeg,iend
           c0(ig,i)=sc0(ig,i)
@@ -180,7 +195,11 @@ CONTAINS
     END DO
     CALL rotate(1.0_real_8,cm,0.0_real_8,sc0,nort_ovlap,nstate,2*ncpw%ngw,cntl%tlsd,&
          spin_mod%nsup,spin_mod%nsdown,redist=.NOT.use_cp_grps,use_cp=use_cp_grps)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do collapse(2)
+#else
     !$omp parallel do private(ig,i)
+#endif
     DO i=1,nstate
        DO ig=ibeg,iend
           cm(ig,i)=sc0(ig,i)
@@ -188,12 +207,23 @@ CONTAINS
     END DO
     CALL rotate(1.0_real_8,c2,0.0_real_8,sc0,nort_ovlap,nstate,2*ncpw%ngw,cntl%tlsd,&
          spin_mod%nsup,spin_mod%nsdown,redist=.NOT.use_cp_grps,use_cp=use_cp_grps)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do collapse(2)
+#else
     !$omp parallel do private(ig,i)
+#endif
     DO i=1,nstate
        DO ig=ibeg,iend
           c2(ig,i)=sc0(ig,i)
        END DO
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.TRUE.
+    update_second_to_gpu =.TRUE.
+    update_third_to_gpu  =.TRUE.
+    update_result_to_host=.TRUE.
+    comm_buffers_on_host =.TRUE.
+#endif
     ! ==--------------------------------------------------------------==
 #ifdef _USE_SCRATCHLIBRARY
     CALL free_scratch(il_eigval,eigval,procedureN//'_eigval',ierr)
@@ -203,6 +233,7 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
     ! ==--------------------------------------------------------------==
+
     CALL tihalt(procedureN,isub)
     RETURN
   END SUBROUTINE crotwf
@@ -210,15 +241,15 @@ CONTAINS
   SUBROUTINE solve_eigenvector(nstate,eigval,ovlap,gam,nopara)
     ! ==--------------------------------------------------------------==
     INTEGER,INTENT(IN)                       :: nstate
-    REAL(real_8),INTENT(OUT)                 :: eigval(:),&
-                                                gam(nstate,nstate)
+    REAL(real_8),INTENT(OUT) __CONTIGUOUS    :: eigval(:)
+    REAL(real_8),INTENT(OUT)                 :: gam(nstate,nstate)
     REAL(real_8),INTENT(INOUT)               :: ovlap(nstate,nstate)
     LOGICAL,INTENT(IN)                       :: nopara
 
     INTEGER                                  :: i,iopt,first,last,&
                                                 chunks(2,0:parai%cp_nproc-1),&
                                                 recvcnt(0:parai%cp_nproc-1),&
-                                                displ(0:parai%cp_nproc-1)
+                                                displ(0:parai%cp_nproc-1),isub
 
     iopt=21
     IF(cntl%use_elpa)THEN
@@ -229,7 +260,9 @@ CONTAINS
           !parallelization using multiple dsyevx/r does not work =>
           !fall back to dsyevd on root
           IF(paral%io_parent) CALL dsyevd_driver(iopt,ovlap,eigval,nstate)
+          CALL tiset('bcast',isub)
           CALL mp_bcast(ovlap,nstate**2,parai%io_source,parai%cp_grp)
+          CALL tihalt('bcast',isub)
        ELSE
           !we can distribute the eigenvalue problem by using multiple
           !dsyevx/r instances
