@@ -45,7 +45,8 @@ MODULE rhov_utils
                                              maxsys,&
                                              ncpw, &
                                              cnti,&
-                                             parm
+                                             parm,&
+                                             fpar
   USE timer,                           ONLY: tihalt,&
                                              tiset
   USE zeroing_utils,                   ONLY: zeroing
@@ -216,12 +217,12 @@ CONTAINS
 
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
           !$omp target teams distribute parallel do
-          do ig=1,maxfftn
+          do ig=1,fpar%nnr1
              psi(ig) = cmplx(0.0_real_8,0.0_real_8)
           end do
           !$omp target teams distribute parallel do
 #else
-          CALL zeroing(psi(:maxfftn))!,maxfft)
+          CALL zeroing(psi(:fpar%nnr1))!,maxfft)
           !$omp parallel do private(IG) shared(PSI)
 #endif
           DO ig=1,ncpw%nhg
@@ -229,7 +230,7 @@ CONTAINS
              psi(indz(ig))=CONJG(deltar(ig,1))
           ENDDO
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
-          !$omp target update from(psi(:maxfftn))
+          !$omp target update from(psi(:fpar%nnr1))
 #endif
        END IF
 #ifdef _USE_SCRATCHLIBRARY

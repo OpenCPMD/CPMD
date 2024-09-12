@@ -19,19 +19,19 @@
        !$omp target enter data map(alloc:info_save)
     end if
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
-!    !$omp target enter data map(alloc:A(1:LDA,1:N))
-!    !$omp target update to(A(1:LDA,1:N)) if(update_first_to_gpu)
-!    !$omp target data use_device_addr(a,info_save)
-!    !$omp dispatch
-    !$omp target update from(A(1:LDA,1:N)) if(.not.update_first_to_gpu)
+    !$omp target enter data map(alloc:A(1:LDA,1:N))
+    !$omp target update to(A(1:LDA,1:N)) if(update_first_to_gpu)
+    !$omp target data use_device_addr(a,info_save)
+    !$omp dispatch
+!    !$omp target update from(A(1:LDA,1:N)) if(.not.update_first_to_gpu)
 #endif
     CALL dtrtri( UPLO, DIAG, N, A, LDA, INFO_save )
-    !$omp target update to(A(1:LDA,1:N))
+!    !$omp target update to(A(1:LDA,1:N))
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
-!    !$omp end target data
-!    !$omp target update from(info_save)  
-!    !$omp target update from(A(1:LDA,1:N)) if(update_result_to_host)
-!    !$omp target exit data map(release:A(1:LDA,1:N))
+    !$omp end target data
+    !$omp target update from(info_save)  
+    !$omp target update from(A(1:LDA,1:N)) if(update_result_to_host)
+    !$omp target exit data map(release:A(1:LDA,1:N))
 #endif
     info=info_save
   END SUBROUTINE cpmd_dtrtri

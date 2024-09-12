@@ -89,7 +89,10 @@
 #if defined(__HAS_OMP_OFFLOAD)
 #define _HAS_OMP_TARGET_OFFLOAD
 #endif
-
+!tk OpenMP Offload with GPU aware MPI
+#if defined(__HAS_GPU_AWARE_MPI)
+#define _HAS_GPU_AWARE_MPI
+#endif
 !tk OpenMP offload for Intel MKL
 #if defined(__HAS_OMP_OFFLOAD) && defined(__INTEL_MKL)
 #define _HAS_OMP_TARGET_OFFLOAD_INTEL

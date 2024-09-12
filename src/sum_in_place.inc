@@ -21,12 +21,20 @@ subroutine mp_sum_in_place_int4_r1(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_INTEGER,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -55,12 +63,20 @@ subroutine mp_sum_in_place_int4_r1(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_INTEGER,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -117,12 +133,20 @@ subroutine mp_sum_in_place_int4_r2(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_INTEGER,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -151,12 +175,20 @@ subroutine mp_sum_in_place_int4_r2(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_INTEGER,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -213,12 +245,20 @@ subroutine mp_sum_in_place_int8_r1(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_INTEGER8,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -247,12 +287,20 @@ subroutine mp_sum_in_place_int8_r1(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_INTEGER8,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -309,12 +357,20 @@ subroutine mp_sum_in_place_real8_r1(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_DOUBLE_PRECISION,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -343,12 +399,20 @@ subroutine mp_sum_in_place_real8_r1(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_DOUBLE_PRECISION,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -405,12 +469,20 @@ subroutine mp_sum_in_place_real8_r2(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_DOUBLE_PRECISION,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -439,12 +511,20 @@ subroutine mp_sum_in_place_real8_r2(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_DOUBLE_PRECISION,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -501,12 +581,20 @@ subroutine mp_sum_in_place_real8_r3(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_DOUBLE_PRECISION,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -535,12 +623,20 @@ subroutine mp_sum_in_place_real8_r3(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_DOUBLE_PRECISION,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -597,12 +693,20 @@ subroutine mp_sum_in_place_real8_r4(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_DOUBLE_PRECISION,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1,1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -631,12 +735,20 @@ subroutine mp_sum_in_place_real8_r4(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_DOUBLE_PRECISION,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -693,12 +805,20 @@ subroutine mp_sum_in_place_real8_r5(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1,1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_DOUBLE_PRECISION,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1,1,1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -727,12 +847,20 @@ subroutine mp_sum_in_place_real8_r5(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1,1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_DOUBLE_PRECISION,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -789,12 +917,20 @@ subroutine mp_sum_in_place_complex8_r1(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_DOUBLE_COMPLEX,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -823,12 +959,20 @@ subroutine mp_sum_in_place_complex8_r1(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_DOUBLE_COMPLEX,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -885,12 +1029,20 @@ subroutine mp_sum_in_place_complex8_r2(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_DOUBLE_COMPLEX,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -919,12 +1071,20 @@ subroutine mp_sum_in_place_complex8_r2(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_DOUBLE_COMPLEX,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -981,12 +1141,20 @@ subroutine mp_sum_in_place_complex8_r3(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_DOUBLE_COMPLEX,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -1015,12 +1183,20 @@ subroutine mp_sum_in_place_complex8_r3(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_DOUBLE_COMPLEX,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -1077,12 +1253,20 @@ subroutine mp_sum_in_place_complex8_r4(data,n, comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_DOUBLE_COMPLEX,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1,1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -1111,12 +1295,20 @@ subroutine mp_sum_in_place_complex8_r4(data,n, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1,1,1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_DOUBLE_COMPLEX,&
           MPI_SUM,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)

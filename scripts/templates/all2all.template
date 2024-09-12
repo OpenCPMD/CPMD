@@ -18,11 +18,19 @@ subroutine mp_all2all_${NAME}(data_in, data_out, ${ARG_LEN_NAME}, comm )
   cmlen(ipar_aall)=cmlen(ipar_aall)+${MPI_LEN}*nnodes*${SIZE_IN_BYTES}
   tim1=m_walltime()     
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1:nnodes*${MPI_LEN})) if(.not.comm_buffers_on_host)
+#endif
 #endif
   CALL mpi_alltoall(data_in,${MPI_LEN},${MPI_TYPE},data_out,${MPI_LEN},${MPI_TYPE},comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(data_out(1:nnodes*${MPI_LEN})) if(.not.comm_buffers_on_host)
+#endif
 #endif
   CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()

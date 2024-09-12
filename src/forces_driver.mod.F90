@@ -235,6 +235,9 @@ CONTAINS
        IF(parai%cp_nogrp.GT.1) CALL cp_grp_redist_array_f(c0_ptr,ncpw%ngw,nstate)
        IF(pslo_com%tivan) CALL rnlsm(c0_ptr(:,:,1),nstate,1,1,.FALSE.,&
             unpack_dfnl_fnl=.FALSE.)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       comm_buffers_on_host=.FALSE.
+#endif
        CALL rgsvan(c0_ptr(:,:,1),nstate,smat,store_nonort=cntl%tmdcp)
     ELSE
        c0_ptr=>c0
@@ -655,9 +658,9 @@ CONTAINS
 #else
        DEALLOCATE(smat,stat=ierr)
 #endif
+       IF (ierr.NE.0) CALL stopgm(procedureN,'Deallocation problem',&
+            __LINE__,__FILE__)
        IF(cntl%tmdcp)THEN
-          IF (ierr.NE.0) CALL stopgm(procedureN,'Deallocation problem',&
-               __LINE__,__FILE__)
 #ifdef _USE_SCRATCHLIBRARY
           CALL free_scratch(il_c0_ort,c0_ort,procedureN//'_c0_ort',ierr)
 #else

@@ -2,7 +2,7 @@ AR = ar -r
 RANLIB = ranlib
 #AR     = /usr/bin/ar ruv
 #RANLIB = /usr/bin/ranlib
-FFLAGS =  -D_OPENMP_OFFLOAD -qopenmp -fopenmp-targets=spir64 -g -traceback -cpp -axCORE-AVX2,CORE-AVX512 -mavx -unroll -funroll-loops -O2 -IPO  #-O0 -check  bounds,assume,contiguous,format,pointers,shape,stack,udio_iostat,uninit   #
+FFLAGS =  -D__HAS_OMP_OFFLOAD -qopenmp -fopenmp-targets=spir64 -g -traceback -cpp -axCORE-AVX2,CORE-AVX512 -mavx -unroll -funroll-loops -O2 -IPO  #-O0 -check  bounds,assume,contiguous,format,pointers,shape,stack,udio_iostat,uninit   #
 #FFLAGS =  -cpp -D_DEBUG -warn all -O0 -check bounds,assume,contiguous,format,pointers,shape,stack,udio_iostat,uninit   #-g -traceback -cpp -axCORE-AVX2 -mavx -unroll -funroll-loops -O2 -IPO  #-O0 -check  bounds,assume,contiguous,format,pointers,shape,stack,udio_iostat,uninit   #
 #FFLAGS =  -g -fbacktrace  -cpp -unroll -funroll-loops -O2   #-O0 -check  bounds,assume,contiguous,format,pointers,shape,stack,udio_iostat,uninit   #
 CPPFLAGS =

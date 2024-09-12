@@ -414,6 +414,9 @@ CONTAINS
           CALL cp_grp_redist_array_f(c2,ncpw%ngw,nstate)
           CALL cp_grp_redist_array_f(cm,ncpw%ngw,nstate)
        END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update from(C0(:,:,1),CM(:,:,1))
+#endif
        CALL zhwwf(2,irec,c0,cm,nstate,eigv,tau0,velp,taui,iteropt%nfi)
        ! NN: BROKEN SYMMETRY: QUENCHING TO BO SURFACE OF HS STATE
        IF (cntl%bsymm)THEN
@@ -428,6 +431,9 @@ CONTAINS
              CALL cp_grp_redist_array_f(c2,ncpw%ngw,nstate)
              CALL cp_grp_redist_array_f(cm,ncpw%ngw,nstate)
           END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update from(C0(:,:,2),CM(:,:,2))
+#endif
           CALL zhwwf(2,irec,c0(:,:,2),cm(1,1,2),nstate,eigv(1,2),&
                tau0,velp,taui,iteropt%nfi)
        ENDIF
@@ -564,9 +570,6 @@ CONTAINS
        bsclcs=1
        CALL setbsstate
     ENDIF
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp target update to(C0(:,:,1))
-#endif
     CALL forcedr(c0(:,:,1),c2(:,:,1),sc0(:,:,1),rhoe,psi,&
          TAU0,FION,EIGV,NSTATE,1,.FALSE.,.TRUE.,.TRUE.)
     ! STORE THE SPIN DENSITIES FOR PRINTING
@@ -696,6 +699,9 @@ CONTAINS
           CALL cp_grp_redist_array_f(c2,ncpw%ngw,nstate)
           CALL cp_grp_redist_array_f(cm,ncpw%ngw,nstate)
        END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update from(C0(:,:,1),CM(:,:,1))
+#endif      
        CALL zhwwf(2,irec,c0,cm,nstate,eigv,taup,velp,taui,iteropt%nfi)
     END IF
     IF (paral%parent) THEN
@@ -1156,6 +1162,9 @@ CONTAINS
              CALL cp_grp_redist_array_f(c2,ncpw%ngw,nstate)
              CALL cp_grp_redist_array_f(cm,ncpw%ngw,nstate)
           END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update from(C0(:,:,1),CM(:,:,1))
+#endif
           CALL zhwwf(2,irec,c0,cm,nstate,eigv,taup,velp,taui,iteropt%nfi)
        ENDIF
        IF (soft_com%exsoft .AND.lmeta%lcolvardyn) THEN

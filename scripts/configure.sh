@@ -66,6 +66,7 @@ Description of options:
                     which can either be true or false (or a script that sets true/false
                     according a certain compiler version)
    -omp_offload     Enable OpenMP offload to GPUs
+   -gpu_aware_mpi   Enable GPU aware MPI with OpenMP Offload
    -disable_omp3    Overrides any specification (compiler/configuration file) and disables
                     OMP3 instructions
    -minpack=<PATH>  Compiles enabling MINPACK and links using the provided library
@@ -134,7 +135,11 @@ do
       omp_offload=1
       echo "** Enabling OMP OFFLOAD instructions (if the config file allows that)" >&2
       ;;
-    -disable_omp3)
+    -gpu_aware_mpi)
+      gpu_aware_mpi=1
+      echo "** Enabling GPU aware MPI with OMP OFFLOAD (if the config file allows that)" >&2
+      ;;
+     -disable_omp3)
       omp3=0
       ;;
     -qmmm|-q)
@@ -305,6 +310,7 @@ fi
 OBJ_DIR=${DEST}/obj
 BIN_DIR=${DEST}/bin
 LIB_DIR=${DEST}/lib
+
 mkdir -p ${BIN_DIR} ${OBJ_DIR} ${LIB_DIR}
 #--------------------------------------------------------------------#
 #End of Configurations                                               #

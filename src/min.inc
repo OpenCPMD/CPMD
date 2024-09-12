@@ -21,12 +21,20 @@ subroutine mp_min_int4_r1(data,n,comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_INTEGER,&
           MPI_MIN,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -55,12 +63,20 @@ END IF
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_INTEGER,&
           MPI_MIN,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -117,12 +133,20 @@ subroutine mp_min_real8_r1(data,n,comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_DOUBLE_PRECISION,&
           MPI_MIN,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -151,12 +175,20 @@ END IF
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_DOUBLE_PRECISION,&
           MPI_MIN,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)
@@ -213,12 +245,20 @@ subroutine mp_min_complex8_r1(data,n,comm)
   tim1=m_walltime()
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(MPI_IN_PLACE,data,n,MPI_DOUBLE_COMPLEX,&
           MPI_MIN,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -247,12 +287,20 @@ END IF
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_allreduce(data,para_buff,n,MPI_DOUBLE_COMPLEX,&
           MPI_MIN,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      loc_x = C_LOC(para_buff)

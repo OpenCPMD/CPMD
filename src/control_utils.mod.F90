@@ -816,7 +816,14 @@ CONTAINS
              ELSEIF ( keyword_contains(line,'MOLECULAR',and='DYNAMICS')) THEN
                 ! Molecular Dynamics
                 cntl%md=.TRUE.
-                IF ( keyword_contains(line,'BO')) cntl%tmdbo=.TRUE.
+                IF ( keyword_contains(line,'CP')) THEN
+                   cntl%tmdbo=.FALSE.
+                   cntl%tmdcp=.TRUE.
+                END IF
+                IF ( keyword_contains(line,'BO')) THEN
+                   cntl%tmdbo=.TRUE.
+                   cntl%tmdcp=.FALSE.
+                END IF
                 IF ( keyword_contains(line,'FILE') ) THEN
                    IF ( keyword_contains(line,'XYZ')) rout1%xtin=.TRUE.
                    cntl%tmdfile=.TRUE.
@@ -842,10 +849,6 @@ CONTAINS
                    ENDIF
                 ENDIF
                 IF (cntl%tmdbo.AND.keyword_contains(line,'PT')) cntl%tresponse=.TRUE.
-                IF ( keyword_contains(line,'CP')) THEN
-                   cntl%tmdbo=.FALSE.
-                   cntl%tmdcp=.TRUE.
-                END IF
                 IF ( keyword_contains(line,'CLASSICAL')) clc%classical=.TRUE.
                 ! EHR[
                 IF ( keyword_contains(line,'EH',alias='EHRENFEST') ) THEN

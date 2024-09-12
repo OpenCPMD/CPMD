@@ -17,12 +17,20 @@ subroutine mp_sum_root_${NAME}(data_in,data_out,${ARG_LEN_NAME} root, comm)
   cmlen(ipar_gsum)=cmlen(ipar_gsum)+${MPI_LEN}*${SIZE_IN_BYTES}
   tim1=m_walltime()      
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in${COPY}) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mpi_reduce(data_in,data_out,${MPI_LEN},${MPI_TYPE},&
        MPI_SUM,root,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(data_out${COPY}) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()

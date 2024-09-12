@@ -20,9 +20,14 @@
      CPP='/lib/cpp -P -traditional'
      CPPFLAGS='-D__HAS_FFT_FFTW3 -D__ALPHALINUX -D__HPC \
          -D__PARALLEL -D__HAS_SIZEOF -D__HAS_BF_STREAM_IO \
-	 -D__INTEL_MKL -D__USE_SCRATCHLIBRARY -D__INTEL_MKL \
-	 -D__HAS_LIBGRIMMEVDW'
-     CPPFLAGS_GROMOS='-DEWALD -DEWATCUT -DHAT_SHAPE -DUNPACKED_GRID \
+	 -D__INTEL_MKL  -D__INTEL_MKL'
+    if [ $scr ]; then
+	CPPFLAGS=${CPPFLAGS}' -D__USE_SCRATCHLIBRARY'
+    fi
+    if [ $vdw ]; then
+	CPPFLAGS=${CPPFLAGS}' -D__HAS_LIBGRIMMEVDW'
+    fi
+    CPPFLAGS_GROMOS='-DEWALD -DEWATCUT -DHAT_SHAPE -DUNPACKED_GRID \
              -D__HAS_FFT_FFTW3 -D__ALPHALINUX -D__HPC \
              -D__PARALLEL -D__HAS_SIZEOF -D__HAS_BF_STREAM_IO'
      FFLAGS_GROMOS='-fixed $(FFLAGS)'
@@ -35,25 +40,23 @@
        CFLAGS='-g -Wall -m64 -Wno-error=int-conversion'
      else
        FFLAGS='-O2 -traceback -g -pc64 -funroll-loops -assume byterecl -align array64byte \
-              -xHost -finline-functions -qopt-zmm-usage=high \
-	      -I${CPMDROOT}/scratchmodule_lib/ -I${CPMDROOT}/vdw_lib/ '
+              -xHost -finline-functions -qopt-zmm-usage=high'
        CFLAGS='-O2 -Wall -Wno-error=int-conversion'
      fi
      if [ $omp ]; then
        FFLAGS=${FFLAGS}' -fiopenmp -qmkl=parallel'
        OMP3_DISABLED='false'
-       LIBS=' -qmkl=parallel -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 -fiopenmp \
-             -L${CPMDROOT}/scratchmodule_lib/ -lscratch_module \
-	     -L${CPMDROOT}/vdw_lib/ -lgrimmevdw'
+       LIBS=' -qmkl=parallel -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 -fiopenmp'
        if [ $omp_offload ]; then
 	   LIBS=${LIBS}' -fopenmp-targets=spir64'
 	   FFLAGS=${FFLAGS}' -fopenmp-targets=spir64'
 	   CPPFLAGS=${CPPFLAGS}' -D__HAS_OMP_OFFLOAD'
+	   if [ $gpu_aware_mpi ]; then
+	       CPPFLAGS=${CPPFLAGS}' -D__HAS_GPU_AWARE_MPI'
+	   fi
        fi
      else
        FFLAGS=${FFLAGS}' -qmkl=sequential'
-       LIBS=' -qmkl=sequential -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 \
-             -L${CPMDROOT}/scratchmodule_lib/ -lscratch_module \
-	     -L${CPMDROOT}/vdw_lib/ -lgrimmevdw '
+       LIBS=' -qmkl=sequential -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64'
      fi
      LFLAGS=${LIBS}

@@ -24,7 +24,11 @@ subroutine mp_sum_root_in_place_${NAME}(data,${ARG_LEN_NAME} root, comm)
 
   IF(para_use_mpi_in_place)THEN
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data${COPY}) if(.not.comm_buffers_on_host)
+#endif
 #endif
      IF (root.EQ.me) THEN
         CALL mpi_reduce(MPI_IN_PLACE,data,${MPI_LEN},${MPI_TYPE},&
@@ -34,7 +38,11 @@ subroutine mp_sum_root_in_place_${NAME}(data,${ARG_LEN_NAME} root, comm)
              MPI_SUM,root,comm,ierr)
      END IF
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(data${COPY}) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   ELSE
@@ -63,12 +71,20 @@ subroutine mp_sum_root_in_place_${NAME}(data,${ARG_LEN_NAME} root, comm)
           __LINE__,__FILE__)
 #endif
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp target data use_device_addr(data,para_buff) if(.NOT.comm_buffers_on_host)
+#else
+     !$omp target update from(data${COPY}) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mpi_reduce(data,para_buff,${MPI_LEN},${MPI_TYPE},&
           MPI_SUM,root,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
      !$omp end target data
+#else
+     !$omp target update to(para_buff(1:${MPI_LEN})) if(.not.comm_buffers_on_host)
+#endif
 #endif
      CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
      IF(root.EQ.me) THEN

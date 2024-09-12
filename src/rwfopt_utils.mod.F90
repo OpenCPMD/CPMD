@@ -317,7 +317,9 @@ CONTAINS
        GOTO 150
     ENDIF
     CALL initrun(irec,c0,c2,sc0,rhoe,psi,eigv)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
     !$omp target update to(c0)
+#endif
     IF (cntl%tksham)THEN
        CALL write_ksham(c0,c2,sc0,rhoe,psi,eigv)
        GOTO 150
@@ -563,6 +565,9 @@ CONTAINS
                 IF (.NOT.cntl%bsymm.AND.&
                      (MOD(infi,store1%istore).EQ.0.OR.infi.EQ.cnti%nomore_iter.OR.ropt_mod%convwf))THEN
                    CALL mm_dim(mm_go_mm,statusdummy)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+                   !$omp target update from(C0,C2)
+#endif
                    CALL zhwwf(2,irec,c0,c2,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
                    CALL mm_dim(mm_revert,statusdummy)
                 ENDIF

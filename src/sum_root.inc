@@ -17,12 +17,20 @@ subroutine mp_sum_root_int4_r0(data_in,data_out, root, comm)
   cmlen(ipar_gsum)=cmlen(ipar_gsum)+1*mp_int4_in_bytes
   tim1=m_walltime()      
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mpi_reduce(data_in,data_out,1,MPI_INTEGER,&
        MPI_SUM,root,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(data_out) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()
@@ -50,12 +58,20 @@ subroutine mp_sum_root_int4_r1(data_in,data_out,n, root, comm)
   cmlen(ipar_gsum)=cmlen(ipar_gsum)+n*mp_int4_in_bytes
   tim1=m_walltime()      
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mpi_reduce(data_in,data_out,n,MPI_INTEGER,&
        MPI_SUM,root,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(data_out(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()
@@ -83,12 +99,20 @@ subroutine mp_sum_root_int4_r2(data_in,data_out,n, root, comm)
   cmlen(ipar_gsum)=cmlen(ipar_gsum)+n*mp_int4_in_bytes
   tim1=m_walltime()      
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mpi_reduce(data_in,data_out,n,MPI_INTEGER,&
        MPI_SUM,root,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(data_out(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()
@@ -116,12 +140,20 @@ subroutine mp_sum_root_real8_r0(data_in,data_out, root, comm)
   cmlen(ipar_gsum)=cmlen(ipar_gsum)+1*mp_double_in_bytes
   tim1=m_walltime()      
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mpi_reduce(data_in,data_out,1,MPI_DOUBLE_PRECISION,&
        MPI_SUM,root,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(data_out) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()
@@ -149,12 +181,20 @@ subroutine mp_sum_root_real8_r1(data_in,data_out,n, root, comm)
   cmlen(ipar_gsum)=cmlen(ipar_gsum)+n*mp_double_in_bytes
   tim1=m_walltime()      
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mpi_reduce(data_in,data_out,n,MPI_DOUBLE_PRECISION,&
        MPI_SUM,root,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(data_out(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()
@@ -182,12 +222,20 @@ subroutine mp_sum_root_real8_r2(data_in,data_out,n, root, comm)
   cmlen(ipar_gsum)=cmlen(ipar_gsum)+n*mp_double_in_bytes
   tim1=m_walltime()      
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mpi_reduce(data_in,data_out,n,MPI_DOUBLE_PRECISION,&
        MPI_SUM,root,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(data_out(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()
@@ -215,12 +263,20 @@ subroutine mp_sum_root_complex8_r0(data_in,data_out, root, comm)
   cmlen(ipar_gsum)=cmlen(ipar_gsum)+1*mp_double_complex_in_bytes
   tim1=m_walltime()      
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mpi_reduce(data_in,data_out,1,MPI_DOUBLE_COMPLEX,&
        MPI_SUM,root,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(data_out) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()
@@ -248,12 +304,20 @@ subroutine mp_sum_root_complex8_r1(data_in,data_out,n, root, comm)
   cmlen(ipar_gsum)=cmlen(ipar_gsum)+n*mp_double_complex_in_bytes
   tim1=m_walltime()      
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mpi_reduce(data_in,data_out,n,MPI_DOUBLE_COMPLEX,&
        MPI_SUM,root,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(data_out(1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()
@@ -281,12 +345,20 @@ subroutine mp_sum_root_complex8_r2(data_in,data_out,n, root, comm)
   cmlen(ipar_gsum)=cmlen(ipar_gsum)+n*mp_double_complex_in_bytes
   tim1=m_walltime()      
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mpi_reduce(data_in,data_out,n,MPI_DOUBLE_COMPLEX,&
        MPI_SUM,root,comm,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(data_out(1,1:n)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()

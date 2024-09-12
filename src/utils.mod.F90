@@ -130,10 +130,6 @@ CONTAINS
     CALL reshape_inplace(a, (/2, ngw, n/), pa)
 
     IF (ngw.GT.0) THEN
-       if(update_first_to_gpu) then
-          CALL stopgm('zclean','zclean wrong', &
-               __LINE__,__FILE__)
-       end if
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp target update to(a) if(update_first_to_gpu)
        !$omp target teams distribute parallel do simd &
