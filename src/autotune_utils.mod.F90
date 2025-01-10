@@ -15,7 +15,8 @@ MODULE autotune_utils
   USE kinds,                           ONLY: real_8
   USE timer,                           ONLY: tihalt,&
                                              tiset
-
+  USE mp_interface,                    ONLY: mp_sync
+  USE parac,                           ONLY: parai
   IMPLICIT NONE
 
   PRIVATE
