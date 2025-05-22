@@ -2052,7 +2052,7 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
   USE error_handling, ONLY: stopgm
   USE timer, ONLY: tiset, tihalt
   USE mp_interface, ONLY: mp_sum
-  USE system , ONLY:cntl,ncpw,nkpt
+  USE system , ONLY:cntl,ncpw,nkpt,parm
   USE parac, ONLY : paral,parai
   USE kpts, ONLY : tkpts
   USE kpnt, ONLY : wk
@@ -2142,37 +2142,39 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
         ENDIF
      ENDDO
      ! ..COUNT NUMBER OF ELECTRONS IN EXTRAPOLATED WFN AND RENORMALIZE
-     rsum=0._real_8
-     IF (tkpts%tkpnt) THEN
-        DO ik=1,nkpt%nkpnt
+     IF(.NOT.cntl%nonort) THEN
+        rsum=0._real_8
+        IF (tkpts%tkpnt) THEN
+           DO ik=1,nkpt%nkpnt
+              DO i=1,nstate
+                 IF (crge%f(i,ik).NE.0._real_8) THEN
+                    rsum=rsum+&
+                         crge%f(i,ik)*wk(ik) *&
+                         ddot(nkpt%ngwk*2,c0(1,i, ik),1,c0(1,i,ik),1)
+                 ENDIF
+              ENDDO
+           ENDDO
+        ELSE
            DO i=1,nstate
-              IF (crge%f(i,ik).NE.0._real_8) THEN
-                 rsum=rsum+&
-                      crge%f(i,ik)*wk(ik) *&
-                      ddot(nkpt%ngwk*2,c0(1,i, ik),1,c0(1,i,ik),1)
+              IF (crge%f(i,1).NE.0._real_8) THEN
+                 rsum=rsum+crge%f(i,1)*dotp(ncpw%ngw,c0(:,i,1),c0(:,i,1))
               ENDIF
            ENDDO
-        ENDDO
-     ELSE
-        DO i=1,nstate
-           IF (crge%f(i,1).NE.0._real_8) THEN
-              rsum=rsum+crge%f(i,1)*dotp(ncpw%ngw,c0(:,i,1),c0(:,i,1))
-           ENDIF
-        ENDDO
-        IF(pslo_com%tivan)THEN
-           CALL rnlsm(c0(:,:,1),nstate,1,1,.FALSE.,unpack_dfnl_fnl=.FALSE.)
-           nstates(1,1)=1
-           nstates(2,1)=nstate
-           CALL rhov(nstates,rsumv,hfx=.FALSE.,dipole=.FALSE.)
-           rsum=rsum+rsumv
+           IF(pslo_com%tivan)THEN
+              CALL rnlsm(c0(:,:,1),nstate,1,1,.FALSE.,unpack_dfnl_fnl=.FALSE.)
+              nstates(1,1)=1
+              nstates(2,1)=nstate
+              CALL rhov(nstates,rsumv,hfx=.FALSE.,dipole=.FALSE.)
+              rsum=rsum+parm%omega*rsumv
+           END IF
+        ENDIF
+        CALL mp_sum(rsum,parai%allgrp)
+        scalef=crge%nel/rsum
+        CALL dscal(2*nkpt%ngwk*nstate*nkpt%nkpnt,scalef,c0,1)
+        IF(pslo_com%tivan) THEN
+           CALL dscal(nstate*il_fnl_packed(1),scalef,fnl_packed,1)
+           CALL rgsvan(c0(:,:,1),nstate,gam,store_nonort=.FALSE.)
         END IF
-     ENDIF
-     CALL mp_sum(rsum,parai%allgrp)
-     scalef=crge%nel/rsum
-     CALL dscal(2*nkpt%ngwk*nstate*nkpt%nkpnt,scalef,c0,1)
-     IF(pslo_com%tivan) THEN
-        CALL dscal(nstate*il_fnl_packed(1),scalef,fnl_packed,1)
-        CALL rgsvan(c0(:,:,1),nstate,gam,store_nonort=.FALSE.)
      END IF
   ENDIF
   CALL tihalt(procedureN,isub)
