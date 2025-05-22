@@ -85,10 +85,10 @@ CONTAINS
     REAL(real_8), INTENT(INOUT) __CONTIGUOUS :: fion(:,:,:)
     REAL(real_8), INTENT(OUT) __CONTIGUOUS   :: devdw(:)
 ! Local variables
-    INTEGER                                  :: ia,is,isa,iat2is(ions1%nat),isub,ierr
-    REAL(real_8)                             :: alat_dummy,avec(3,3),bvec(3,3),&
-                                                coorat(3,ions1%nat),&
-                                                forces_d3(3,ions1%nat),stress_d3(3,3)
+    INTEGER                                  :: ia,is,isa,iat2is(ions1%nat),isub,ierr,new_atom_positions
+    REAL(real_8)                             :: alat_dummy,avec(3,3),bvec(3,3)                                
+    REAL(real_8), ALLOCATABLE, SAVE          :: coorat(:,:),forces_d3(:,:)
+    REAL(real_8), SAVE                       :: stress_d3(3,3), evdw_save
 #ifdef _VERBOSE_FORCE_DBG
     REAL(real_8),ALLOCATABLE                 :: dbg_forces(:,:,:)
 #endif
@@ -96,58 +96,89 @@ CONTAINS
 !     ==--------------------------------------------------------------==
     CALL tiset(procedureN,ISUB)
 !    ==--------------------------------------------------------------==
-      ALAT_DUMMY=1.d0
-      AVEC(1:3,1)=parm%A1(1:3)
-      AVEC(1:3,2)=parm%A2(1:3)
-      AVEC(1:3,3)=parm%A3(1:3)
-      BVEC(1:3,1)=gvec_com%B1(1:3)/parm%ALAT
-      BVEC(1:3,2)=gvec_com%B2(1:3)/parm%ALAT
-      BVEC(1:3,3)=gvec_com%B3(1:3)/parm%ALAT
-!
-      !$OMP parallel do private(isa,ia,is)
-      DO ISA=1, ions1%NAT
-        IA=IATPT(1,ISA)
-        IS=IATPT(2,ISA)
-        COORAT(1:3,ISA)=TAU0(1:3,IA,IS)
-        IAT2IS(ISA) = IS
-      ENDDO
+    IF(.NOT.ALLOCATED(coorat))THEN
+       ALLOCATE(coorat(3,ions1%nat),STAT=ierr)
+       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate coorat',& 
+            __LINE__,__FILE__)
+       ALLOCATE(forces_d3(3,ions1%nat),STAT=ierr)
+       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate forces_d3',& 
+            __LINE__,__FILE__)
+       coorat=0._real_8
+       forces_d3=0._real_8
+    END IF
 
-      CALL vdw_grimme_calc_energy_forces_stress(ALAT_DUMMY,AVEC,BVEC,1.0D0,ions1%nat,&
-           iat2is,coorat,evdw,forces_d3,stress_d3,parai%cp_me,parai%cp_nproc,&
-           parai%cp_grp,ierr)
-      IF(ierr/=0) CALL stopgm(procedureN,'error from vdw_grimme_calc_energy_forces_stress',&
-               __LINE__,__FILE__)
-      ! sum partial energies from workers
-      CALL mp_sum(evdw,parai%cp_grp)
-      IF(parai%cp_nogrp.GT.1) THEN
-         CALL mp_sum(forces_d3,3*ions1%nat,parai%cp_inter_grp)
-         CALL mp_sum(stress_d3,3*3,parai%cp_inter_grp)
-      ENDIF
+    ALAT_DUMMY=1.d0
+    AVEC(1:3,1)=parm%A1(1:3)
+    AVEC(1:3,2)=parm%A2(1:3)
+    AVEC(1:3,3)=parm%A3(1:3)
+    BVEC(1:3,1)=gvec_com%B1(1:3)/parm%ALAT
+    BVEC(1:3,2)=gvec_com%B2(1:3)/parm%ALAT
+    BVEC(1:3,3)=gvec_com%B3(1:3)/parm%ALAT
+!
+    IF(.NOT.ANY(COORAT(1:3,1).EQ.TAU0(1:3,IATPT(1,1),IATPT(2,1))))THEN
+       new_atom_positions=1
+       !$omp parallel do private(ISA,IA,IS) reduction(+:new_atom_positions)
+       DO ISA=1, ions1%NAT
+          IA=IATPT(1,ISA)
+          IS=IATPT(2,ISA)
+          COORAT(1:3,ISA)=TAU0(1:3,IA,IS)
+          IAT2IS(ISA) = IS
+       END DO
+    ELSE
+       new_atom_positions=0
+       !$omp parallel do private(ISA,IA,IS) reduction(+:new_atom_positions)
+       DO ISA=1, ions1%NAT
+          IA=IATPT(1,ISA)
+          IS=IATPT(2,ISA)
+          IF(.NOT.ANY(COORAT(1:3,ISA).EQ.TAU0(1:3,IA,IS)))THEN
+             new_atom_positions=1
+             COORAT(1:3,ISA)=TAU0(1:3,IA,IS)
+             IAT2IS(ISA) = IS
+          END IF
+       END DO
+    END IF
+    IF(new_atom_positions.GT.0)THEN
+      
+       CALL vdw_grimme_calc_energy_forces_stress(ALAT_DUMMY,AVEC,BVEC,1.0D0,ions1%nat,&
+            iat2is,coorat,evdw,forces_d3,stress_d3,parai%cp_me,parai%cp_nproc,&
+            parai%cp_grp,ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'error from vdw_grimme_calc_energy_forces_stress',&
+            __LINE__,__FILE__)
+       ! sum partial energies from workers
+       CALL mp_sum(evdw,parai%cp_grp)
+       IF(parai%cp_nogrp.GT.1) THEN
+          CALL mp_sum(forces_d3,3*ions1%nat,parai%cp_inter_grp)
+          CALL mp_sum(stress_d3,3*3,parai%cp_inter_grp)
+       ENDIF
+       EVDW_save=EVDW
+    ELSE
+       EVDW=EVDW_save
+    END IF
 !
 !  Convert Rydberg to Hartree units:
 !
-      IF (paral%parent) THEN
-        EVDW=0.5D0*EVDW
-      ELSE
-        EVDW=0.0D0
-      END IF
-      !  Add FORCES_D3 to FION
-      !$OMP parallel do private(isa,ia,is)
-      DO ISA=1, ions1%NAT
-        IA=IATPT(1,ISA)
-        IS=IATPT(2,ISA)
-        FION(1,IA,IS)=FION(1,IA,IS)+0.5D0*FORCES_D3(1,ISA)
-        FION(2,IA,IS)=FION(2,IA,IS)+0.5D0*FORCES_D3(2,ISA)
-        FION(3,IA,IS)=FION(3,IA,IS)+0.5D0*FORCES_D3(3,ISA)
-      ENDDO
-      !  Add STRESS_D3 to DEVDW
-      DEVDW(1)=-0.5D0*STRESS_D3(1,1)
-      DEVDW(2)=-0.5D0*STRESS_D3(1,2)
-      DEVDW(3)=-0.5D0*STRESS_D3(1,3)
-      DEVDW(4)=-0.5D0*STRESS_D3(2,2)
-      DEVDW(5)=-0.5D0*STRESS_D3(2,3)
-      DEVDW(6)=-0.5D0*STRESS_D3(3,3)
-
+    IF (paral%parent) THEN
+       EVDW=0.5D0*EVDW
+    ELSE
+       EVDW=0.0D0
+    END IF
+!  Add FORCES_D3 to FION
+    !$OMP parallel do private(isa,ia,is)
+    DO ISA=1, ions1%NAT
+       IA=IATPT(1,ISA)
+       IS=IATPT(2,ISA)
+       FION(1,IA,IS)=FION(1,IA,IS)+0.5D0*FORCES_D3(1,ISA)
+       FION(2,IA,IS)=FION(2,IA,IS)+0.5D0*FORCES_D3(2,ISA)
+       FION(3,IA,IS)=FION(3,IA,IS)+0.5D0*FORCES_D3(3,ISA)
+    ENDDO
+!  Add STRESS_D3 to DEVDW
+    DEVDW(1)=-0.5D0*STRESS_D3(1,1)
+    DEVDW(2)=-0.5D0*STRESS_D3(1,2)
+    DEVDW(3)=-0.5D0*STRESS_D3(1,3)
+    DEVDW(4)=-0.5D0*STRESS_D3(2,2)
+    DEVDW(5)=-0.5D0*STRESS_D3(2,3)
+    DEVDW(6)=-0.5D0*STRESS_D3(3,3)
+         
 #ifdef _VERBOSE_FORCE_DBG
       ALLOCATE(dbg_forces(3,maxsys%nax,maxsys%nsx), stat=ierr)
       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dbg_forces',& 
