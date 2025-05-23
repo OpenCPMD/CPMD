@@ -616,14 +616,26 @@ CONTAINS
             STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:cold)
+#endif
        CALL zeroing(cold)
-       
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(cold)
+#endif
+      
        IF(pslo_com%tivan)THEN
           ALLOCATE(scold(nkpt%ngwk,crge%n,nkpt%nkpnt,lenext/(crge%n*nkpt%ngwk*nkpt%nkpnt)),&
                STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target enter data map(alloc:scold)
+#endif
           CALL zeroing(scold)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update to(scold)
+#endif
            rmem=rmem*2._real_8
        END IF
        ! allocate array for high level WF extrapolation
@@ -1743,26 +1755,39 @@ CONTAINS
          __LINE__,__FILE__)
     IF (paral%io_parent) CALL fileclose(3)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp target exit data map(rhoe)
+    !$omp target exit data map(delete:rhoe)
 #endif
     DEALLOCATE(rhoe,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp target exit data map(psi)
+    !$omp target exit data map(delete:psi)
 #endif
     DEALLOCATE(psi,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp target exit data map(scr)
+    !$omp target exit data map(delete:scr)
 #endif
     DEALLOCATE(scr,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
-    IF (cntl%textrap) DEALLOCATE(cold,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
+    IF (cntl%textrap) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target exit data map(delete:cold)
+#endif
+       DEALLOCATE(cold,STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+            __LINE__,__FILE__)
+       IF (pslo_com%tivan) THEN
+          DEALLOCATE(scold,STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+               __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target exit data map(delete:scold)
+#endif
+       END IF
+    END IF
     if (cntl%use_mts) then
        deallocate(fion_high,stat=ierr)
        if(ierr/=0) call stopgm(proceduren,'deallocation problem: fion_high',&
