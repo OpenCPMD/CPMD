@@ -537,7 +537,7 @@ CONTAINS
              ENDIF
           ENDIF
        ENDIF
-       IF(cntl%nonort.AND.pslo_com%tivan.AND..NOT.cntl%tmdcp)THEN
+       IF(cntl%nonort.AND.pslo_com%tivan.AND.cntl%tmdcp)THEN
           ! ==--------------------------------------------------------------==
           ! ==   ROTATE ELECTRONIC FORCE BACK INTO NONORTHOGONAL BASIS      ==
           ! ==--------------------------------------------------------------==
