@@ -149,9 +149,10 @@ CONTAINS
           CALL mltfft('N','T',f,qr1s,m,xf_ptr,m,qr1s,lr1s,m,isign,scale )
           lda=lfrm*lr1m
           mm=qr2s*qr3s
-          CALL pack_x2y(xf_ptr,yf_ptr,mfrays,lda,lrxpl,sp5,maxfftn,parai%nproc,cntl%tr4a2a)
+          CALL pack_x2y_n(xf_ptr,yf_ptr,m,lda,lrxpl,sp5,maxfftn,parai%nproc,cntl%tr4a2a,1)
           CALL fft_comm(yf_ptr,xf_ptr,lda,cntl%tr4a2a,comm)
-          CALL unpack_x2y(xf_ptr,yf_ptr,mm,lr1,lda,msqf,lmsq,sp8,maxfftn,parai%nproc,cntl%tr4a2a)
+          CALL unpack_x2y_n(xf_ptr,yf_ptr,mm,lr1,lda,msqf,lmsq,sp8,maxfftn,parai%nproc,cntl%tr4a2a,&
+               1,maxfftn)
           m=qr1*qr3s
           CALL mltfft('N','T',yf_ptr,qr2s,m,xf_ptr,m,qr2s,lr2s,m,isign,scale )
           m=qr1*qr2s
@@ -187,9 +188,12 @@ CONTAINS
           CALL mltfft('T','N',xf_ptr,m,qr2s,yf_ptr,qr2s,m,lr2s,m,isign,scale )
           lda=lfrm*lr1m
           mm=qr2s*qr3s
-          CALL pack_y2x(xf_ptr,yf_ptr,mm,lr1,lda,msqf,lmsq,sp8,maxfftn,parai%nproc,cntl%tr4a2a)
+          CALL pack_y2x_n(xf_ptr,yf_ptr,mm,lr1,lda,msqf,lmsq,sp8,&
+               maxfftn,parai%nproc,cntl%tr4a2a,1,maxfftn)
+
           CALL fft_comm(xf_ptr,yf_ptr,lda,cntl%tr4a2a,comm)
-          CALL unpack_y2x(xf_ptr,yf_ptr,mm,mfrays,lda,lrxpl,sp5,maxfftn,parai%nproc,cntl%tr4a2a)
+          CALL unpack_y2x_n(xf_ptr,yf_ptr,mm,mfrays,lda,lrxpl,sp5,&
+               maxfftn,parai%nproc,cntl%tr4a2a,1)
           scale=1._real_8/REAL(lr1s*lr2s*lr3s,kind=real_8)
           m=mfrays
           CALL mltfft('T','N',xf_ptr,m,qr1s,f,qr1s,m,lr1s,m,isign,scale )
