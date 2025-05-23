@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE prcp
   USE kinds,                           ONLY: real_8
 
@@ -45,6 +47,9 @@ MODULE prcp
      REAL(real_8) :: hunit(3,3)
   END TYPE prcp_com_t
   TYPE(prcp_com_t) :: prcp_com
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  !$omp declare target(prcp_com)
+#endif
   TYPE :: prcpl_t
      LOGICAL :: tisot
      LOGICAL :: tzflex
