@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 SUBROUTINE mp_bcast_byte(DATA,n,root,comm)
   ! ==--------------------------------------------------------------==
   ! == Wrapper to mpi_bcast                                         ==
@@ -186,6 +188,7 @@ SUBROUTINE my_concatv(outmsg,inmsg,blklen,recvcnt,recvdispl,gid)
   ! ==--------------------------------------------------------------==
   USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8
   USE error_handling, ONLY: stopgm
+  USE gpu,                             ONLY: comm_buffers_on_host
   USE timer, ONLY: tiset, tihalt
   USE mp_interface, ONLY: mp_mpi_error_assert
 #ifdef __PARALLEL
@@ -222,9 +225,15 @@ SUBROUTINE my_concatv(outmsg,inmsg,blklen,recvcnt,recvdispl,gid)
   END DO
   cmlen(ipar_agav)=cmlen(ipar_agav)+sum*size
   tim1=m_walltime()
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  !$omp target data use_device_addr(outmsg(1:sum),inmsg(1:sum)) if(.NOT.comm_buffers_on_host)
+#endif
   CALL mpi_allgatherv(outmsg,blklen,mpi_double_precision,inmsg,&
        recvcnt,recvdispl,mpi_double_precision&
        ,gid,ierr)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  !$omp end target data
+#endif
   CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()
   cmtim(ipar_agav)=cmtim(ipar_agav)+tim2-tim1

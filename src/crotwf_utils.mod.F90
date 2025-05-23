@@ -77,8 +77,11 @@ CONTAINS
 #endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    nopara=(nort_com%scond.LT.1.e-9_real_8.OR.parai%cp_nproc.LT.34.OR.nstate.LT.10000)    
+#else
     nopara=(nort_com%scond.LT.1.e-9_real_8.OR.parai%cp_nproc.LT.17.OR.nstate.LT.1000)
-
+#endif
     CALL tiset(procedureN//'solve',isub1)
     IF (.NOT.cntl%tlsd) THEN
        CALL solve_eigenvector(nstate,eigval,nort_ovlap,gam,nopara)
@@ -101,15 +104,29 @@ CONTAINS
 #endif
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
             __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute private(i)
+#else
        !$omp parallel do private(i,j)
+#endif
        DO i=1,spin_mod%nsup
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do private(j)
+#endif
           DO j=1,i
              temp(j,i)=nort_ovlap(j,i)
           END DO
        END DO
        CALL solve_eigenvector(spin_mod%nsup,eigval,temp,temp1,nopara)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute private(i)
+#else
        !$omp parallel do private(i,j)
+#endif
        DO i=1,spin_mod%nsup
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do private(j)
+#endif
           DO j=1,spin_mod%nsup
              nort_ovlap(j,i)=temp(j,i)
           END DO
@@ -145,15 +162,29 @@ CONTAINS
 #endif
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
             __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute private(i)
+#else
        !$omp parallel do private(i,j)
+#endif
        DO i=spin_mod%nsup+1,nstate
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do private(j)
+#endif
           DO j=spin_mod%nsup+1,i
              temp(j-spin_mod%nsup,i-spin_mod%nsup)=nort_ovlap(j,i)
           END DO
        END DO
        CALL solve_eigenvector(spin_mod%nsdown,eigval,temp,temp1,nopara)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute private(i)
+#else
        !$omp parallel do private(i,j)
+#endif
        DO i=spin_mod%nsup+1,nstate
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do private(j)
+#endif
           DO j=spin_mod%nsup+1,nstate
              nort_ovlap(j,i)=temp(j-spin_mod%nsup,i-spin_mod%nsup)
           END DO

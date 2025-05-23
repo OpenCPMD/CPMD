@@ -655,19 +655,24 @@ CONTAINS
     REAL(real_8),INTENT(IN)                  :: abstol
     REAL(real_8),INTENT(INOUT)               :: w(:), a(:,:), z(:,:)
     !local
-    INTEGER                                  :: il_iwork, il_ifail, m
-    INTEGER(int_8)                           :: il_work(1)
+    INTEGER                                  :: m
+    INTEGER(int_8)                           :: il_work(1), il_iwork(1), il_ifail(1)
 #ifdef _USE_SCRATCHLIBRARY
     REAL(real_8), POINTER __CONTIGUOUS       :: work(:)
 #else
     REAL(real_8), ALLOCATABLE                :: work(:)
 #endif
+#ifdef _USE_SCRATCHLIBRARY
+    INTEGER, POINTER , CONTIGUOUS            :: iwork(:), ifail(:)
+#else
     INTEGER, ALLOCATABLE                     :: iwork(:), ifail(:)
+#endif
     REAL(real_8)                             :: dummy_real(1)
     CHARACTER(1)                             :: jobz, uplo, range
     CHARACTER(*),PARAMETER                   :: procedureN='dsyevr_driver'
     INTEGER                                  :: info, ierr
-
+    INTEGER, SAVE                            :: n_save=0, il_work_save=0, iopt_save=0
+    
     IF(iu-il+1.LE.0)RETURN
     IF(iopt.EQ.0)THEN
        jobz='N'
@@ -692,17 +697,36 @@ CONTAINS
     END IF
     il_ifail=n
     il_iwork=5*n
-    ALLOCATE(ifail(il_ifail),STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_ifail,ifail,procedureN//'_ifail',ierr)
+#else
+    ALLOCATE(ifail(il_ifail(1)),STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
-    ALLOCATE(iwork(il_iwork),STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_iwork,iwork,procedureN//'_iwork',ierr)
+#else
+    ALLOCATE(iwork(il_iwork(1)),STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
     !workspace query
-    il_work(1)=-1
-    CALL dsyevx(jobz,range,uplo,n,a,n,1.0_real_8,1.0_real_8,il,iu,-1_real_8,m,w,&
-         z,n,dummy_real,il_work(1),iwork,ifail,info)
-    il_work(1)=INT(dummy_real(1))
+    il_work(1)=-1_int_8
+    IF(iopt_save.eq.iopt) then
+       if(n_save.eq.n)then
+          il_work(1)=il_work_save
+       end if
+    end IF
+    IF(il_work(1).EQ.-1_int_8)THEN
+       !workspace query
+       CALL cpmd_dsyevx(jobz,range,uplo,n,a,n,1.0_real_8,1.0_real_8,il,iu,0.0_real_8,m,w,&
+            z,n,dummy_real,INT(il_work(1)),iwork,ifail,info)
+       il_work(1)=INT(dummy_real(1))
+       il_work_save=il_work(1)
+       n_save=n
+       iopt_save=iopt
+    END IF
 #ifdef _USE_SCRATCHLIBRARY
     CALL request_scratch(il_work,work,procedureN//'_work',ierr)
 #else
@@ -711,7 +735,7 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
     !actual calculation
-    CALL dsyevx(jobz,range,uplo,n,a,n,1.0_real_8,1.0_real_8,il,iu,-1_real_8,m,w,&
+    CALL cpmd_dsyevx(jobz,range,uplo,n,a,n,1.0_real_8,1.0_real_8,il,iu,-1_real_8,m,w,&
          z,n,work,il_work(1),iwork,ifail,info)
     IF (info.NE.0) CALL stopgm(procedureN,'FAILED TO DIAGONALIZE',&
          __LINE__,__FILE__)
@@ -722,10 +746,18 @@ CONTAINS
 #endif
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_iwork,iwork,procedureN//'_iwork',ierr)
+#else
     DEALLOCATE(iwork,STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_ifail,ifail,procedureN//'_ifail',ierr)
+#else
     DEALLOCATE(ifail,STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
   END SUBROUTINE dsyevx_driver
