@@ -136,6 +136,7 @@ SUBROUTINE my_concat_inplace(inmsg,blklen,gid)
   ! ==--------------------------------------------------------------==
   USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8
   USE error_handling, ONLY: stopgm
+  USE gpu
   USE timer, ONLY: tiset, tihalt
   USE mp_interface, ONLY: mp_mpi_error_assert
   USE utils, ONLY : icopy
@@ -169,9 +170,23 @@ SUBROUTINE my_concat_inplace(inmsg,blklen,gid)
   cmcal(ipar_agav)=cmcal(ipar_agav)+1.0d0
   cmlen(ipar_agav)=cmlen(ipar_agav)+nnodes*size*blklen
   tim1=m_walltime()
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(inmsg) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(inmsg(1:nnodes*blklen)) if(.not.comm_buffers_on_host)
+#endif
+#endif
   CALL mpi_allgather(mpi_in_place,0,MPI_DATATYPE_NULL,inmsg,blklen,&
        mpi_double_precision,gid,ierr)
   CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp end target data
+#else
+  !$omp target update to(inmsg(1:nnodes*blklen)) if(.not.comm_buffers_on_host)
+#endif
+#endif
   tim2=m_walltime()
   cmtim(ipar_agav)=cmtim(ipar_agav)+tim2-tim1
 #else
@@ -188,9 +203,9 @@ SUBROUTINE my_concatv(outmsg,inmsg,blklen,recvcnt,recvdispl,gid)
   ! ==--------------------------------------------------------------==
   USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8
   USE error_handling, ONLY: stopgm
-  USE gpu,                             ONLY: comm_buffers_on_host
   USE timer, ONLY: tiset, tihalt
   USE mp_interface, ONLY: mp_mpi_error_assert
+  USE gpu
 #ifdef __PARALLEL
   USE mpi_f08
   USE pstat
@@ -226,13 +241,21 @@ SUBROUTINE my_concatv(outmsg,inmsg,blklen,recvcnt,recvdispl,gid)
   cmlen(ipar_agav)=cmlen(ipar_agav)+sum*size
   tim1=m_walltime()
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
-  !$omp target data use_device_addr(outmsg(1:sum),inmsg(1:sum)) if(.NOT.comm_buffers_on_host)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(outmsg,inmsg) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(inmsg(1:sum)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   CALL mpi_allgatherv(outmsg,blklen,mpi_double_precision,inmsg,&
        recvcnt,recvdispl,mpi_double_precision&
        ,gid,ierr)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
   !$omp end target data
+#else
+  !$omp target update to(inmsg(1:sum)) if(.not.comm_buffers_on_host)
+#endif
 #endif
   CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
   tim2=m_walltime()
@@ -255,6 +278,7 @@ SUBROUTINE my_concatv_inplace(inmsg,recvcnt,recvdispl,gid)
   USE error_handling, ONLY: stopgm
   USE timer, ONLY: tiset, tihalt
   USE mp_interface, ONLY: mp_mpi_error_assert
+  USE gpu
 #ifdef __PARALLEL
   USE mpi_f08
   USE pstat
@@ -289,10 +313,24 @@ SUBROUTINE my_concatv_inplace(inmsg,recvcnt,recvdispl,gid)
   END DO
   cmlen(ipar_agav)=cmlen(ipar_agav)+sum*size
   tim1=m_walltime()
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(inmsg) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(inmsg(1:sum)) if(.not.comm_buffers_on_host)
+#endif
+#endif
   CALL mpi_allgatherv(mpi_in_place,0,MPI_DATATYPE_NULL,inmsg,&
        recvcnt,recvdispl,mpi_double_precision&
        ,gid,ierr)
   CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp end target data
+#else
+  !$omp target update to(inmsg(1:sum)) if(.not.comm_buffers_on_host)
+#endif
+#endif
   tim2=m_walltime()
   cmtim(ipar_agav)=cmtim(ipar_agav)+tim2-tim1
 #else

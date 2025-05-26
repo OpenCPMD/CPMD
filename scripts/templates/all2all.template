@@ -6,7 +6,11 @@ subroutine mp_all2all_${NAME}(data_in, data_out, ${ARG_LEN_NAME}, comm )
 #else
   integer, intent(in) :: ${ARG_LEN_NAME}, comm
 #endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
   ${TYPE}${KIND}, intent(in) ${DIMENSION} ::  data_in
+#else
+  ${TYPE}${KIND}, intent(inout) ${DIMENSION} ::  data_in
+#endif
   ${TYPE}${KIND}, intent(out) ${DIMENSION} :: data_out
   ! Variables
   integer :: ierr,nnodes

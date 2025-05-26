@@ -211,6 +211,7 @@ CONTAINS
        update_second_to_gpu =.FALSE.
        update_third_to_gpu  =.FALSE.
        update_result_to_host=.FALSE.
+       comm_buffers_on_host=.FALSE.
 #endif
        IF(cntl%tmdcp)THEN
 #ifdef _USE_SCRATCHLIBRARY
@@ -235,9 +236,6 @@ CONTAINS
        IF(parai%cp_nogrp.GT.1) CALL cp_grp_redist_array_f(c0_ptr,ncpw%ngw,nstate)
        IF(pslo_com%tivan) CALL rnlsm(c0_ptr(:,:,1),nstate,1,1,.FALSE.,&
             unpack_dfnl_fnl=.FALSE.)
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-       comm_buffers_on_host=.FALSE.
-#endif
        CALL rgsvan(c0_ptr(:,:,1),nstate,smat,store_nonort=cntl%tmdcp)
     ELSE
        c0_ptr=>c0
@@ -408,15 +406,12 @@ CONTAINS
           update_second_to_gpu =.FALSE.
           update_third_to_gpu  =.FALSE.
           update_result_to_host=.FALSE.
+          comm_buffers_on_host =.FALSE.
 #endif
           CALL ovlap(nstate,gam,c2,c0_ptr(:,:,ik),redist=.FALSE.,full=.FALSE.)
           CALL hnlmat(gam,crge%f,nstate)
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-          comm_buffers_on_host =.FALSE.
-#endif
           CALL summat(gam,nstate,lsd=.TRUE.,gid=parai%cp_grp,symmetrization=&
                ropt_mod%prteig.OR.ropt_mod%calste)
-          comm_buffers_on_host =.TRUE.
 #ifdef _USE_SCRATCHLIBRARY
           CALL request_scratch(il_fnl_packed,fnlgam_packed,procedureN//'_fnlgam_packed',ierr)
 #else
@@ -446,6 +441,7 @@ CONTAINS
           update_second_to_gpu =.TRUE.
           update_third_to_gpu  =.TRUE.
           update_result_to_host=.TRUE.
+          comm_buffers_on_host =.TRUE.
 #endif
 
 #ifdef _USE_SCRATCHLIBRARY

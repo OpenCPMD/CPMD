@@ -3,6 +3,7 @@
 MODULE rnlfl_utils
   USE cp_grp_utils,                    ONLY: cp_grp_split_atoms  
   USE cvan,                            ONLY: qq
+  use gpu
   USE cvan,                            ONLY: deeq,&
                                              dvan
   USE distribution_utils,              ONLY: dist_entity
@@ -224,7 +225,9 @@ CONTAINS
        IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate fiont',& 
             __LINE__,__FILE__)
        IF (parai%cp_nogrp.GT.1 ) THEN
+          comm_buffers_on_host=.true.
           CALL mp_sum(fion,3*maxsys%nax*maxsys%nsx,parai%cp_inter_grp)
+          comm_buffers_on_host=.false.
        END IF
 
        DEALLOCATE(na_grp, na, stat=ierr)

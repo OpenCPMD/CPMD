@@ -31,6 +31,7 @@ MODULE newd_utils
   USE system,                          ONLY: cntl,&
                                              iatpe,&
                                              ipept,&
+                                             iatpt,&
                                              maxsys,&
                                              ncpw,&
                                              parm,&
@@ -185,9 +186,6 @@ CONTAINS
     IF(tfor.AND.cntl%tverbosefor)THEN
        CALL print_debug_ions('DEBUG FORCES '//procedureN, fion)
     END IF
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp target update from(deeq)
-#endif
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN
@@ -295,9 +293,6 @@ CONTAINS
 #endif
     IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate ylm',&
          __LINE__,__FILE__)
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp target update to(vpot(:,:num_pot),fnl_packed)
-#endif
     isa0=0
     nhh0=1
     offset_fnl0=0

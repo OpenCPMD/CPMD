@@ -288,8 +288,13 @@ CONTAINS
     ! The other kpoints are the same atomic wf (CATOM).
     IF (tkpts%tkpnt) CALL setkwf(ncpw%ngw,atwp%nattot,catom)
     ! Local potential
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(rhoe)
+#endif
     CALL vofrho(tau0,fion,rhoe,psi,.FALSE.,.FALSE.)
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(rhoe)
+#endif
     ! SUM ETOT, EKIN, EHT, EPSEU, ENL and EXC.
     CALL mp_sum(ener_com%etot,parai%allgrp)
     CALL mp_sum(ener_com%ekin,parai%allgrp)

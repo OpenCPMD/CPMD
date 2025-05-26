@@ -2102,6 +2102,7 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
   USE spin, ONLY : spin_mod
   USE elct, ONLY : crge
   USE geq0mod , ONLY:geq0
+  USE gpu
   USE pslo, ONLY : pslo_com
   USE legendre_p_utils, ONLY : d_binom
   USE ortho_utils, ONLY: ortho,preortho
@@ -2112,6 +2113,7 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
   USE spsi_utils, ONLY: spsi
   USE rnlsm_utils, ONLY: rnlsm
   USE sfac, ONLY: fnl_packed, il_fnl_packed
+  use summat_utils, only : summat
   USE rhov_utils, ONLY: rhov
   USE zeroing_utils,                   ONLY: zeroing
   IMPLICIT NONE
@@ -2131,16 +2133,31 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
   CHARACTER(*), PARAMETER                    :: procedureN = 'extrapwf'
   CALL tiset(procedureN,isub)
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  update_first_to_gpu  =.FALSE.
+  update_second_to_gpu =.FALSE.
+  update_third_to_gpu  =.FALSE.
+  update_result_to_host=.FALSE.
+  comm_buffers_on_host= .FALSE.
+#endif
+
   IF(pslo_com%tivan)THEN
      IF (PRESENT(only_save)) save=only_save
      IF(save)THEN
         nnow_save=MOD(nnow,m)+1
-        CALL dcopy(2*nkpt%ngwk*nstate*nkpt%nkpnt,c0,1,cold(1,1,1,nnow_save),1)
+        CALL cpmd_dcopy(2*nkpt%ngwk*nstate*nkpt%nkpnt,c0,1,cold(1,1,1,nnow_save),1)
         IF(pslo_com%tivan)THEN
-           CALL dcopy(2*nkpt%ngwk*nstate*nkpt%nkpnt,c0,1,scold(1,1,1,nnow_save),1)
+           CALL cpmd_dcopy(2*nkpt%ngwk*nstate*nkpt%nkpnt,c0,1,scold(1,1,1,nnow_save),1)
            CALL spsi(nstate,scold(:,:,1,nnow_save),fnl_packed,.FALSE.)
         END IF
         numcold=MIN(numcold+1,m)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+        update_first_to_gpu  =.TRUE.
+        update_second_to_gpu =.TRUE.
+        update_third_to_gpu  =.TRUE.
+        update_result_to_host=.TRUE.
+        comm_buffers_on_host= .TRUE.
+#endif
         CALL tihalt(procedureN,isub)
         RETURN
      ELSE
@@ -2148,7 +2165,7 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
      END IF
   ELSE
      nnow=MOD(nnow,m)+1
-     CALL dcopy(2*nkpt%ngwk*nstate*nkpt%nkpnt,c0,1,cold(1,1,1,nnow),1)
+     CALL cpmd_dcopy(2*nkpt%ngwk*nstate*nkpt%nkpnt,c0,1,cold(1,1,1,nnow),1)
      numcold=MIN(numcold+1,m)
   END IF
 
@@ -2228,6 +2245,14 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
         END IF
      END IF
   ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  update_first_to_gpu  =.TRUE.
+  update_second_to_gpu =.TRUE.
+  update_third_to_gpu  =.TRUE.
+  update_result_to_host=.TRUE.
+  comm_buffers_on_host= .TRUE.
+#endif
+
   CALL tihalt(procedureN,isub)
   ! ==--------------------------------------------------------------==
   RETURN

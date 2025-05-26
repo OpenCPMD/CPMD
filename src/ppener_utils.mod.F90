@@ -43,8 +43,9 @@ CONTAINS
     ! ==   VPLOC G=0 pp part (given from pp data) (Energy=NEL*VPLOC)  ==
     ! ==   VTEMP Stored the potential in G-space                      ==
     ! ==--------------------------------------------------------------==
-    COMPLEX(real_8)                          :: eh, ei, ee, eps, v(:), &
-                                                vtemp(:), eivps(:), eirop(:)
+    COMPLEX(real_8), INTENT(OUT)             :: eh, ei, ee, eps
+    COMPLEX(real_8), INTENT(INOUT) __CONTIGUOUS &
+                                             :: vtemp(:),v(:), eivps(:), eirop(:)
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'ppener'
 
@@ -55,6 +56,9 @@ CONTAINS
     CALL tiset(procedureN,isub)
     __NVTX_TIMER_START ( procedureN )
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(v(nzh(1)),eivps(1),eirop(1)) IF(geq0)
+#endif
     IF (geq0) THEN
        vp=eivps(1)
        vploc=REAL(vp)
@@ -75,7 +79,15 @@ CONTAINS
        ei=(0.0_real_8,0.0_real_8)
        ee=(0.0_real_8,0.0_real_8)
     ENDIF
-    !$omp  parallel do private(IG,VP,RP,RHET,RHOG,RHETS,RHOGS,VCG) &
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to (vtemp(1))if(geq0)
+#endif
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp  parallel do &
+#endif
+    !$omp& private(IG,VP,RP,RHET,RHOG,RHETS,RHOGS,VCG) &
     !$omp  reduction(+:EH,EI,EE,EPS)
     DO ig=ig1,ncpw%nhg
        ! ==------------------------------------------------------------==

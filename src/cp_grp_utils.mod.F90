@@ -3,6 +3,7 @@
 MODULE cp_grp_utils
   USE error_handling,                  ONLY: stopgm
   USE geq0mod,                         ONLY: geq0
+  use gpu
   USE ions,                            ONLY: ions0,&
                                              ions1
   USE fnl_utils,                       ONLY: pack_fnl,&
@@ -280,7 +281,7 @@ CONTAINS
     INTEGER,INTENT(IN)                       :: ld,n
     COMPLEX(real_8),INTENT(INOUT)            :: data(ld,*)
     INTEGER                                  :: ld_group(3,parai%cp_nogrp),&
-                                                  revcnt,i,ig,ierr,group
+                                                  revcnt,i,ig,ierr,group,my_group
     INTEGER(int_8)                           :: il_buffer(3)
 #ifdef _USE_SCRATCHLIBRARY
     COMPLEX(real_8), POINTER __CONTIGUOUS    :: buffer(:,:,:)
@@ -298,6 +299,7 @@ CONTAINS
     il_buffer(2)=n
     il_buffer(3)=parai%cp_nogrp
     revcnt=il_buffer(1)*n*2
+    my_group=parai%cp_inter_me+1
 #ifdef _USE_SCRATCHLIBRARY
     CALL request_scratch(il_buffer,buffer,procedureN//'_buffer',ierr)
 #else
@@ -306,26 +308,53 @@ CONTAINS
     IF (ierr.NE.0) CALL stopgm(procedureN,'Allocation problem',&
          __LINE__,__FILE__)
     group=parai%cp_inter_me+1
-    !$omp parallel do private(i,ig)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(i,ig) 
     DO i=1,n
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do private(ig)
+#endif
        DO ig=ld_group(1,group),ld_group(2,group)
           buffer(ig-ld_group(1,group)+1,i,group)=data(ig,i)
        END DO
     END DO
     CALL my_concat_inplace(buffer,revcnt,parai%cp_inter_grp)
-    !$omp parallel private(i,ig,group)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams &
+#else
+    !$omp parallel &
+#endif
+    !$omp& private(i,ig,group) 
     DO group=1,parai%cp_nogrp
-       IF(group.EQ.parai%cp_inter_me+1) CYCLE
+       IF(group.EQ.my_group) CYCLE
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp distribute
+#else
        !$omp do
+#endif
        DO i=1,n
-          !$omp simd
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp parallel do private(ig)
+#else
+          !$omp simd 
+#endif
           DO ig=ld_group(1,group),ld_group(2,group)
              data(ig,i)=buffer(ig-ld_group(1,group)+1,i,group)
           END DO
        END DO
+#if !defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp end do nowait
+#endif
     END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp end target teams
+#else
     !$omp end parallel
+#endif
 #ifdef _USE_SCRATCHLIBRARY
     CALL free_scratch(il_buffer,buffer,procedureN//'_buffer',ierr)
 #else

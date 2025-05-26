@@ -32,7 +32,7 @@ MODULE eicalc_utils
 CONTAINS
 
   ! ==================================================================
-  SUBROUTINE eicalc(eivps,eirop)
+  SUBROUTINE eicalc(eivps,eirop,update_to_host)
     ! ==--------------------------------------------------------------==
     ! == EIVPS : phase factor times local pseudopotential  (VPS)      ==
     ! == EIROP : phase factor times Gaussian charge distributions     ==
@@ -46,10 +46,16 @@ CONTAINS
     INTEGER                                  :: ia, ig, is, isa, isub, isa0,&
                                                 ind1, ind2, ind3
     REAL(real_8)                             :: ei, er,  vps_s, rhops_s
-
-
+    LOGICAL, OPTIONAL, INTENT(IN)            :: update_to_host
+    LOGICAL                                  :: update
+    
     CALL tiset(procedureN,isub)
     __NVTX_TIMER_START ( procedureN )
+    IF(PRESENT(update_to_host))THEN
+       update=update_to_host
+    ELSE
+       update=.TRUE.
+    END IF
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
     !$omp target teams distribute num_teams(ncpw%nhg) &
 #else
@@ -88,7 +94,7 @@ CONTAINS
        eirop(ig)=eirop_s
     END DO
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp target update from(eivps,eirop)
+    !$omp target update from(eivps,eirop) IF(update)
 #endif
 
     __NVTX_TIMER_STOP

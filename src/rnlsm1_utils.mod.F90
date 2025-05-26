@@ -254,11 +254,9 @@ CONTAINS
           CALL TIHALT(procedureN//'_barrier',ISUB2)
           IF(autotune_it.GT.1.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit) temp=m_walltime()
           IF(ld_dai.GT.0)THEN
-             comm_buffers_on_host=.FALSE.
              CALL tiset(procedureN//'_reduce',isub5)            
              CALL mp_sum(dai(start_dai:),dai1(start_dai:),end_dai-start_dai+1,parai%allgrp)
              CALL tihalt(procedureN//'_reduce',isub5)
-             comm_buffers_on_host=.TRUE.
           END IF
           IF(autotune_it.GT.1.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit)&
                timings(2)=timings(2)+m_walltime()-temp

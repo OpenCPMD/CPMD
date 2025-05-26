@@ -75,6 +75,9 @@ MODULE vdw_param
   DOUBLE PRECISION, ALLOCATABLE, PUBLIC  :: C6ab(:,:,:,:,:)
   ! Grimme D3mod:
   DOUBLE PRECISION, ALLOCATABLE, PUBLIC  :: C6a(:,:,:)
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP declare target(version,C6ab,C6a,nCN0)
+#endif
   !
   CONTAINS
     !---------------------------------------------------------------------------
@@ -509,15 +512,24 @@ MODULE vdw_param
           !
           CALL getparam_R0ab(numTypes, ielem, R0ab)
           CALL getparam_r2r4(numTypes, ielem, r2r4)
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target update to(r0ab,r2r4)
+#endif
           !
           IF (version(3:5) == 'org') THEN
             !
             CALL getparam_D3org(iunit, vdw_input, numTypes, namtyp, ielem, mxCN0, nCN0, C6ab)
             !
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target update to (c6ab,ncn0)
+#endif
           ELSE IF (version(3:5) == 'mod') THEN
             !
             CALL getparam_D3mod(iunit, numTypes, namtyp, ielem, mxCN0, nCN0, C6a)
             !
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target update to (c6a,ncn0)
+#endif
           ELSE
             WRITE(6,'(/1x,"Unknown vdW version: ",a9)') version
             STOP
@@ -618,15 +630,27 @@ MODULE vdw_param
       
       CALL mpi_bcast(numTypes,1,mpi_integer,MASTER_RANK,MPI_COM,error)
       CALL mpi_bcast(functional,8,mpi_character,MASTER_RANK,MPI_COM,error)
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map(alloc:numtypes,functional)
+!$OMP target update to(numtypes,functional)
+#endif
       IF (MASTER_RANK .NE. MPI_RANK) THEN
          ALLOCATE ( vdw_pair(numTypes,numTypes) )
       END IF
-
+      
       CALL mpi_bcast(version,9,mpi_character,MASTER_RANK,MPI_COM,error)
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map(always,alloc:version)
+!$OMP target update to (version)
+#endif
       CALL mpi_bcast(vdw_funct,8,mpi_character,MASTER_RANK,MPI_COM,error)
       CALL mpi_BCAST(vdw_input,1,mpi_integer,MASTER_RANK,MPI_COM,error)
       CALL mpi_BCAST(vdw_dir,3,mpi_integer,MASTER_RANK,MPI_COM,error)
       CALL mpi_BCAST(vdw_pair,numTypes*numTypes,mpi_integer,MASTER_RANK,MPI_COM,error)
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map(alloc:vdw_pair,vdw_dir,vdw_input,vdw_funct)
+!$OMP target update to(vdw_pair,vdw_dir,vdw_input,vdw_funct)
+#endif
       IF (ERROR .NE. 0) THEN
          call vdw_error('vdw_init_data',' mpi error during bcast',error)
          return
@@ -814,6 +838,10 @@ MODULE vdw_param
          ENDIF
       ENDIF
       CALL MPI_BCAST(rcov,numTypes*8,MPI_BYTE,MASTER_RANK,MPI_COM,ERROR)
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map (alloc:rcov)
+!$OMP target update to (rcov)
+#endif
       IF (version(1:2) == 'D2') THEN
          CALL MPI_BCAST(C6_ij,numTypes*numTypes*8,MPI_BYTE,MASTER_RANK,MPI_COM,ERROR)
          CALL MPI_BCAST(R_sum,numTypes*numTypes*8,MPI_BYTE,MASTER_RANK,MPI_COM,ERROR)
@@ -821,14 +849,35 @@ MODULE vdw_param
          CALL MPI_BCAST(R0ab,numTypes*numTypes*8,MPI_BYTE,MASTER_RANK,MPI_COM,ERROR)
          CALL MPI_BCAST(r2r4,numTypes*8,MPI_BYTE,MASTER_RANK,MPI_COM,ERROR)
          CALL MPI_BCAST(nCN0,numTypes*4,MPI_BYTE,MASTER_RANK,MPI_COM,ERROR)
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map (alloc:ncn0,r2r4,r0ab)
+!$OMP target enter data map (always,alloc:ncn0)
+!$OMP target update to(ncn0,r2r4,r0ab)
+#endif
          IF (version(3:5) == 'org') THEN
             CALL MPI_BCAST(C6ab,numTypes*numTypes*mxCN0*mxCN0*3*8,MPI_BYTE,MASTER_RANK,MPI_COM,ERROR)
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map(always,alloc:c6ab)
+!$OMP target update to(c6ab)
+#endif
          ELSE
             CALL MPI_BCAST(C6a,numTypes*mxCN0*8*2,MPI_BYTE,MASTER_RANK,MPI_COM,ERROR)
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map(always,alloc:c6a)
+!$OMP target update to(c6a)
+#endif
          ENDIF
       ENDIF
       CALL MPI_BCAST(rcut2_vdw,8,MPI_BYTE,MASTER_RANK,MPI_COM,ERROR)
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map (alloc:rcut2_vdw)
+!$OMP target update to(rcut2_vdw)
+#endif
       CALL MPI_BCAST(rcut2_cn,8,MPI_BYTE,MASTER_RANK,MPI_COM,ERROR)
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map (alloc:rcut2_cn)
+!$OMP target update to(rcut2_cn)
+#endif
       IF (ERROR .NE. 0) then 
          call vdw_error('vdw_init_data', 'mpi error during bcast',error)
          return

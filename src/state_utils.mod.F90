@@ -9,6 +9,7 @@ MODULE state_utils
                                              llr1,&
                                              nzfs
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE kinds,                           ONLY: real_8
   USE part_1d,                         ONLY: part_1d_get_el_in_blk,&
                                              part_1d_nbr_el_in_blk
@@ -18,6 +19,7 @@ MODULE state_utils
 
   PRIVATE
 
+  PUBLIC :: set_to_re
   PUBLIC :: copy_to_re
   PUBLIC :: copy_re_to_re
   PUBLIC :: copy_im_to_re
@@ -33,6 +35,30 @@ MODULE state_utils
   PUBLIC :: set_psi_batch_g
 CONTAINS
 
+  ! ==================================================================
+  SUBROUTINE set_to_re(n,a,b)
+    ! ==================================================================
+    INTEGER                                    :: n
+    REAL(real_8), INTENT(IN) __CONTIGUOUS      :: a(:)
+    COMPLEX(real_8 ), INTENT(OUT) __CONTIGUOUS  :: b(:)
+
+    INTEGER                                    :: i
+    if(update_first_to_gpu.or.update_second_to_gpu.or.update_result_to_host) write(*,*) 'set_to_re'
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(A) IF(update_first_to_gpu)
+    !$omp target update to(B) IF(update_second_to_gpu)
+    !$omp target teams distribute parallel do
+#else
+    !$omp parallel do
+#endif
+    DO i=1,n
+       b(i)=CMPLX(REAL(a(i),KIND=real_8),0.0_real_8,KIND=real_8)
+    ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(b) IF(update_result_to_host)
+#endif
+  END SUBROUTINE set_to_re
+  
   ! ==================================================================
   SUBROUTINE copy_to_re(n,a,b)
     ! ==================================================================

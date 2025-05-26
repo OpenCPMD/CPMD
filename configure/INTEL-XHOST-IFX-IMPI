@@ -40,6 +40,14 @@
        FFLAGS=${FFLAGS}' -qopenmp -qmkl=parallel'
        OMP3_DISABLED='false'
        LIBS=' -qmkl=parallel -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 -qopenmp'
+       if [ $omp_offload ]; then
+	   LIBS=${LIBS}' -fopenmp-targets=spir64'
+	   FFLAGS=${FFLAGS}' -fopenmp-targets=spir64'
+	   CPPFLAGS=${CPPFLAGS}' -D__HAS_OMP_OFFLOAD'
+	   if [ $gpu_aware_mpi ]; then
+	       CPPFLAGS=${CPPFLAGS}' -D__HAS_GPU_AWARE_MPI'
+	   fi
+       fi
      else
        FFLAGS=${FFLAGS}' -qmkl=sequential'
        LIBS=' -qmkl=sequential -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64'

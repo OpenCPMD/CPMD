@@ -6,7 +6,11 @@ subroutine mp_sum_root_${NAME}(data_in,data_out,${ARG_LEN_NAME} root, comm)
 #else
   integer, intent(in) :: ${ARG_LEN_NAME} root, comm
 #endif
-  ${TYPE}${KIND}, intent(in) ${DIMENSION} :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  ${TYPE}${KIND}, intent(in) ${DIMENSION} ::  data_in
+#else
+  ${TYPE}${KIND}, intent(inout) ${DIMENSION} ::  data_in
+#endif
   ${TYPE}${KIND}, intent(inout) ${DIMENSION} :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_root_${NAME}'

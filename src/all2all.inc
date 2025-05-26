@@ -6,7 +6,11 @@ subroutine mp_all2all_int4_r1(data_in, data_out, n, comm )
 #else
   integer, intent(in) :: n, comm
 #endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
   integer(int_4), intent(in) , dimension(*) ::  data_in
+#else
+  integer(int_4), intent(inout) , dimension(*) ::  data_in
+#endif
   integer(int_4), intent(out) , dimension(*) :: data_out
   ! Variables
   integer :: ierr,nnodes
@@ -47,7 +51,11 @@ subroutine mp_all2all_int8_r1(data_in, data_out, n, comm )
 #else
   integer, intent(in) :: n, comm
 #endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
   integer(int_8), intent(in) , dimension(*) ::  data_in
+#else
+  integer(int_8), intent(inout) , dimension(*) ::  data_in
+#endif
   integer(int_8), intent(out) , dimension(*) :: data_out
   ! Variables
   integer :: ierr,nnodes
@@ -88,7 +96,11 @@ subroutine mp_all2all_real8_r1(data_in, data_out, n, comm )
 #else
   integer, intent(in) :: n, comm
 #endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
   real(real_8), intent(in) , dimension(*) ::  data_in
+#else
+  real(real_8), intent(inout) , dimension(*) ::  data_in
+#endif
   real(real_8), intent(out) , dimension(*) :: data_out
   ! Variables
   integer :: ierr,nnodes
@@ -129,7 +141,11 @@ subroutine mp_all2all_complex4_r1(data_in, data_out, n, comm )
 #else
   integer, intent(in) :: n, comm
 #endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
   complex(real_4), intent(in) , dimension(*) ::  data_in
+#else
+  complex(real_4), intent(inout) , dimension(*) ::  data_in
+#endif
   complex(real_4), intent(out) , dimension(*) :: data_out
   ! Variables
   integer :: ierr,nnodes
@@ -170,7 +186,11 @@ subroutine mp_all2all_complex8_r1(data_in, data_out, n, comm )
 #else
   integer, intent(in) :: n, comm
 #endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
   complex(real_8), intent(in) , dimension(*) ::  data_in
+#else
+  complex(real_8), intent(inout) , dimension(*) ::  data_in
+#endif
   complex(real_8), intent(out) , dimension(*) :: data_out
   ! Variables
   integer :: ierr,nnodes

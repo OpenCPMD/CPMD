@@ -5,6 +5,7 @@ MODULE rpiiint_utils
   USE eam,                             ONLY: tieam
   USE eam_pot_utils,                   ONLY: eam_pot
   USE error_handling,                  ONLY: stopgm
+  USE gpu
   USE ions,                            ONLY: ions0,&
                                              ions1
   USE kinds,                           ONLY: real_8,&

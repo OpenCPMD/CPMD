@@ -182,23 +182,10 @@ CONTAINS
     ELSE
        CALL prep_smallmem_rhov(nstates_local,ig_start,nhg_loc,na,deltar_ptr,fnl_packed)
     ENDIF
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-    update_first_to_gpu  =.TRUE.
-    update_second_to_gpu =.TRUE.
-    update_third_to_gpu  =.TRUE.
-    update_result_to_host=.TRUE.
-    comm_buffers_on_host =.TRUE.
-#endif
     IF(.NOT.do_hfx.AND..NOT.do_dipole)THEN
        IF (parai%cp_nogrp.GT.1) THEN
           CALL TISET(procedureN//'_grpsb',isub1)
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-          !$omp target update from(deltar)
-#endif         
           CALL cp_grp_redist_array(deltar(:,1),ncpw%nhg)
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-          !$omp target update to(deltar)
-#endif         
           CALL TIHALT(procedureN//'_grpsb',isub1)
        END IF
        IF(PRESENT(rsumv))THEN
@@ -229,9 +216,6 @@ CONTAINS
              psi(nzh(ig))=deltar(ig,1)
              psi(indz(ig))=CONJG(deltar(ig,1))
           ENDDO
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-          !$omp target update from(psi(:fpar%nnr1))
-#endif
        END IF
 #ifdef _USE_SCRATCHLIBRARY
        CALL free_scratch(il_deltar,deltar,procedureN//'_deltar',ierr)
@@ -243,6 +227,14 @@ CONTAINS
 
        IF(PRESENT(psi)) CALL invfftn(psi(:ncpw%nhg), .FALSE.,parai%allgrp)
     END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu  =.TRUE.
+    update_second_to_gpu =.TRUE.
+    update_third_to_gpu  =.TRUE.
+    update_result_to_host=.TRUE.
+    comm_buffers_on_host =.TRUE.
+#endif
+
     IF(do_hfx.OR.do_dipole)THEN
        DEALLOCATE(na, stat=ierr)
        IF (ierr /= 0) CALL stopgm(procedureN, 'deallocation problem)',&

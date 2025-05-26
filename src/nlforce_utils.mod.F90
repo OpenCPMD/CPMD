@@ -231,14 +231,8 @@ CONTAINS
        !$omp private(methread,grp) proc_bind(close)
        !$ methread = omp_get_thread_num()
        IF(methread.EQ.0.AND.parai%cp_nogrp.GT.1)THEN
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-          !$omp target update from(dai)
-#endif
           !get data from other cp_grp other threads build local beta and perform dgemms
           CALL my_concat_inplace(dai,INT(il_dai(1),kind=int_4)*nstate,parai%cp_inter_grp)
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-          !$omp target update to(dai)
-#endif
        END IF
        IF(methread.EQ.1.OR.nthreads.EQ.1)THEN
           !$ methread = omp_get_thread_num()

@@ -822,9 +822,6 @@ CONTAINS
        ! FOR BROKEN SYMMETRY STATE
        bsclcs=1
        IF (cntl%bsymm)CALL setbsstate
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-       !$omp target update from(C0(:,:,1))
-#endif
        CALL forcedr(c0(:,:,1),c2(:,:,1),sc0(:,:,1),rhoe,psi,taup,fion,eigv,&
             nstate,1,.FALSE.,.TRUE.,.FALSE.)
        IF (cntl%bsymm) THEN

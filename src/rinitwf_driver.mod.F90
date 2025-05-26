@@ -80,11 +80,17 @@ CONTAINS
        qmmm_s=lqmmm%qmmm
        lqmmm%qmmm=.FALSE.
        CALL randwf(c0,c2,sc0,nstate,tau0,fion,rhoe,psi)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(C0)
+#endif
        lqmmm%qmmm=qmmm_s
     ELSEIF (cnti%inwfun.EQ.2) THEN
        CALL atomwf(c0,nstate,tau0,fion,rhoe,psi)
     ELSEIF (cnti%inwfun.EQ.3) THEN
        CALL simplewf(c0,c2,nstate,tau0)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(C0)
+#endif
     ELSE
        IF (paral%io_parent) WRITE(6,*) ' RINITWF| UNKNOWN OPTION'
        CALL stopgm('RINITWF',' ',& 

@@ -513,7 +513,11 @@ CONTAINS
     REAL(real_8), DIMENSION(2)               :: pf = (/1._real_8,-1._real_8/)
 
     IF (HAS_LOW_LEVEL_TIMERS) CALL tiset('     PHASE',isub)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do collapse(3) &
+#else
     !$omp parallel do default(none) __COLLAPSE2 &
+#endif
     !$omp             private(K,J,I,II,IJK) &
     !$omp             shared(F,PF,NR3S,NR2S,N1U,N1O)
     DO k=1,nr3s

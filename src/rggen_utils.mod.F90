@@ -159,6 +159,9 @@ CONTAINS
     ALLOCATE(indz(ncpw%nhg),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:nzh,indz)
+#endif
     DO ig=1,ncpw%nhg
        indy1=inyh(1,ig)
        indy2=inyh(2,ig)
@@ -169,6 +172,9 @@ CONTAINS
        indy3=-indy3+nh3*2
        indz(ig) = indy1 + (indy2-1)*fpar%kr1s + (indy3-1)*fpar%kr1s*fpar%kr2s
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(nzh,indz)
+#endif
     ! Number of Shells
     ncpw%nhgl=1
     hgold=hg(1)

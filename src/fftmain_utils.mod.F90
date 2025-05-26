@@ -35,6 +35,7 @@ MODULE fftmain_utils
                                              fftcu_inv_full_2,&
                                              fftcu_inv_sprs_1,&
                                              fftcu_inv_sprs_2
+  use gpu
   USE fftutil_utils,                   ONLY: fft_comm,&
                                              getz,&
                                              pack_x2y,&
@@ -111,6 +112,12 @@ CONTAINS
     INTEGER                                  :: lda, m, mm, n1o, n1u, ierr,isub
     INTEGER(int_8)                           :: il_xf(2)
     REAL(real_8)                             :: scale
+    LOGICAL                                  :: on_entry_update_first_to_gpu,&
+                                                on_entry_update_second_to_gpu,&
+                                                on_entry_update_result_to_host,&
+                                                on_entry_comm_buffers_on_host
+
+    
     IF (HAS_LOW_LEVEL_TIMERS) CALL tiset(procedureN//'get_scratch',isub)
 #ifdef _USE_SCRATCHLIBRARY
     il_xf(1)=maxfft
@@ -126,6 +133,18 @@ CONTAINS
     IF (HAS_LOW_LEVEL_TIMERS) CALL tiset(procedureN,isub)
     xf_ptr => xf(:,1)
     yf_ptr => yf(:,1)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    on_entry_update_first_to_gpu=update_first_to_gpu
+    on_entry_update_second_to_gpu=update_second_to_gpu
+    on_entry_update_result_to_host=update_result_to_host
+    on_entry_comm_buffers_on_host=comm_buffers_on_host
+    !$omp target update to(f) IF(update_first_to_gpu)
+    !$omp target enter data map(alloc:xf_ptr,yf_ptr,f)
+    update_first_to_gpu=.FALSE.
+    update_second_to_gpu=.FALSE.
+    update_result_to_host=.FALSE.
+    comm_buffers_on_host=.FALSE.
+#endif
 
     LDA=HUGE(0);MM=HUGE(0);N1U=HUGE(0);N1O=HUGE(0);M=HUGE(0)
     scale=HUGE(0.0_real_8)
@@ -136,13 +155,14 @@ CONTAINS
           CALL mltfft('N','T',f,qr1s,m,xf_ptr,m,qr1s,lr1s,m,isign,scale )
           lda=lsrm*lr1m
           mm=qr2s*(qr3max-qr3min+1)
-          CALL pack_x2y(xf_ptr,yf_ptr,msrays,lda,lrxpl,sp5,maxfftn,parai%nproc,cntl%tr4a2a)
+          CALL pack_x2y_n(xf_ptr,yf_ptr,msrays,lda,lrxpl,sp5,maxfftn,parai%nproc,cntl%tr4a2a,1)
           CALL fft_comm(yf_ptr,xf_ptr,lda,cntl%tr4a2a,comm)
-          CALL unpack_x2y(xf_ptr,yf_ptr,mm,lr1,lda,msqs,lmsq,sp9,maxfftn,parai%nproc,cntl%tr4a2a)
+          CALL unpack_x2y_n(xf_ptr,yf_ptr,mm,lr1,lda,msqs,lmsq,sp9,maxfftn,parai%nproc,cntl%tr4a2a,&
+               1,maxfftn)
           m=(qr3max-qr3min+1)*qr1
           CALL mltfft('N','T',yf_ptr,qr2s,m,xf_ptr,m,qr2s,lr2s,m,isign,scale )
           m=qr1*qr2s
-          CALL putz(xf_ptr,yf_ptr,qr3min,qr3max,qr3s,m)
+          CALL putz_n(xf_ptr,yf_ptr,qr3min,qr3max,qr3s,qr1,qr2s,1)
           CALL mltfft('N','T',yf_ptr,qr3s,m,f,m,qr3s,lr3s,m,isign,scale )
        ELSE
           m=mfrays
@@ -166,14 +186,14 @@ CONTAINS
           scale=1._real_8
           m=qr1*qr2s
           CALL mltfft('T','N',f,m,qr3s,xf_ptr,qr3s,m,lr3s,m,isign,scale )
-          CALL getz(xf_ptr,f,qr3min,qr3max,qr3s,m)
+          CALL getz_n(xf_ptr,f,qr3min,qr3max,qr3s,qr1,qr2s,1)
           m=(qr3max-qr3min+1)*qr1
           CALL mltfft('T','N',f,m,qr2s,yf_ptr,qr2s,m,lr2s,m,isign,scale )
           lda=lsrm*lr1m
           mm=qr2s*(qr3max-qr3min+1)
-          CALL pack_y2x(xf_ptr,yf_ptr,mm,lr1,lda,msqs,lmsq,sp9,maxfftn,parai%nproc,cntl%tr4a2a)
+          CALL pack_y2x_n(xf_ptr,yf_ptr,mm,lr1,lda,msqs,lmsq,sp9,maxfftn,parai%nproc,cntl%tr4a2a,1,maxfftn)
           CALL fft_comm(xf_ptr,yf_ptr,lda,cntl%tr4a2a,comm)
-          CALL unpack_y2x(xf_ptr,yf_ptr,mm,msrays,lda,lrxpl,sp5,maxfftn,parai%nproc,cntl%tr4a2a)
+          CALL unpack_y2x_n(xf_ptr,yf_ptr,mm,msrays,lda,lrxpl,sp5,maxfftn,parai%nproc,cntl%tr4a2a,1)
           scale=1._real_8/REAL(lr1s*lr2s*lr3s,kind=real_8)
           m=msrays
           CALL mltfft('T','N',xf_ptr,m,qr1s,f,qr1s,m,lr1s,m,isign,scale )
@@ -199,6 +219,14 @@ CONTAINS
           CALL mltfft('T','N',xf_ptr,m,qr1s,f,qr1s,m,lr1s,m,isign,scale )
        ENDIF
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu=on_entry_update_first_to_gpu
+    update_second_to_gpu=on_entry_update_second_to_gpu
+    update_result_to_host=on_entry_update_result_to_host
+    comm_buffers_on_host=on_entry_comm_buffers_on_host
+    !$omp target update from(f) IF(update_result_to_host)
+    !$omp target exit data map(release:xf_ptr,yf_ptr,f)
+#endif
     IF (HAS_LOW_LEVEL_TIMERS) CALL tihalt(procedureN,isub)
     IF (HAS_LOW_LEVEL_TIMERS) CALL tiset(procedureN//'release_scratch',isub)
 #ifdef _USE_SCRATCHLIBRARY

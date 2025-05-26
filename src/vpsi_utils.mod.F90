@@ -1209,11 +1209,10 @@ CONTAINS
 
     methread=0
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp target update to(vpot)
-#endif
     comm_buffers_on_host=.FALSE.
     update_first_to_gpu=.FALSE.
     update_result_to_host=.FALSE.
+#endif
 
     IF(.NOT.rsactive) wfn_r1=>wfn_r(:,1)
     IF(cntl%fft_tune_batchsize) temp_time=m_walltime()
@@ -1420,13 +1419,7 @@ CONTAINS
     !$OMP barrier
 
     !$omp end parallel
-    comm_buffers_on_host=.TRUE.
-    update_first_to_gpu=.TRUE.
-    update_result_to_host=.TRUE.
 
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp target update from(c2)
-#endif
     IF(cntl%fft_tune_batchsize) fft_time_total(fft_tune_num_it)=fft_time_total(fft_tune_num_it)+m_walltime()-temp_time
 
     DO i=1,2
@@ -1491,6 +1484,11 @@ CONTAINS
        CALL cp_grp_redist_array(C2,nkpt%ngwk,nstate)
        CALL tihalt(procedureN//'_grps_b',isub3)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    comm_buffers_on_host=.TRUE.
+    update_first_to_gpu=.TRUE.
+    update_result_to_host=.TRUE.
+#endif
 
     !free wfn_g,and wfn_r
 #ifdef _USE_SCRATCHLIBRARY

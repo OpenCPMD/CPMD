@@ -6,6 +6,7 @@ MODULE odiis_utils
   USE elct,                            ONLY: crge
   USE ener,                            ONLY: ener_com
   USE error_handling,                  ONLY: stopgm
+  USE gpu
   USE kinds,                           ONLY: int_1,&
                                              int_2,&
                                              int_4,&
@@ -133,8 +134,16 @@ CONTAINS
     CALL tiset(proceduren//'_grps_b',isub3)
     ! we need to zero the C0 that we can do the reduce
     ! we reduce so that we get back the cp_grp distribution of C0
-    CALL cp_grp_zero_g(c0,ncpw%ngw,nstate,ibeg_c0,iend_c0)
-    CALL cp_grp_redist(c0,ncpw%ngw,nstate)
+    IF(.NOT.cntl%nonort)THEN
+       CALL cp_grp_zero_g(c0,ncpw%ngw,nstate,ibeg_c0,iend_c0)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       comm_buffers_on_host=.FALSE.
+#endif
+       CALL cp_grp_redist(c0,ncpw%ngw,nstate)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       comm_buffers_on_host=.TRUE.
+#endif
+    END IF
     CALL tihalt(proceduren//'_grps_b',isub3)
     ! <<<<<<<
 

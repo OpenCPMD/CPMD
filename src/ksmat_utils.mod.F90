@@ -144,23 +144,8 @@ CONTAINS
              CALL dcopy(ions1%nat*maxsys%nhxs*natst,fnl_save(1,1,ist),1,fnl,1)
           END IF
           CALL zeroing(c2(:,1:natst))!,nkpt%ngwk*natst)
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-          update_first_to_gpu  =.TRUE.
-          update_second_to_gpu =.TRUE.
-          update_third_to_gpu  =.TRUE.
-          update_result_to_host=.TRUE.
-#endif
           CALL vpsi(catom(:,ist:ist+natst-1),c2,foc,vpot,psi,natst,ikind,1,.TRUE.)
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-          update_first_to_gpu  =.FALSE.
-          update_second_to_gpu =.FALSE.
-          update_third_to_gpu  =.FALSE.
-          update_result_to_host=.FALSE.
-#endif
           IF(pslo_com%tivan)THEN
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-             !$omp target update to(c2)
-#endif
              CALL ovlap(natst,gam,c2,catom(:,ist:ist+natst-1),redist=.FALSE.,full=.FALSE.)
              CALL hnlmat(gam,foc,natst)
 #if defined(_HAS_OMP_TARGET_OFFLOAD)

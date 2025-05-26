@@ -8,6 +8,7 @@ MODULE vofrhoa_utils
   USE ener,                            ONLY: ener_com
   USE error_handling,                  ONLY: stopgm
   USE fftmain_utils,                   ONLY: fwfftn
+  USE gpu
   USE htrstr_utils,                    ONLY: htrstr
   USE kinds,                           ONLY: real_8,&
                                              int_8
@@ -17,7 +18,7 @@ MODULE vofrhoa_utils
   USE potfor_utils,                    ONLY: potfor
   USE ppener_utils,                    ONLY: ppener
   USE simulmod,                        ONLY: vploc
-  USE state_utils,                     ONLY: copy_to_re
+  USE state_utils,                     ONLY: set_to_re
   USE system,                          ONLY: cntl,&
                                              fpar,&
                                              ncpw,&
@@ -96,8 +97,15 @@ CONTAINS
 #endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu=.false.
+    update_second_to_gpu=.false.
+    update_third_to_gpu=.false.
+    update_result_to_host=.false.
+    comm_buffers_on_host=.false.
+#endif
     nnrs  = spar%nr1s*spar%nr2s*spar%nr3s
-    CALL eicalc(eivps,eirop)
+    CALL eicalc(eivps,eirop,update_to_host=.FALSE.)
     ! ..External Field or forces of external potential
     ener_com%eext=0._real_8
     ! EHR[
@@ -107,12 +115,7 @@ CONTAINS
        CALL mp_sum(ener_com%eext,parai%allgrp)
     ENDIF
     ! TRANSFORM THE DENSITY TO G SPACE
-    CALL zeroing( v )
-    CALL copy_to_re ( fpar%nnr1 ,rhoe , v )
-!!$omp parallel do private(IR)
-    !DO ir=1,fpar%nnr1
-    !   v(ir)=CMPLX(rhoe(ir),0._real_8,kind=real_8)
-    !ENDDO
+    CALL set_to_re ( fpar%nnr1, rhoe, v )
     CALL  fwfftn(v,.FALSE.,parai%allgrp)
     ! ==--------------------------------------------------------------==
     ! ==                       PERIODIC SYSTEMS                       ==
@@ -121,6 +124,14 @@ CONTAINS
     IF (tfor) CALL potfor(fion,v,eirop)
     ! COMPUTE ELECTROSTATIC AND PSEUDOPOTENTIAL ENERGIES.
     CALL ppener(eh,ei,ee,eps,v(:),vtemp,eivps,eirop)
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu=.true.
+    update_second_to_gpu=.true.
+    update_third_to_gpu=.true.
+    update_result_to_host=.true.
+    comm_buffers_on_host=.true.
+#endif
     ! Hartree term for all charges
     ener_com%ehep = REAL(eh)*parm%omega
     ! Ion-Ion interaction (T.D. add VPLOC)

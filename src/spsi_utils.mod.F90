@@ -137,7 +137,7 @@ CONTAINS
 #endif
        IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate eiscr',&
             __LINE__,__FILE__)
-#if defined(_HAS_OMP_TARGET_OFFLOAD1)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
        !$omp target teams distribute  &
 #else
        !$omp parallel do &
@@ -167,9 +167,9 @@ CONTAINS
              isa0=isa0+ions0%na(is)
           END DO
        END DO
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-       !$omp target update from(dai)
-#endif
+!#if defined(_HAS_OMP_TARGET_OFFLOAD)
+!       !$omp target update from(dai)
+!#endif
        IF(cntl%overlapp_comm_comp)THEN
           nthreads=MIN(2,parai%ncpus)
           nested_threads=(MAX(parai%ncpus-1,1))
@@ -209,7 +209,7 @@ CONTAINS
           CALL build_beta(na_grp(:,:,grp),eigr,eiscr,ncpw%ngw,ibeg,&
                ngw_local,twnl_nghtol=twnl_nghtol(:,:,:,1))
           IF(ld_grp(grp).GT.0)THEN
-             CALL DGEMM('N','N',2*ngw_local,nstate,ld_grp(grp)&
+             CALL CPMD_DGEMM('N','N',2*ngw_local,nstate,ld_grp(grp)&
                   ,1._real_8,eiscr(1,1),2*ngw_local&
                   ,dai(1,1,grp+1),INT(il_dai(1),kind=int_4),1.0_real_8,sc0(ibeg,1),2*ncpw%ngw)
           END IF
@@ -231,7 +231,7 @@ CONTAINS
              CALL build_beta(na_grp(:,:,grp),eigr,eiscr,ncpw%ngw,ibeg,&
                   ngw_local,twnl_nghtol=twnl_nghtol(:,:,:,1))
              IF(ld_grp(grp).GT.0)THEN
-                CALL DGEMM('N','N',2*ngw_local,nstate,ld_grp(grp)&
+                CALL CPMD_DGEMM('N','N',2*ngw_local,nstate,ld_grp(grp)&
                      ,1._real_8,eiscr(1,1),2*ngw_local&
                      ,dai(1,1,grp+1),INT(il_dai(1),kind=int_4),1.0_real_8,sc0(ibeg,1),2*ncpw%ngw)
              END IF
@@ -271,25 +271,23 @@ CONTAINS
     REAL(real_8),INTENT(IN)                  :: fnl_p(ia_fnl,ngh,*),&
                                                 qq_(maxngh,*)
     REAL(real_8),INTENT(OUT)                 :: mat(ia_sum,ngh,*)
-    INTEGER                                  :: iv,ia,jv
-
+    INTEGER                                  :: iv,ia,jv,isa
+    real(real_8) :: fac1
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp parallel do private(iv,ia,jv)
+    !$omp parallel do private(iv,ia,jv,isa,fac1)
 #endif
     DO iv=1,ngh
        DO ia=1,ia_sum
           mat(ia,iv,1)=0.0_real_8
        END DO
-    END DO
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp parallel do private(iv,ia,jv)
-#endif
-    DO iv=1,ngh
        DO jv=1,ngh
-          IF (ABS(qq_(jv,iv)).GT.1.e-5_real_8) THEN
+          isa=fnl_start
+          fac1=qq_(jv,iv)
+          IF (ABS(fac1).GT.1.e-5_real_8) THEN
              DO ia=1,ia_sum
+                isa=isa+1
                 mat(ia,iv,1)=mat(ia,iv,1)&
-                     +qq_(jv,iv)*fnl_p(ia+fnl_start,jv,1)
+                     +qq_(jv,iv)*fnl_p(isa,jv,1)
              END DO
           END IF
        END DO

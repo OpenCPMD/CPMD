@@ -36,7 +36,7 @@
      RANLIB='/usr/bin/ranlib'
      if [ $debug ]; then
        FFLAGS='-pc64 -g -traceback -check all -O0 -pc64 -align array64byte -falign-loops=32 \
-       -falign-functions=32 -fp-model=strict -fimf-use-svml=false -fp-model=source -fiopenmp -fopenmp-targets=spir64'
+       -falign-functions=32 -fp-model=strict -fimf-use-svml=false -fp-model=source'
        CFLAGS='-g -Wall -m64 -Wno-error=int-conversion'
      else
        FFLAGS='-O2 -traceback -g -pc64 -funroll-loops -assume byterecl -align array64byte \

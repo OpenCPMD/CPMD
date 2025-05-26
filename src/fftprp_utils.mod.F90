@@ -318,7 +318,7 @@ CONTAINS
             __LINE__,__FILE__)
     ENDIF
 #if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp target update to (nzhs,indzs,msp)
+    !$omp target update to (nzhs,indzs,msp,nzh,indz)
 #endif
     ! ARRAY SIZE TO DO A 3D-FFT
     maxfft = MAX(kr1m*fpar%kr2s*fpar%kr3s,parai%nproc*nr1m*nhrm)

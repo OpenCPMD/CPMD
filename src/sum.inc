@@ -6,7 +6,11 @@ subroutine mp_sum_int4_r1(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  integer(int_4), intent(in), dimension(*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  integer(int_4), intent(in), dimension(*) ::  data_in
+#else
+  integer(int_4), intent(inout), dimension(*) ::  data_in
+#endif
   integer(int_4), intent(inout), dimension(*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_int4_r1'
@@ -47,7 +51,11 @@ subroutine mp_sum_int4_r2(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  integer(int_4), intent(in), dimension(1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  integer(int_4), intent(in), dimension(1,*) ::  data_in
+#else
+  integer(int_4), intent(inout), dimension(1,*) ::  data_in
+#endif
   integer(int_4), intent(inout), dimension(1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_int4_r2'
@@ -88,7 +96,11 @@ subroutine mp_sum_int4_r3(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  integer(int_4), intent(in), dimension(1,1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  integer(int_4), intent(in), dimension(1,1,*) ::  data_in
+#else
+  integer(int_4), intent(inout), dimension(1,1,*) ::  data_in
+#endif
   integer(int_4), intent(inout), dimension(1,1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_int4_r3'
@@ -129,7 +141,11 @@ subroutine mp_sum_int4_r4(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  integer(int_4), intent(in), dimension(1,1,1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  integer(int_4), intent(in), dimension(1,1,1,*) ::  data_in
+#else
+  integer(int_4), intent(inout), dimension(1,1,1,*) ::  data_in
+#endif
   integer(int_4), intent(inout), dimension(1,1,1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_int4_r4'
@@ -170,7 +186,11 @@ subroutine mp_sum_real8_r1(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  real(real_8), intent(in), dimension(*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  real(real_8), intent(in), dimension(*) ::  data_in
+#else
+  real(real_8), intent(inout), dimension(*) ::  data_in
+#endif
   real(real_8), intent(inout), dimension(*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_real8_r1'
@@ -211,7 +231,11 @@ subroutine mp_sum_real8_r2(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  real(real_8), intent(in), dimension(1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  real(real_8), intent(in), dimension(1,*) ::  data_in
+#else
+  real(real_8), intent(inout), dimension(1,*) ::  data_in
+#endif
   real(real_8), intent(inout), dimension(1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_real8_r2'
@@ -252,7 +276,11 @@ subroutine mp_sum_real8_r3(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  real(real_8), intent(in), dimension(1,1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  real(real_8), intent(in), dimension(1,1,*) ::  data_in
+#else
+  real(real_8), intent(inout), dimension(1,1,*) ::  data_in
+#endif
   real(real_8), intent(inout), dimension(1,1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_real8_r3'
@@ -293,7 +321,11 @@ subroutine mp_sum_real8_r4(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  real(real_8), intent(in), dimension(1,1,1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  real(real_8), intent(in), dimension(1,1,1,*) ::  data_in
+#else
+  real(real_8), intent(inout), dimension(1,1,1,*) ::  data_in
+#endif
   real(real_8), intent(inout), dimension(1,1,1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_real8_r4'
@@ -334,7 +366,11 @@ subroutine mp_sum_real4_r1(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  real(real_4), intent(in), dimension(*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  real(real_4), intent(in), dimension(*) ::  data_in
+#else
+  real(real_4), intent(inout), dimension(*) ::  data_in
+#endif
   real(real_4), intent(inout), dimension(*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_real4_r1'
@@ -375,7 +411,11 @@ subroutine mp_sum_real4_r2(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  real(real_4), intent(in), dimension(1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  real(real_4), intent(in), dimension(1,*) ::  data_in
+#else
+  real(real_4), intent(inout), dimension(1,*) ::  data_in
+#endif
   real(real_4), intent(inout), dimension(1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_real4_r2'
@@ -416,7 +456,11 @@ subroutine mp_sum_real4_r3(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  real(real_4), intent(in), dimension(1,1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  real(real_4), intent(in), dimension(1,1,*) ::  data_in
+#else
+  real(real_4), intent(inout), dimension(1,1,*) ::  data_in
+#endif
   real(real_4), intent(inout), dimension(1,1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_real4_r3'
@@ -457,7 +501,11 @@ subroutine mp_sum_real4_r4(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  real(real_4), intent(in), dimension(1,1,1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  real(real_4), intent(in), dimension(1,1,1,*) ::  data_in
+#else
+  real(real_4), intent(inout), dimension(1,1,1,*) ::  data_in
+#endif
   real(real_4), intent(inout), dimension(1,1,1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_real4_r4'
@@ -498,7 +546,11 @@ subroutine mp_sum_complex8_r1(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  complex(real_8), intent(in), dimension(*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  complex(real_8), intent(in), dimension(*) ::  data_in
+#else
+  complex(real_8), intent(inout), dimension(*) ::  data_in
+#endif
   complex(real_8), intent(inout), dimension(*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_complex8_r1'
@@ -539,7 +591,11 @@ subroutine mp_sum_complex8_r2(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  complex(real_8), intent(in), dimension(1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  complex(real_8), intent(in), dimension(1,*) ::  data_in
+#else
+  complex(real_8), intent(inout), dimension(1,*) ::  data_in
+#endif
   complex(real_8), intent(inout), dimension(1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_complex8_r2'
@@ -580,7 +636,11 @@ subroutine mp_sum_complex8_r3(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  complex(real_8), intent(in), dimension(1,1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  complex(real_8), intent(in), dimension(1,1,*) ::  data_in
+#else
+  complex(real_8), intent(inout), dimension(1,1,*) ::  data_in
+#endif
   complex(real_8), intent(inout), dimension(1,1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_complex8_r3'
@@ -621,7 +681,11 @@ subroutine mp_sum_complex8_r4(data_in,data_out,n, comm)
 #else
   integer, intent(in) :: n, comm
 #endif
-  complex(real_8), intent(in), dimension(1,1,1,*) :: data_in
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  complex(real_8), intent(in), dimension(1,1,1,*) ::  data_in
+#else
+  complex(real_8), intent(inout), dimension(1,1,1,*) ::  data_in
+#endif
   complex(real_8), intent(inout), dimension(1,1,1,*) :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_sum_complex8_r4'

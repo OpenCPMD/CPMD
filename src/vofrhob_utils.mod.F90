@@ -15,6 +15,7 @@ MODULE vofrhob_utils
   USE ener,                            ONLY: ener_com
   USE error_handling,                  ONLY: stopgm
   USE extpotmod,                       ONLY: extpot
+  USE gpu
   USE fft_maxfft,                      ONLY: maxfftn
   USE fftmain_utils,                   ONLY: fwfftn,&
                                              invfftn
@@ -193,20 +194,51 @@ CONTAINS
     ! ==-------------------------------------------------------------==
     ! == VTEMP (Potential in G-Space) -FFT-> V(R)                     ==
     ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu=.false.
+    update_second_to_gpu=.false.
+    update_third_to_gpu=.false.
+    update_result_to_host=.false.
+    comm_buffers_on_host=.false.
+    !$omp target teams distribute parallel do private(ig)
+    DO ig=1,fpar%nnr1
+       v(ig,1)=CMPLX(0.0_real_8,0.0_real_8)
+    END DO
+#else
     CALL zeroing(v)
+#endif
 #ifdef __NEC
     !CDIR NODEP
 #endif
 #if defined(_vpp_) || defined(__PRIMERGY) || defined(__PRIMEHPC)
     !ocl novrec(v)
 #endif
-    !$omp parallel do private(IG)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(IG)
     DO ig=1,ncpw%nhg
        v(indz(ig),1) = CONJG(vtemp(ig,1))
        v(nzh(ig),1)  = vtemp(ig,1)
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target
+#endif
     IF (geq0) v(nzh(1),1) = vtemp(1,1)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp end target
+#endif
     CALL invfftn(v(:,1),.FALSE.,parai%allgrp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu=.true.
+    update_second_to_gpu=.true.
+    update_third_to_gpu=.true.
+    update_result_to_host=.true.
+    comm_buffers_on_host=.true.
+#endif
+
     ! ==--------------------------------------------------------------==
     ! == ADD EXTERNAL POTENTIAL TO V                                  ==
     ! ==--------------------------------------------------------------==
@@ -249,11 +281,17 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! == COMPUTE EXCHANGE AND CORRELATION ENERGY (EXC)                ==
     ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(rhoe,v)
+#endif
     IF (corel%tinlc) THEN
        CALL xcener(sxc,ener_com%vxc,rhoval,rhoe,v)
     ELSE
        CALL xcener(sxc,ener_com%vxc,rhoe,rhoe,v)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(v)
+#endif
     sgcx = 0.0_real_8
     sgcc = 0.0_real_8
     vgc  = 0.0_real_8
@@ -289,9 +327,24 @@ CONTAINS
           END IF
        ELSE
           IF (tstress.OR.cntl%tdiag) CALL dcopy(2*fpar%nnr1,v(1,1),1,dqg,1)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu=.false.
+          update_second_to_gpu=.false.
+          update_third_to_gpu=.false.
+          update_result_to_host=.false.
+          comm_buffers_on_host=.false.
+#endif
           CALL fwfftn(v(:,1),.FALSE.,parai%allgrp)
           CALL zgthr(ncpw%nhg,v,vtemp,nzh)
           CALL graden(rhoe,v,grad,vtmp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update from(v,vtmp,grad)
+          update_first_to_gpu=.true.
+          update_second_to_gpu=.true.
+          update_third_to_gpu=.true.
+          update_result_to_host=.true.
+          comm_buffers_on_host=.true.
+#endif
           !
           IF(HFX_SCDM_STATUS)THEN
             rho_scdm(:,1) = rhoe(:,1)
@@ -467,11 +520,12 @@ CONTAINS
     ! == V CONTAINS THE TOTAL POTENTIAL IN R-SPACE                    ==
     ! == MOVE IT TO RHOE                                              ==
     ! ==--------------------------------------------------------------==
-#if defined (__VECTOR)
-    !$omp parallel do private(IR)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
 #else
-    !$omp parallel do private(IR) schedule(static)
+    !$omp parallel do &
 #endif
+    !$omp& private(IR)
     DO ir=1,fpar%nnr1
        rhoe(ir,1)=REAL(v(ir,1))
     ENDDO
@@ -498,8 +552,22 @@ CONTAINS
        ! == TRANSF. TOTAL POTENTIAL IN G-SPACE                           ==
        ! == PUT THE TOTAL POTENTIAL IN G-SPACE INTO VTEMP                ==
        ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       update_first_to_gpu=.false.
+       update_second_to_gpu=.false.
+       update_third_to_gpu=.false.
+       update_result_to_host=.false.
+       comm_buffers_on_host=.false.
+#endif
        CALL fwfftn(v(:,1),.FALSE.,parai%allgrp)
        CALL zgthr(ncpw%nhg,v,vtemp,nzh)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       update_first_to_gpu=.true.
+       update_second_to_gpu=.true.
+       update_third_to_gpu=.true.
+       update_result_to_host=.true.
+       comm_buffers_on_host=.true.
+#endif
        IF (cntl%tlsd) THEN
           CALL fwfftn(v(:,2),.FALSE.,parai%allgrp)
           CALL zgthr(ncpw%nhg,v(:,2),vtemp(:,2),nzh)

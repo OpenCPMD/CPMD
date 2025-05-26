@@ -936,9 +936,11 @@ CONTAINS
     IF(.NOT.rsactive) wfn_r1=>wfn_r(:,1)
     IF(cntl%fft_tune_batchsize) temp_time=m_walltime()
     methread=0
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
     comm_buffers_on_host=.FALSE.
     update_first_to_gpu=.FALSE.
     update_result_to_host=.FALSE.
+#endif
     !$ locks_inv=.TRUE.
     !$OMP parallel IF(nthreads.EQ.2) num_threads(nthreads) &
     !$omp private(methread,ibatch,bsize,offset_state,swap,count,is1,is2) &
@@ -1096,12 +1098,6 @@ CONTAINS
     !$ END IF
 
     !$omp end parallel
-    comm_buffers_on_host=.TRUE.
-    update_first_to_gpu=.TRUE.
-    update_result_to_host=.TRUE.
-#if defined(_HAS_OMP_TARGET_OFFLOAD)
-    !$omp target update from(rhoe_p)
-#endif
     IF(cntl%fft_tune_batchsize) fft_time_total(fft_tune_num_it)=m_walltime()-temp_time
     !$ DEALLOCATE(locks_inv,STAT=ierr)
     !$ IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
@@ -1145,6 +1141,11 @@ CONTAINS
        CALL cp_grp_redist(rhoe,fpar%nnr1,clsd%nlsd)
        CALL tihalt(procedureN//'_grps_b',isub3)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    comm_buffers_on_host=.TRUE.
+    update_first_to_gpu=.TRUE.
+    update_result_to_host=.TRUE.
+#endif
 
 
     ! MOVE DENSITY ACCORDING TO MOVEMENT OF ATOMS
@@ -1175,7 +1176,12 @@ CONTAINS
           nstates(2,1)=nstate
           CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
           rsum=rsum+parm%omega*rsumv
-          !$omp parallel do private(I)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do &
+#else
+          !$omp parallel do &
+#endif
+          !$omp& private(I)
           DO i=1,fpar%nnr1
              rhoe(i,1)=rhoe(i,1)+REAL(psi(i))
           ENDDO
@@ -1250,8 +1256,12 @@ CONTAINS
     ! RSUM1=DASUM(NNR1,RHOE(1,1),1)
     ! --> with VDB PP RHOE might be negative in some points
     rsum1=0._real_8
-    !$omp parallel do private(I) shared(fpar,RHOE) &
-    !$omp  reduction(+:RSUM1)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp&  private(I) shared(fpar,RHOE) reduction(+:RSUM1)
     DO i=1,fpar%nnr1
        rsum1=rsum1+rhoe(i,1)
     ENDDO
@@ -1268,6 +1278,7 @@ CONTAINS
     chrg%csumr    = temp(2)
     chrg%csums    = temp(3)
     chrg%csumsabs = temp(4)
+    
     IF (paral%parent.AND.ABS(chrg%csumr-chrg%csumg).GT.delta) THEN
        IF (paral%io_parent)&
             WRITE(6,'(A,T46,F20.12)') ' IN FOURIER SPACE:', chrg%csumg

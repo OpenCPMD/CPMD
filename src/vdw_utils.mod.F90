@@ -10,6 +10,7 @@ MODULE vdw_utils
                                              fileopen
   USE fileopenmod,                     ONLY: fo_def,&
                                              fo_old
+  USE gpu
   USE gvec,                            ONLY: gvec_com
   USE ions,                            ONLY: ions0,&
                                              ions1
@@ -71,9 +72,9 @@ CONTAINS
 
 ! ==--------------------------------------------------------------==
      ! switch between the GRIMME lib and the old cpmd implementation
-      IF(vdwl%grimme) THEN
+    IF(vdwl%grimme) THEN
        CALL vdw_grimme(tau0,evdw,fion,devdw)
-      ELSE
+    ELSE
          CALL vdw_cpmd(tau0,nvdw,idvdw,ivdw,jvdw,vdwst,vdwrm,vdwbe,&
                        VDWEPS,S6GRIM,NXVDW,NYVDW,NZVDW,EVDW,FION,DEVDW)
       ENDIF
@@ -104,7 +105,6 @@ CONTAINS
        coorat=0._real_8
        forces_d3=0._real_8
     END IF
-
     ALAT_DUMMY=1.d0
     AVEC(1:3,1)=parm%A1(1:3)
     AVEC(1:3,2)=parm%A2(1:3)
@@ -151,7 +151,7 @@ CONTAINS
     ELSE
        EVDW=EVDW_save
     END IF
-!
+    !
 !  Convert Rydberg to Hartree units:
 !
     IF (paral%parent) THEN
@@ -159,7 +159,8 @@ CONTAINS
     ELSE
        EVDW=0.0D0
     END IF
-!  Add FORCES_D3 to FION
+
+    !  Add FORCES_D3 to FION
     !$OMP parallel do private(isa,ia,is)
     DO ISA=1, ions1%NAT
        IA=IATPT(1,ISA)

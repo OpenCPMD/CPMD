@@ -802,11 +802,19 @@ CONTAINS
     INTEGER                                  :: ind(n)
 
     INTEGER                                  :: i
-
-    !$omp parallel do private(I)
+    if(update_first_to_gpu.or.update_second_to_gpu.or.update_result_to_host) write(*,*) 'zgthr'
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(a(1:maxval(ind))) IF(update_first_to_gpu)
+    !$omp target update to(b) IF(update_second_to_gpu)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp&private(I)
     DO i=1,n
        b(i)=a(ind(i))
     ENDDO
+    !$omp target update from(b) IF(update_result_to_host)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE zgthr
@@ -1253,7 +1261,10 @@ CONTAINS
     ALLOCATE(debug(3,maxsys%nax,maxsys%nsx), stat=ierr)
     IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dbg_forces',& 
          __LINE__,__FILE__)
+    !$omp target enter data map(alloc:debug,array) if(.not.comm_buffers_on_host)
+    !$omp target update to(array) if(.not.comm_buffers_on_host)
     CALL mp_sum(array,debug,3*maxsys%nax*maxsys%nsx,parai%allgrp)
+    !$omp target update from(debug) if(.NOT.comm_buffers_on_host)
     IF (paral%io_parent) THEN
        WRITE(6,*) "===================================="
        WRITE(6,*) TRIM(ADJUSTL(name))
@@ -1263,6 +1274,8 @@ CONTAINS
           END DO
        END DO
     END IF
+    !$omp target exit data map(delete:debug) if(.not.comm_buffers_on_host)
+    !$omp target exit data map(release:array) if(.not.comm_buffers_on_host)
     DEALLOCATE(debug,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)

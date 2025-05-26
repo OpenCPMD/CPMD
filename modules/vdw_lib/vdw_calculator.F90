@@ -142,15 +142,36 @@ SUBROUTINE vdw_forces(alat, avec, bvec, celvol, natcel, idx_ityp, coorat, &
   IF (version(1:2) == 'D3') THEN
     !
     ALLOCATE ( CN(natcel), dE_dCN_sum(natcel) )
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map (alloc:cn,de_dcn_sum)
+#endif
     !
     CALL get_CN(alat, avec, bvec, natcel, idx_ityp, coorat, CN, &
                 jat_first, jat_last)
+
 #ifdef PARALLEL
+#if defined(__HAS_OMP_OFFLOAD)
+#if defined(__HAS_GPU_AWARE_MPI)
+!$OMP target data use_device_addr(cn)
+#else
+!$OMP target update from(cn)
+#endif
+#endif
     CALL MPI_Allgatherv(mpi_in_place, 0, MPI_DATATYPE_NULL, &
                         CN, revcnt, displ, mpi_double_precision, allgrp, ierr)
+#if defined(__HAS_OMP_OFFLOAD)
+#if defined(__HAS_GPU_AWARE_MPI)
+!$OMP end target data
+#else
+!$OMP target update to(cn)
+#endif
+#endif
 #endif
     !
     dE_dCN_sum(1:natcel) = 0.d0
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target update to(de_dcn_sum)
+#endif
 !    dE_dC6_sum(1:natcel,1:natcel) = 0.d0
     !
   ENDIF
@@ -161,20 +182,34 @@ SUBROUTINE vdw_forces(alat, avec, bvec, celvol, natcel, idx_ityp, coorat, &
 !  WRITE(6,'(1x,"Upper bound for number of T-vectors (vdW):",i8)') mxtvec
   !
   ALLOCATE ( tvec(3,mxtvec), tnrm2(mxtvec) )
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map(alloc:tvec,tnrm2)
+#endif
   !
   CALL setup_tvec(avec, rcut2_vdw, nt1, nt2, nt3, nrt, tvec, tnrm2)
   !
-!$OMP parallel do private(iat,jat,ityp,jtyp,frc_at,dE_dCN_at,dcor,i,k,ds,betaRs,c6,dc6i,dc6j,c8, &
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target update to(tvec,tnrm2)
+#endif
+  
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target teams  distribute  &
+#else
+!$OMP parallel do &
+#endif
+!$OMP private(iat,jat,ityp,jtyp,frc_at,dE_dCN_at,dcor,i,k,ds,betaRs,c6,dc6i,dc6j,c8, &
 !$OMP                     it,tt,ttn,ttn2,scal,dist1,dist2,dist4,dist6,arg,expval,damp,efac,ffac, &
-!$OMP                     sfac,dist8,tmp,efac6,ffac6,efac8,ffac8) reduction(+:evdw,stress)       &
-!$OMP DEFAULT(NONE) shared(jat_first,jat_last,idx_ityp,natcel,vdw_pair,coorat,bvec,vdw_dir,avec, &
-!$OMP                      version,r_sum,cn,r2r4,nrt,tvec,rcut2_vdw,alat,s6_d2,c6_ij,rs6,rs8,s8, &
-!$OMP                      r0ab,forces,de_dcn_sum)
+!$OMP                     sfac,dist8,tmp,efac6,ffac6,efac8,ffac8) reduction(+:evdw,stress)       
   DO jat = jat_first, jat_last
     jtyp = idx_ityp(jat)
     !
     frc_at(1:3) = 0.d0
     dE_dCN_at = 0.d0
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP parallel do private(iat,ityp,dcor,i,k,ds,betaRs,c6,dc6i,dc6j,c8, &
+!$OMP                     it,tt,ttn,ttn2,scal,dist1,dist2,dist4,dist6,arg,expval,damp,efac,ffac, &
+!$OMP                     sfac,dist8,tmp,efac6,ffac6,efac8,ffac8) reduction(+:frc_at,dE_dCN_at,evdw,stress)  
+#endif
     DO iat = 1, natcel
       ityp = idx_ityp(iat)
       !
@@ -203,6 +238,7 @@ SUBROUTINE vdw_forces(alat, avec, bvec, celvol, natcel, idx_ityp, coorat, &
         !
       ELSE IF (version(1:2) == 'D3') THEN
         ! Get C6 and C8 coefficients and the derivative dC6/dCN
+        !DIR$ forceinline
         CALL get_dC6_dCN(ityp, jtyp, CN(iat), CN(jat), c6, dc6i, dc6j)
         ! Note: r2r4 (Q) is stored as sqrt
         c8 = 3.0d0*c6*r2r4(ityp)*r2r4(jtyp)
@@ -313,11 +349,15 @@ SUBROUTINE vdw_forces(alat, avec, bvec, celvol, natcel, idx_ityp, coorat, &
             ENDDO
             !
           ELSE
+#if !defined(__HAS_OMP_OFFLOAD)
             STOP ! Unknown damping function
+#endif
           ENDIF
           !
         ELSE
+#if !defined(__HAS_OMP_OFFLOAD)
           STOP ! Unkown Grimme scheme
+#endif
         ENDIF
         !
       ENDDO
@@ -333,6 +373,9 @@ SUBROUTINE vdw_forces(alat, avec, bvec, celvol, natcel, idx_ityp, coorat, &
   !
   IF (version(1:2) == 'D3') THEN
     !
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target exit data map(delete:tvec,tnrm2)
+#endif
     DEALLOCATE ( tvec, tnrm2 )
     !
     ! Get lattice vectors T (sphere 'rcut_cn')
@@ -341,27 +384,57 @@ SUBROUTINE vdw_forces(alat, avec, bvec, celvol, natcel, idx_ityp, coorat, &
 !    WRITE(6,'(1x,"Upper bound for number of T-vectors (CN): ",i8)') mxtvec
     !
     ALLOCATE ( tvec(3,mxtvec), tnrm2(mxtvec) )
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target enter data map(alloc:tvec,tnrm2)
+#endif
     !
     CALL setup_tvec(avec, rcut2_cn, nt1, nt2, nt3, nrt, tvec, tnrm2)
     !
+!$OMP target update to(tvec,tnrm2)
 !#if defined __PARA   ! --> PWSCF only
 !    CALL mp_sum(dE_dCN_sum, intra_image_comm)
 !#endif
 #ifdef PARALLEL
+#if defined(__HAS_OMP_OFFLOAD)
+#if defined(__HAS_GPU_AWARE_MPI)
+!$OMP target data use_device_addr(de_dcn_sum)
+#else
+!$OMP target update from(de_dcn_sum)
+#endif
+#endif
     CALL MPI_Allgatherv(mpi_in_place, 0, MPI_DATATYPE_NULL, &
                         dE_dCN_sum, revcnt, displ, mpi_double_precision, allgrp, ierr)
+#if defined(__HAS_OMP_OFFLOAD)
+#if defined(__HAS_GPU_AWARE_MPI)
+!$OMP end target data
+#else
+!$OMP target update to(de_dcn_sum)
+#endif
+#endif
 #endif
     !
     str_c6(1:3,1:3) = 0.d0
     !
-!$OMP parallel do private(iat,jat,ityp,jtyp,frc_c6,dcor,i,k,ds,it,tt,ttn,ttn2,scal,dist1, &
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target teams distribute &
+#else
+!$OMP parallel do &
+#endif
+!$OMP private(iat,jat,ityp,jtyp,frc_c6,dcor,i,k,ds,it,tt,ttn,ttn2,scal,dist1, &
 !$OMP                     dist2,tmp,arg,expval,damp,cfac,ffac,sfac) reduction(+:str_c6),  &
 !$OMP DEFAULT(NONE) shared(jat_first,jat_last,idx_ityp,natcel,vdw_pair,coorat,bvec,       &
 !$OMP                      vdw_dir,avec,nrt,tvec,rcut2_cn,alat,rcov,de_dcn_sum,forces)
+
     DO jat = jat_first, jat_last
       jtyp = idx_ityp(jat)
       !
       frc_c6(1:3) = 0.d0
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP parallel do default(none) private(iat,ityp,dcor,i,k,ds,it,tt,ttn,ttn2,scal,dist1, &
+!$OMP                     dist2,tmp,arg,expval,damp,cfac,ffac,sfac) reduction(+:frc_c6,str_c6),  &
+!$OMP shared(jat,jtyp,jat_first,jat_last,idx_ityp,natcel,vdw_pair,coorat,bvec,       &
+!$OMP                      vdw_dir,avec,nrt,tvec,rcut2_cn,alat,rcov,de_dcn_sum,forces)
+#endif
       DO iat = 1, natcel
         ityp = idx_ityp(iat)
         !
@@ -476,8 +549,16 @@ SUBROUTINE vdw_forces(alat, avec, bvec, celvol, natcel, idx_ityp, coorat, &
 !!  CALL my_sum_d(stress, 9, allgrp)
 !#endif
   !
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target exit data map(delete:tvec,tnrm2)
+#endif
   DEALLOCATE ( tvec, tnrm2 )
-  IF (version(1:2) == 'D3') DEALLOCATE ( CN, dE_dCN_sum )
+  IF (version(1:2) == 'D3') THEN
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP target exit data map (delete:cn,de_dcn_sum)
+#endif
+     DEALLOCATE ( CN, dE_dCN_sum )
+  END IF
   !
   RETURN
   !
@@ -531,13 +612,23 @@ SUBROUTINE get_CN(alat, avec, bvec, natcel, idx_ityp, coorat, CN, &
   !
   CALL setup_tvec(avec, rcut2_cn, nt1, nt2, nt3, nrt, tvec, tnrm2)
   !
-!$OMP parallel do private(iat,jat,ityp,jtyp,cnsum,dcor,k,ds,it,tt,ttn2,dist,arg,damp) &
+#if defined(__HAS_OMP_OFFLOAD)  
+!$OMP target teams distribute &
+#else
+!$OMP parallel do &
+#endif
+!$OMP private(iat,jat,ityp,jtyp,cnsum,dcor,k,ds,it,tt,ttn2,dist,arg,damp) &
 !$OMP DEFAULT(NONE) shared(jat_first,jat_last,idx_ityp,natcel,coorat,bvec,vdw_dir,    &
 !$OMP                      avec,nrt,tvec,rcut2_cn,alat,rcov,cn)
   DO jat = jat_first, jat_last
     jtyp = idx_ityp(jat)
     !
     cnsum = 0.d0
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP parallel do default(none) private(iat,ityp,dcor,k,ds,it,tt,ttn2,dist,arg,damp) &
+!$OMP  shared(jat_first,jat_last,idx_ityp,natcel,coorat,bvec,vdw_dir,    &
+!$OMP jat,jtyp,avec,nrt,tvec,rcut2_cn,alat,rcov,cn) reduction(+:cnsum)
+#endif
     DO iat = 1, natcel
       ityp = idx_ityp(iat)
       !
@@ -611,6 +702,9 @@ SUBROUTINE get_C6(ityp, jtyp, cni, cnj, c6)
   INTEGER :: icn, jcn
   DOUBLE PRECISION :: c6i, c6j, c6tmp, dist, fexp, &
                       csave, dsave, wsum, zsum
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP declare target
+#endif
   !
   IF (version(3:5) == 'mod') THEN
     !
@@ -690,6 +784,7 @@ SUBROUTINE get_C6(ityp, jtyp, cni, cnj, c6)
   !
 END SUBROUTINE get_C6
 !
+!DIR$ ATTRIBUTES FORCEINLINE::get_dc6_dcn
 !-----------------------------------------------------------------------
 SUBROUTINE get_dC6_dCN(ityp, jtyp, cni, cnj, c6, dc6i, dc6j)
   !---------------------------------------------------------------------
@@ -716,6 +811,9 @@ SUBROUTINE get_dC6_dCN(ityp, jtyp, cni, cnj, c6, dc6i, dc6j)
   DOUBLE PRECISION :: c6i, c6j, c6tmp, cni_ref, cnj_ref, dist, fexp, &
                       csave, dsave, wsum, zsum, dwsum_i, dwsum_j,    &
                       dzsum_i, dzsum_j, fac
+#if defined(__HAS_OMP_OFFLOAD)
+!$OMP declare target
+#endif
   !
   IF (version(3:5) == 'mod') THEN
     !
