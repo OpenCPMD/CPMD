@@ -16,9 +16,11 @@ MODULE posupi_utils
                                              readsr
   USE store_types,                     ONLY: rout1
   USE system,                          ONLY: cnti,&
+                                             cntl,&
                                              iatpt,&
                                              maxsys
   USE tpar,                            ONLY: dt_ions
+  USE utils,                           ONLY: print_debug_ions
   USE zeroing_utils,                   ONLY: zeroing
 #include "sizeof.h"
 
@@ -45,15 +47,10 @@ CONTAINS
                                                 velp(:,:,:)
 
     INTEGER                                  :: ia, iat, is
-#ifdef _VERBOSE_IONIC_POSITIONS_DBG
-    WRITE(6,*) "===================================="
-    WRITE(6,*) "DEBUG POSITIONS, posupi" 
-    DO is=1,ions1%nsp
-       DO ia=1,ions0%na(is)
-          WRITE(6,*) tau0(1:3,ia,is),ia,is
-       END DO
-    END DO
-#endif
+    CHARACTER(*), PARAMETER                  :: procedureN='posupi'
+    IF(cntl%tverbosepos)THEN
+       CALL print_debug_ions('DEBUG POSITIONS '//procedureN, tau0)
+    END IF
 
 #if defined(__VECTOR)
     !$omp parallel do private(IA,IS,IAT)
@@ -67,15 +64,9 @@ CONTAINS
        taup(2,ia,is)=tau0(2,ia,is)+dt_ions*velp(2,ia,is)
        taup(3,ia,is)=tau0(3,ia,is)+dt_ions*velp(3,ia,is)
     ENDDO
-#ifdef _VERBOSE_IONIC_POSITIONS_DBG
-    WRITE(6,*) "===================================="
-    WRITE(6,*) "DEBUG POSITIONS, posupi" 
-    DO is=1,ions1%nsp
-       DO ia=1,ions0%na(is)
-          WRITE(6,*) taup(1:3,ia,is),ia,is
-       END DO
-    END DO
-#endif
+    IF(cntl%tverbosepos)THEN
+       CALL print_debug_ions('DEBUG POSITIONS '//procedureN, taup)
+    END IF
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE posupi

@@ -14,11 +14,13 @@ MODULE velupi_utils
   USE puttau_utils,                    ONLY: taucl
   USE rmas,                            ONLY: rmass
   USE system,                          ONLY: cntr,&
+                                             cntl,&
                                              iatpt,&
                                              maxsys
   USE tpar,                            ONLY: dt_ions,&
                                              dtb2mi
-  USE utils,                           ONLY: invmat
+  USE utils,                           ONLY: invmat,&
+                                             print_debug_ions
   USE zeroing_utils,                   ONLY: zeroing
 
   IMPLICIT NONE
@@ -46,18 +48,13 @@ CONTAINS
 
     INTEGER                                  :: i, ia, is
     REAL(real_8)                             :: fact
+    CHARACTER(*), PARAMETER                  :: procedureN='velupi'
+    
+    IF(cntl%tverbosevel)THEN
+       CALL print_debug_ions('DEBUG VELOCITIES '//procedureN, velp)
+    END IF
 
-!ocl NOALIAS
-#ifdef _VERBOSE_IONIC_VELOCITIES_DBG
-    WRITE(6,*) "===================================="
-    WRITE(6,*) "DEBUG VELOCITIES, VELUPI" 
-    DO is=1,ions1%nsp
-       DO ia=1,ions0%na(is)
-          WRITE(6,*) VELP(1:3,ia,is),ia,is
-       END DO
-    END DO
-#endif
-
+    !ocl NOALIAS
     !$omp parallel do private(I,IS,IA,FACT) schedule(static)
     DO i=1,ions1%nat
        ia=iatpt(1,i)
@@ -69,15 +66,9 @@ CONTAINS
     ENDDO
 
     CALL taucl(velp)
-#ifdef _VERBOSE_IONIC_VELOCITIES_DBG
-    WRITE(6,*) "===================================="
-    WRITE(6,*) "DEBUG VELOCITIES, VELUPI" 
-    DO is=1,ions1%nsp
-       DO ia=1,ions0%na(is)
-          WRITE(6,*) VELP(1:3,ia,is),ia,is
-       END DO
-    END DO
-#endif
+    IF(cntl%tverbosevel)THEN
+       CALL print_debug_ions('DEBUG VELOCITIES '//procedureN, velp)
+    END IF
 
     ! ==--------------------------------------------------------------==
     RETURN

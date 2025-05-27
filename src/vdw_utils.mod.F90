@@ -36,6 +36,7 @@ MODULE vdw_utils
                                              parm
   USE timer,                           ONLY: tihalt,&
                                              tiset
+  USE utils,                           ONLY: print_debug_ions
   USE vdwcmod,                         ONLY: &
        boadwf, icontfragw, icontfragwi, ifragdata, ifragw, iwfcref, natwfcx, &
        nfrags, nfragx, npt12, nwfcx, radfrag, rwann, rwfc, spr, swann, &
@@ -89,9 +90,6 @@ CONTAINS
     REAL(real_8)                             :: alat_dummy,avec(3,3),bvec(3,3)                                
     REAL(real_8), ALLOCATABLE, SAVE          :: coorat(:,:),forces_d3(:,:)
     REAL(real_8), SAVE                       :: stress_d3(3,3), evdw_save
-#ifdef _VERBOSE_FORCE_DBG
-    REAL(real_8),ALLOCATABLE                 :: dbg_forces(:,:,:)
-#endif
     CHARACTER(*),PARAMETER                   :: procedureN='VDW_GRIMME'
 !     ==--------------------------------------------------------------==
     CALL tiset(procedureN,ISUB)
@@ -117,13 +115,6 @@ CONTAINS
 !
     IF(.NOT.ANY(COORAT(1:3,1).EQ.TAU0(1:3,IATPT(1,1),IATPT(2,1))))THEN
        new_atom_positions=1
-       !$omp parallel do private(ISA,IA,IS) reduction(+:new_atom_positions)
-       DO ISA=1, ions1%NAT
-          IA=IATPT(1,ISA)
-          IS=IATPT(2,ISA)
-          COORAT(1:3,ISA)=TAU0(1:3,IA,IS)
-          IAT2IS(ISA) = IS
-       END DO
     ELSE
        new_atom_positions=0
        !$omp parallel do private(ISA,IA,IS) reduction(+:new_atom_positions)
@@ -132,13 +123,19 @@ CONTAINS
           IS=IATPT(2,ISA)
           IF(.NOT.ANY(COORAT(1:3,ISA).EQ.TAU0(1:3,IA,IS)))THEN
              new_atom_positions=1
-             COORAT(1:3,ISA)=TAU0(1:3,IA,IS)
-             IAT2IS(ISA) = IS
           END IF
        END DO
     END IF
     IF(new_atom_positions.GT.0)THEN
-      
+
+       !$omp parallel do private(ISA,IA,IS) 
+       DO ISA=1, ions1%NAT
+          IA=IATPT(1,ISA)
+          IS=IATPT(2,ISA)
+          COORAT(1:3,ISA)=TAU0(1:3,IA,IS)
+          IAT2IS(ISA) = IS
+       END DO
+       
        CALL vdw_grimme_calc_energy_forces_stress(ALAT_DUMMY,AVEC,BVEC,1.0D0,ions1%nat,&
             iat2is,coorat,evdw,forces_d3,stress_d3,parai%cp_me,parai%cp_nproc,&
             parai%cp_grp,ierr)
@@ -179,27 +176,11 @@ CONTAINS
     DEVDW(5)=-0.5D0*STRESS_D3(2,3)
     DEVDW(6)=-0.5D0*STRESS_D3(3,3)
          
-#ifdef _VERBOSE_FORCE_DBG
-      ALLOCATE(dbg_forces(3,maxsys%nax,maxsys%nsx), stat=ierr)
-      IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dbg_forces',& 
-           __LINE__,__FILE__)
-      dbg_forces=fion
-      CALL mp_sum(dbg_forces,3*maxsys%nax*maxsys%nsx,parai%allgrp)
-      IF (paral%io_parent) THEN
-         WRITE(6,*) "===================================="
-         WRITE(6,*) "DEBUG FORCES", procedureN
-         DO is=1,ions1%nsp
-            DO ia=1,ions0%na(is)
-               WRITE(6,*) dbg_forces(1:3,ia,is),ia,is
-            END DO
-         END DO
-      END IF
-      DEALLOCATE(dbg_forces,STAT=ierr)
-      IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-           __LINE__,__FILE__)
-#endif
-      CALL tihalt(procedureN,isub)
-      RETURN
+    IF(cntl%tverbosefor)THEN
+       CALL print_debug_ions('DEBUG FORCES '//procedureN, fion)
+    END IF
+    CALL tihalt(procedureN,isub)
+    RETURN
   END SUBROUTINE
 
   SUBROUTINE vdw_cpmd(tau0,nvdw,idvdw,ivdw,jvdw,vdwst,vdwrm,vdwbe,&

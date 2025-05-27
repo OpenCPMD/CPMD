@@ -366,6 +366,7 @@ MODULE system
   ! == TQMMM  : Use the QM/MM code (full Bio code)                  ==
   ! == TQMMECH: Use the QM/MM code (simple coupling only)           ==
   ! == TDEBFOR: Run option for force debugging                      ==
+  ! == TVERBOSEFORCE: Run option for verbose force printing         ==
   ! == TDDFT  : Use TDDFT                                           ==
   ! == TNOGEOCHECK : Dont check geometry for close atoms            ==
   ! == TSSEL  : Print structure only for selected atoms             ==
@@ -516,6 +517,9 @@ MODULE system
      LOGICAL :: tinr = .FALSE.
      LOGICAL :: thybrid  = .FALSE.
      LOGICAL :: tdebfor = .FALSE.
+     LOGICAL :: tverbosefor = .FALSE.
+     LOGICAL :: tverbosepos = .FALSE.
+     LOGICAL :: tverbosevel = .FALSE.
      LOGICAL :: tddft = .FALSE.
      LOGICAL :: lbfgs = .FALSE.
      LOGICAL :: prfo = .FALSE.

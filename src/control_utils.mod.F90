@@ -939,11 +939,24 @@ CONTAINS
              ELSEIF ( keyword_contains(line,'FORCEMATCH') ) THEN
                 ! Forcematching
                 cntl%fmatch=.TRUE.
+             ELSEIF ( keyword_contains(line,'VERBOSE') ) THEN
+                ! Debug force calculation
+                IF ( keyword_contains(line,'FORCES') ) THEN
+                   cntl%tverbosefor=.TRUE.
+                ENDIF               
+                ! Debug force calculation
+                IF ( keyword_contains(line,'POSITIONS') ) THEN
+                   cntl%tverbosepos=.TRUE.
+                ENDIF               
+                ! Debug force calculation
+                IF ( keyword_contains(line,'VELOCITIES') ) THEN
+                   cntl%tverbosevel=.TRUE.
+                ENDIF                              
              ELSEIF ( keyword_contains(line,'DEBUG') ) THEN
                 ! Debug force calculation
                 IF ( keyword_contains(line,'FORCES') ) THEN
                    cntl%tdebfor=.TRUE.
-                ENDIF
+                ENDIF               
                 ! Debug FILEOPEN processing
                 IF ( keyword_contains(line,'FILE') ) THEN
                    fo_info%fo_tdebug=.TRUE.

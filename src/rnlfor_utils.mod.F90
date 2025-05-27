@@ -16,12 +16,7 @@ MODULE rnlfor_utils
                                              nlm,&
                                              nlps_com,&
                                              wsg
-#ifdef _VERBOSE_FORCE_DBG
-  USE parac,                           ONLY: parai,&
-                                             paral
-#else
   USE parac,                           ONLY: parai
-#endif
   USE pslo,                            ONLY: pslo_com
   USE sfac,                            ONLY: dfnl,&
                                              fnl,&
@@ -40,6 +35,7 @@ MODULE rnlfor_utils
                                              parap
   USE timer,                           ONLY: tihalt,&
                                              tiset
+  USE utils,                           ONLY: print_debug_ions
   USE zeroing_utils,                   ONLY: zeroing
 #ifdef _USE_SCRATCHLIBRARY
   USE scratch_interface,               ONLY: request_scratch,&
@@ -78,10 +74,6 @@ CONTAINS
                                                 wk1_1, wk1_2, wk1_3, wk2_1, &
                                                 wk2_2, wk2_3
     REAL(real_8),ALLOCATABLE                 :: fnlt(:,:,:),dfnlt(:,:,:,:)
-#ifdef _VERBOSE_FORCE_DBG
-   INTEGER                                   :: ierr
-   REAL(real_8),ALLOCATABLE                  :: dbg_forces(:,:,:)
-#endif
     CHARACTER(*), PARAMETER                  :: procedureN = 'rnlfor'
 
 ! Variables
@@ -261,25 +253,9 @@ CONTAINS
           isa0 = isa0 + ions0%na(is)
        ENDDO
     ENDDO
-#ifdef _VERBOSE_FORCE_DBG
-    ALLOCATE(dbg_forces(3,maxsys%nax,maxsys%nsx), stat=ierr)
-    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dbg_forces',& 
-         __LINE__,__FILE__)
-    dbg_forces=fion
-    CALL mp_sum(dbg_forces,3*maxsys%nax*maxsys%nsx,parai%allgrp)
-    IF (paral%io_parent) THEN
-       WRITE(6,*) "===================================="
-       WRITE(6,*) "DEBUG FORCES", procedureN
-       DO is=1,ions1%nsp
-          DO ia=1,ions0%na(is)
-             WRITE(6,*) dbg_forces(1:3,ia,is),ia,is
-          END DO
-       END DO
+    IF(cntl%tverbosefor)THEN
+       CALL print_debug_ions('DEBUG FORCES '//procedureN, fion)
     END IF
-    DEALLOCATE(dbg_forces,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-         __LINE__,__FILE__)
-#endif
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN
@@ -315,9 +291,6 @@ CONTAINS
    REAL(real_8), POINTER __CONTIGUOUS       :: fiont(:,:,:,:),temp(:,:)
 #else
    REAL(real_8),ALLOCATABLE                 :: fiont(:,:,:,:),temp(:,:)
-#endif
-#ifdef _VERBOSE_FORCE_DBG
-    REAL(real_8),ALLOCATABLE                :: dbg_forces(:,:,:)
 #endif
     CHARACTER(*), PARAMETER                 :: procedureN = 'rnlfor_hfx' 
     ! split atoms between cp groups
@@ -453,25 +426,9 @@ CONTAINS
        IF (parai%cp_nogrp.GT.1) THEN
           CALL mp_sum(fion,3*maxsys%nax*maxsys%nsx,parai%cp_inter_grp)
        END IF
-#ifdef _VERBOSE_FORCE_DBG
-       ALLOCATE(dbg_forces(3,maxsys%nax,maxsys%nsx), stat=ierr)
-       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dbg_forces',& 
-            __LINE__,__FILE__)
-       dbg_forces=fion
-       CALL mp_sum(dbg_forces,3*maxsys%nax*maxsys%nsx,parai%allgrp)
-       IF (paral%io_parent) THEN
-          WRITE(6,*) "===================================="
-          WRITE(6,*) "DEBUG FORCES", procedureN
-          DO is=1,ions1%nsp
-             DO ia=1,ions0%na(is)
-                WRITE(6,*) dbg_forces(1:3,ia,is),ia,is
-             END DO
-          END DO
+       IF(cntl%tverbosefor)THEN
+          CALL print_debug_ions('DEBUG FORCES '//procedureN, fion)
        END IF
-       DEALLOCATE(dbg_forces,STAT=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-            __LINE__,__FILE__)
-#endif
 #ifdef _USE_SCRATCHLIBRARY
        CALL free_scratch(il_fiont,fiont,procedureN//'_fiont',ierr)
 !       CALL save_scratch(il_dfnl_packed,dfnl_packed,'DFNL_packed',ierr)

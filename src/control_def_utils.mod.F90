@@ -342,6 +342,9 @@ CONTAINS
     cntl%tdebfor=.FALSE.
     store1%tdebio=.FALSE.
     store1%tdebacc=.FALSE.
+    cntl%tverbosefor=.FALSE.
+    cntl%tverbosevel=.FALSE.
+    cntl%tverbosepos=.FALSE.
     ! Tracing
     cp_trace%ttrace=.FALSE.
     cp_trace%ttrace_master_only=.FALSE.

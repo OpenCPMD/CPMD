@@ -22,6 +22,7 @@ MODULE rpiiint_utils
                                              parm, maxsys, iatpt, cntl
   USE timer,                           ONLY: tihalt,&
                                              tiset
+  USE utils,                           ONLY: print_debug_ions
 #ifdef _USE_SCRATCHLIBRARY
   USE scratch_interface,               ONLY: request_scratch,&
                                              free_scratch
@@ -76,9 +77,6 @@ CONTAINS
     INTEGER                                  :: iesr_arr((iesr*2+1)**3,3), num_ind, &
                                                 tot_ind,ind
     CHARACTER(*), PARAMETER                  :: procedureN='rpiiint'
-#ifdef _VERBOSE_FORCE_DBG
-    REAL(real_8),ALLOCATABLE                 :: dbg_forces(:,:,:)
-#endif
 
     ! ==--------------------------------------------------------------==
     IF (iflag.EQ.0.AND.paral%parent) THEN
@@ -343,27 +341,9 @@ CONTAINS
        esr=esr_save
     END IF
 
-#ifdef _VERBOSE_FORCE_DBG
-    IF( tfor ) THEN
-       ALLOCATE(dbg_forces(3,maxsys%nax,maxsys%nsx), stat=ierr)
-       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dbg_forces',& 
-            __LINE__,__FILE__)
-       dbg_forces=fion
-       CALL mp_sum(dbg_forces,3*maxsys%nax*maxsys%nsx,parai%allgrp)
-       IF (paral%io_parent) THEN
-          WRITE(6,*) "===================================="
-          WRITE(6,*) "DEBUG FORCES", procedureN
-          DO is=1,ions1%nsp
-             DO ia=1,ions0%na(is)
-                WRITE(6,*) dbg_forces(1:3,ia,is),ia,is
-             END DO
-          END DO
-       END IF
-       DEALLOCATE(dbg_forces,STAT=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-            __LINE__,__FILE__)
+    IF(tfor.AND.cntl%tverbosefor)THEN
+       CALL print_debug_ions('DEBUG FORCES '//procedureN, fion)
     END IF
-#endif
     CALL tihalt(procedureN,isub)
 
     ! ==================================================================    

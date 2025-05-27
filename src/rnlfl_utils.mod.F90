@@ -15,12 +15,7 @@ MODULE rnlfl_utils
   USE nlps,                            ONLY: imagp,&
                                              nlps_com
   !$ USE omp_lib,                       ONLY: omp_get_thread_num
-#ifdef _VERBOSE_FORCE_DBG
-  USE parac,                           ONLY: parai,&
-                                             paral
-#else
   USE parac,                           ONLY: parai
-#endif
   USE pslo,                            ONLY: pslo_com
   USE sfac,                            ONLY: il_fnl_packed,&
                                              il_dfnl_packed
@@ -28,6 +23,7 @@ MODULE rnlfl_utils
                                              spin_mod
   USE system,                          ONLY: cntl,&
                                              maxsys
+  USE utils,                           ONLY: print_debug_ions
   USE timer,                           ONLY: tihalt,&
                                              tiset
 
@@ -61,9 +57,6 @@ CONTAINS
 
     REAL(real_8), ALLOCATABLE                :: fiont(:,:,:,:)
     REAL(real_8)                             :: ft(maxsys%nax,3),weight,fac
-#ifdef _VERBOSE_FORCE_DBG
-    REAL(real_8),ALLOCATABLE                 :: dbg_forces(:,:,:)
-#endif
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'rnlfl'
     
@@ -165,26 +158,9 @@ CONTAINS
             __LINE__,__FILE__)
 
     END IF
-#ifdef _VERBOSE_FORCE_DBG
-    ALLOCATE(dbg_forces(3,maxsys%nax,maxsys%nsx), stat=ierr)
-    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dbg_forces',& 
-         __LINE__,__FILE__)
-    dbg_forces=fion
-    CALL mp_sum(dbg_forces,3*maxsys%nax*maxsys%nsx,parai%allgrp)
-    IF (paral%io_parent) THEN
-       WRITE(6,*) "===================================="
-       WRITE(6,*) "DEBUG FORCES", procedureN
-       DO is=1,ions1%nsp
-          DO ia=1,ions0%na(is)
-             WRITE(6,*) dbg_forces(1:3,ia,is),ia,is
-          END DO
-       END DO
+    IF(cntl%tverbosefor)THEN
+       CALL print_debug_ions('DEBUG FORCES '//procedureN, fion)
     END IF
-    DEALLOCATE(dbg_forces,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-         __LINE__,__FILE__)
-#endif
-
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN

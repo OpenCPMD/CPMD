@@ -3,14 +3,19 @@
 MODULE utils
   USE error_handling,                  ONLY: stopgm
   USE geq0mod,                         ONLY: geq0
+  USE ions,                            ONLY: ions0,&
+                                             ions1
   USE kinds,                           ONLY: int_8,&
                                              real_8
-  USE parac,                           ONLY: parai
+  USE mp_interface,                    ONLY: mp_sum
+  USE parac,                           ONLY: parai,&
+                                             paral
   USE reshaper,                        ONLY: reshape_inplace
   USE timer,                           ONLY: tiset,&
                                              tihalt
   USE system,                          ONLY: parap,&
-                                             cntl
+                                             cntl,&
+                                             maxsys
   USE zeroing_utils,                   ONLY: zeroing
 #ifdef _USE_SCRATCHLIBRARY
   USE scratch_interface,               ONLY: request_scratch,&
@@ -51,6 +56,7 @@ MODULE utils
   PUBLIC :: nxxfun
   PUBLIC :: sbes0
   PUBLIC :: fc4
+  PUBLIC :: print_debug_ions
 #if defined(__SR11KIBM)
   PUBLIC :: dzamax
 #endif
@@ -1083,6 +1089,38 @@ CONTAINS
     RETURN
   END SUBROUTINE icopy
 
+  ! ==================================================================
+
+  ! ==================================================================
+  SUBROUTINE print_debug_ions(name,array)
+    ! ==--------------------------------------------------------------==
+    CHARACTER(*)                             :: name
+    REAL(real_8)                             :: array(:,:,:)
+
+    INTEGER                                  :: is, ia, ierr
+    REAL(real_8), ALLOCATABLE                :: debug(:,:,:)
+    CHARACTER(*), PARAMETER                  :: procedureN='print_debug_ions'
+
+    ALLOCATE(debug(3,maxsys%nax,maxsys%nsx), stat=ierr)
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dbg_forces',& 
+         __LINE__,__FILE__)
+    CALL mp_sum(array,debug,3*maxsys%nax*maxsys%nsx,parai%allgrp)
+    IF (paral%io_parent) THEN
+       WRITE(6,*) "===================================="
+       WRITE(6,*) TRIM(ADJUSTL(name))
+       DO is=1,ions1%nsp
+          DO ia=1,ions0%na(is)
+             WRITE(6,*) debug(1:3,ia,is),ia,is
+          END DO
+       END DO
+    END IF
+    DEALLOCATE(debug,STAT=ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+         __LINE__,__FILE__)
+
+    ! ==--------------------------------------------------------------==
+    RETURN
+  END SUBROUTINE print_debug_ions
   ! ==================================================================
 
 END MODULE utils

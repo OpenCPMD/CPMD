@@ -36,6 +36,7 @@ MODULE newd_utils
                                              cnti
   USE timer,                           ONLY: tihalt,&
                                              tiset
+  USE utils,                           ONLY: print_debug_ions
   USE zeroing_utils,                   ONLY: zeroing
 #ifdef _USE_SCRATCHLIBRARY
   USE scratch_interface,               ONLY: request_scratch,&
@@ -70,9 +71,6 @@ CONTAINS
     INTEGER                                  :: is, ia, isub, ig_start, nhg_loc, ierr, i, &
                                                 nstates_local(SIZE(nstates,1),SIZE(nstates,2))
     INTEGER, ALLOCATABLE                     :: na_grp(:,:,:), na(:,:), nst(:,:)
-#ifdef _VERBOSE_FORCE_DBG
-    REAL(real_8),ALLOCATABLE                 :: dbg_forces(:,:,:)
-#endif
 
     CHARACTER(*), PARAMETER                  :: procedureN='newd'
 
@@ -170,27 +168,9 @@ CONTAINS
        IF (ierr /= 0) CALL stopgm(procedureN, 'deallocation problem)',&
             __LINE__,__FILE__)
     END IF
-#ifdef _VERBOSE_FORCE_DBG
-    IF(tfor)THEN
-       ALLOCATE(dbg_forces(3,maxsys%nax,maxsys%nsx), stat=ierr)
-       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dbg_forces',& 
-            __LINE__,__FILE__)
-       dbg_forces=fion
-       CALL mp_sum(dbg_forces,3*maxsys%nax*maxsys%nsx,parai%allgrp)
-       IF (paral%io_parent) THEN
-          WRITE(6,*) "===================================="
-          WRITE(6,*) "DEBUG FORCES", procedureN
-          DO is=1,ions1%nsp
-             DO ia=1,ions0%na(is)
-                WRITE(6,*) dbg_forces(1:3,ia,is),ia,is
-             END DO
-          END DO
-       END IF
-       DEALLOCATE(dbg_forces,STAT=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-            __LINE__,__FILE__)
+    IF(tfor.AND.cntl%tverbosefor)THEN
+       CALL print_debug_ions('DEBUG FORCES '//procedureN, fion)
     END IF
-#endif
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN
