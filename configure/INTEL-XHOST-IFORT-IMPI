@@ -17,37 +17,31 @@
      CC='mpiicc'
      LD='mpiifort'
      CPP='/lib/cpp -P -traditional'
-     CPPFLAGS=' -D__ALPHALINUX -D__HPC \
+     CPPFLAGS='-D__HAS_FFT_FFTW3 -D__ALPHALINUX -D__HPC \
          -D__PARALLEL -D__HAS_SIZEOF -D__HAS_BF_STREAM_IO \
-	 -D__INTEL_MKL -D__USE_SCRATCHLIBRARY \
-	 -D__HAS_LIBGRIMMEVDW'
+	 -D__INTEL_MKL '
      CPPFLAGS_GROMOS='-DEWALD -DEWATCUT -DHAT_SHAPE -DUNPACKED_GRID \
              -D__HAS_FFT_FFTW3 -D__ALPHALINUX -D__HPC \
              -D__PARALLEL -D__HAS_SIZEOF -D__HAS_BF_STREAM_IO'
      FFLAGS_GROMOS='-fixed $(FFLAGS)'
      FFLAGS_GROMOS_MODULES=' $(FFLAGS)'
-     AR='xiar -r'
+     AR='ar -r'
      RANLIB='/usr/bin/ranlib'
      if [ $debug ]; then
        FFLAGS='-pc64 -g -traceback -check all -O0 -pc64 -align array64byte -falign-loops=32 \
        -falign-functions=32 -fp-model=strict -fimf-use-svml=false -fp-model=source'
        CFLAGS='-g -Wall -m64'
      else
-       FFLAGS='-O2 -traceback -g -pc64 -funroll-loops -assume byterecl -align array64byte \
-              -xHost -finline-functions -qopt-zmm-usage=high \
-	      -I${CPMDROOT}/scratchmodule_lib/ -I${CPMDROOT}/vdw_lib/ '
-       CFLAGS='-O2 -Wall  '
+       FFLAGS='-O2 -traceback -g -align array64byte \
+              -xHost -qopt-zmm-usage=high '
+       CFLAGS='-O2 -Wall'
      fi
      if [ $omp ]; then
        FFLAGS=${FFLAGS}' -qopenmp -qmkl=parallel'
        OMP3_DISABLED='false'
-       LIBS=' -qmkl=parallel -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 -qopenmp \
-             -L${CPMDROOT}/scratchmodule_lib/ -lscratch_module \
-	     -L${CPMDROOT}/vdw_lib/ -lgrimmevdw '
+       LIBS=' -qmkl=parallel -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 -qopenmp'
      else
        FFLAGS=${FFLAGS}' -qmkl=sequential'
-       LIBS=' -qmkl=sequential -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 \
-             -L${CPMDROOT}/scratchmodule_lib/ -lscratch_module \
-	     -L${CPMDROOT}/vdw_lib/ -lgrimmevdw '
+       LIBS=' -qmkl=sequential -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64'
      fi
      LFLAGS=${LIBS}
