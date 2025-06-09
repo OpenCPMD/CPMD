@@ -863,7 +863,7 @@ vdw_interface.mod: vdw_interface.o
 	@true                                                             
 vdw_param.mod: vdw_param.o                                                
 	@true                                                             
-vdw_calculator.mod:                                                       
+vdw_calculator.mod: vdw_calculator.o                                                       
 	@true                                                             
 vdw_interface.o: vdw_param.mod vdw_calculator.mod \$(MODDIR)/vdw_lib/vdw_interface.F90
 vdw_calculator.o: vdw_param.mod \$(MODDIR)/vdw_lib/vdw_calculator.F90      
