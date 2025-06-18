@@ -15,11 +15,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -51,11 +48,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -91,11 +85,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -132,11 +124,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -166,11 +156,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -201,11 +189,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -242,11 +228,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -284,11 +268,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -304,7 +286,7 @@
 
   SUBROUTINE free_internal_scratch_shape_dc1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -319,15 +301,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -343,7 +318,7 @@
   SUBROUTINE free_external_scratch_shape_dc1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -358,15 +333,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -381,7 +349,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_dc1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -400,11 +368,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -419,7 +384,7 @@
   SUBROUTINE free_external_scratch_bounds_dc1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -438,11 +403,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -456,7 +418,7 @@
 
   SUBROUTINE save_internal_scratch_shape_dc1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -471,15 +433,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -494,7 +449,7 @@
   SUBROUTINE save_external_scratch_shape_dc1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -508,11 +463,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -526,7 +478,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_dc1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -545,11 +497,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -564,7 +513,7 @@
   SUBROUTINE save_external_scratch_bounds_dc1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -583,11 +532,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -615,11 +561,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -651,11 +594,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -691,11 +631,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -732,11 +670,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -766,11 +702,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -801,11 +735,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -842,11 +774,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -884,11 +814,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -904,7 +832,7 @@
 
   SUBROUTINE free_internal_scratch_shape_dc2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -919,15 +847,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -943,7 +864,7 @@
   SUBROUTINE free_external_scratch_shape_dc2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -958,15 +879,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -981,7 +895,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_dc2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -1000,11 +914,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1019,7 +930,7 @@
   SUBROUTINE free_external_scratch_bounds_dc2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1038,11 +949,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1056,7 +964,7 @@
 
   SUBROUTINE save_internal_scratch_shape_dc2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1071,15 +979,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1094,7 +995,7 @@
   SUBROUTINE save_external_scratch_shape_dc2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1108,11 +1009,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1126,7 +1024,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_dc2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1145,11 +1043,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1164,7 +1059,7 @@
   SUBROUTINE save_external_scratch_bounds_dc2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1183,11 +1078,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1215,11 +1107,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1251,11 +1140,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1291,11 +1177,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1332,11 +1216,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1366,11 +1248,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1401,11 +1281,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1442,11 +1320,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1484,11 +1360,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1504,7 +1378,7 @@
 
   SUBROUTINE free_internal_scratch_shape_dc3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1519,15 +1393,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1543,7 +1410,7 @@
   SUBROUTINE free_external_scratch_shape_dc3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1558,15 +1425,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1581,7 +1441,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_dc3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -1600,11 +1460,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1619,7 +1476,7 @@
   SUBROUTINE free_external_scratch_bounds_dc3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1638,11 +1495,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1656,7 +1510,7 @@
 
   SUBROUTINE save_internal_scratch_shape_dc3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1671,15 +1525,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1694,7 +1541,7 @@
   SUBROUTINE save_external_scratch_shape_dc3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1708,11 +1555,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1726,7 +1570,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_dc3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1745,11 +1589,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1764,7 +1605,7 @@
   SUBROUTINE save_external_scratch_bounds_dc3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -1783,11 +1624,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1815,11 +1653,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1851,11 +1686,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1891,11 +1723,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1932,11 +1762,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -1966,11 +1794,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2001,11 +1827,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2042,11 +1866,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2084,11 +1906,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2104,7 +1924,7 @@
 
   SUBROUTINE free_internal_scratch_shape_dc4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2119,15 +1939,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2143,7 +1956,7 @@
   SUBROUTINE free_external_scratch_shape_dc4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2158,15 +1971,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2181,7 +1987,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_dc4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -2200,11 +2006,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2219,7 +2022,7 @@
   SUBROUTINE free_external_scratch_bounds_dc4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2238,11 +2041,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2256,7 +2056,7 @@
 
   SUBROUTINE save_internal_scratch_shape_dc4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2271,15 +2071,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2294,7 +2087,7 @@
   SUBROUTINE save_external_scratch_shape_dc4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2308,11 +2101,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2326,7 +2116,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_dc4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2345,11 +2135,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2364,7 +2151,7 @@
   SUBROUTINE save_external_scratch_bounds_dc4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2383,11 +2170,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2415,11 +2199,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2451,11 +2232,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2491,11 +2269,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2532,11 +2308,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2566,11 +2340,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2601,11 +2373,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2642,11 +2412,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2684,11 +2452,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2704,7 +2470,7 @@
 
   SUBROUTINE free_internal_scratch_shape_dc5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2719,15 +2485,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2743,7 +2502,7 @@
   SUBROUTINE free_external_scratch_shape_dc5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2758,15 +2517,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2781,7 +2533,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_dc5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -2800,11 +2552,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2819,7 +2568,7 @@
   SUBROUTINE free_external_scratch_bounds_dc5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2838,11 +2587,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2856,7 +2602,7 @@
 
   SUBROUTINE save_internal_scratch_shape_dc5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2871,15 +2617,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2894,7 +2633,7 @@
   SUBROUTINE save_external_scratch_shape_dc5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2908,11 +2647,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2926,7 +2662,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_dc5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2945,11 +2681,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -2964,7 +2697,7 @@
   SUBROUTINE save_external_scratch_bounds_dc5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -2983,11 +2716,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3015,11 +2745,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3051,11 +2778,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3091,11 +2815,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3132,11 +2854,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3166,11 +2886,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3201,11 +2919,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3242,11 +2958,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3284,11 +2998,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3304,7 +3016,7 @@
 
   SUBROUTINE free_internal_scratch_shape_dc6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -3319,15 +3031,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3343,7 +3048,7 @@
   SUBROUTINE free_external_scratch_shape_dc6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -3358,15 +3063,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3381,7 +3079,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_dc6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -3400,11 +3098,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3419,7 +3114,7 @@
   SUBROUTINE free_external_scratch_bounds_dc6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -3438,11 +3133,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3456,7 +3148,7 @@
 
   SUBROUTINE save_internal_scratch_shape_dc6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -3471,15 +3163,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3494,7 +3179,7 @@
   SUBROUTINE save_external_scratch_shape_dc6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -3508,11 +3193,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3526,7 +3208,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_dc6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -3545,11 +3227,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3564,7 +3243,7 @@
   SUBROUTINE save_external_scratch_bounds_dc6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -3583,11 +3262,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3615,11 +3291,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3651,11 +3324,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3691,11 +3361,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3732,11 +3400,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3766,11 +3432,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3801,11 +3465,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3842,11 +3504,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3884,11 +3544,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3904,7 +3562,7 @@
 
   SUBROUTINE free_internal_scratch_shape_rc1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -3919,15 +3577,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3943,7 +3594,7 @@
   SUBROUTINE free_external_scratch_shape_rc1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -3958,15 +3609,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -3981,7 +3625,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_rc1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -4000,11 +3644,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4019,7 +3660,7 @@
   SUBROUTINE free_external_scratch_bounds_rc1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4038,11 +3679,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4056,7 +3694,7 @@
 
   SUBROUTINE save_internal_scratch_shape_rc1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4071,15 +3709,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4094,7 +3725,7 @@
   SUBROUTINE save_external_scratch_shape_rc1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4108,11 +3739,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4126,7 +3754,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_rc1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4145,11 +3773,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4164,7 +3789,7 @@
   SUBROUTINE save_external_scratch_bounds_rc1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4183,11 +3808,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4215,11 +3837,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4251,11 +3870,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4291,11 +3907,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4332,11 +3946,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4366,11 +3978,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4401,11 +4011,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4442,11 +4050,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4484,11 +4090,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4504,7 +4108,7 @@
 
   SUBROUTINE free_internal_scratch_shape_rc2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4519,15 +4123,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4543,7 +4140,7 @@
   SUBROUTINE free_external_scratch_shape_rc2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4558,15 +4155,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4581,7 +4171,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_rc2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -4600,11 +4190,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4619,7 +4206,7 @@
   SUBROUTINE free_external_scratch_bounds_rc2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4638,11 +4225,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4656,7 +4240,7 @@
 
   SUBROUTINE save_internal_scratch_shape_rc2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4671,15 +4255,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4694,7 +4271,7 @@
   SUBROUTINE save_external_scratch_shape_rc2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4708,11 +4285,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4726,7 +4300,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_rc2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4745,11 +4319,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4764,7 +4335,7 @@
   SUBROUTINE save_external_scratch_bounds_rc2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -4783,11 +4354,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4815,11 +4383,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4851,11 +4416,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4891,11 +4453,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4932,11 +4492,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -4966,11 +4524,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5001,11 +4557,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5042,11 +4596,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5084,11 +4636,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5104,7 +4654,7 @@
 
   SUBROUTINE free_internal_scratch_shape_rc3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5119,15 +4669,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5143,7 +4686,7 @@
   SUBROUTINE free_external_scratch_shape_rc3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5158,15 +4701,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5181,7 +4717,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_rc3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -5200,11 +4736,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5219,7 +4752,7 @@
   SUBROUTINE free_external_scratch_bounds_rc3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5238,11 +4771,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5256,7 +4786,7 @@
 
   SUBROUTINE save_internal_scratch_shape_rc3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5271,15 +4801,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5294,7 +4817,7 @@
   SUBROUTINE save_external_scratch_shape_rc3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5308,11 +4831,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5326,7 +4846,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_rc3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5345,11 +4865,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5364,7 +4881,7 @@
   SUBROUTINE save_external_scratch_bounds_rc3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5383,11 +4900,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5415,11 +4929,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5451,11 +4962,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5491,11 +4999,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5532,11 +5038,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5566,11 +5070,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5601,11 +5103,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5642,11 +5142,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5684,11 +5182,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5704,7 +5200,7 @@
 
   SUBROUTINE free_internal_scratch_shape_rc4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5719,15 +5215,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5743,7 +5232,7 @@
   SUBROUTINE free_external_scratch_shape_rc4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5758,15 +5247,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5781,7 +5263,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_rc4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -5800,11 +5282,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5819,7 +5298,7 @@
   SUBROUTINE free_external_scratch_bounds_rc4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5838,11 +5317,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5856,7 +5332,7 @@
 
   SUBROUTINE save_internal_scratch_shape_rc4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5871,15 +5347,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5894,7 +5363,7 @@
   SUBROUTINE save_external_scratch_shape_rc4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5908,11 +5377,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5926,7 +5392,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_rc4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5945,11 +5411,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -5964,7 +5427,7 @@
   SUBROUTINE save_external_scratch_bounds_rc4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -5983,11 +5446,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6015,11 +5475,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6051,11 +5508,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6091,11 +5545,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6132,11 +5584,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6166,11 +5616,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6201,11 +5649,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6242,11 +5688,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6284,11 +5728,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6304,7 +5746,7 @@
 
   SUBROUTINE free_internal_scratch_shape_rc5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -6319,15 +5761,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6343,7 +5778,7 @@
   SUBROUTINE free_external_scratch_shape_rc5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -6358,15 +5793,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6381,7 +5809,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_rc5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -6400,11 +5828,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6419,7 +5844,7 @@
   SUBROUTINE free_external_scratch_bounds_rc5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -6438,11 +5863,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6456,7 +5878,7 @@
 
   SUBROUTINE save_internal_scratch_shape_rc5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -6471,15 +5893,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6494,7 +5909,7 @@
   SUBROUTINE save_external_scratch_shape_rc5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -6508,11 +5923,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6526,7 +5938,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_rc5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -6545,11 +5957,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6564,7 +5973,7 @@
   SUBROUTINE save_external_scratch_bounds_rc5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -6583,11 +5992,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6615,11 +6021,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6651,11 +6054,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6691,11 +6091,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6732,11 +6130,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6766,11 +6162,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6801,11 +6195,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6842,11 +6234,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6884,11 +6274,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6904,7 +6292,7 @@
 
   SUBROUTINE free_internal_scratch_shape_rc6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -6919,15 +6307,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6943,7 +6324,7 @@
   SUBROUTINE free_external_scratch_shape_rc6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -6958,15 +6339,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -6981,7 +6355,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_rc6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -7000,11 +6374,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7019,7 +6390,7 @@
   SUBROUTINE free_external_scratch_bounds_rc6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7038,11 +6409,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7056,7 +6424,7 @@
 
   SUBROUTINE save_internal_scratch_shape_rc6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7071,15 +6439,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7094,7 +6455,7 @@
   SUBROUTINE save_external_scratch_shape_rc6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7108,11 +6469,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7126,7 +6484,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_rc6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7145,11 +6503,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7164,7 +6519,7 @@
   SUBROUTINE save_external_scratch_bounds_rc6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    COMPLEX( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7183,11 +6538,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7215,11 +6567,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7251,11 +6600,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7291,11 +6637,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7332,11 +6676,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7366,11 +6708,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7401,11 +6741,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7442,11 +6780,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7484,11 +6820,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7504,7 +6838,7 @@
 
   SUBROUTINE free_internal_scratch_shape_d1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7519,15 +6853,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7543,7 +6870,7 @@
   SUBROUTINE free_external_scratch_shape_d1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7558,15 +6885,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7581,7 +6901,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_d1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -7600,11 +6920,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7619,7 +6936,7 @@
   SUBROUTINE free_external_scratch_bounds_d1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7638,11 +6955,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7656,7 +6970,7 @@
 
   SUBROUTINE save_internal_scratch_shape_d1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7671,15 +6985,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7694,7 +7001,7 @@
   SUBROUTINE save_external_scratch_shape_d1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7708,11 +7015,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7726,7 +7030,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_d1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7745,11 +7049,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7764,7 +7065,7 @@
   SUBROUTINE save_external_scratch_bounds_d1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -7783,11 +7084,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7815,11 +7113,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7851,11 +7146,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7891,11 +7183,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7932,11 +7222,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -7966,11 +7254,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8001,11 +7287,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8042,11 +7326,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8084,11 +7366,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8104,7 +7384,7 @@
 
   SUBROUTINE free_internal_scratch_shape_d2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8119,15 +7399,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8143,7 +7416,7 @@
   SUBROUTINE free_external_scratch_shape_d2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8158,15 +7431,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8181,7 +7447,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_d2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -8200,11 +7466,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8219,7 +7482,7 @@
   SUBROUTINE free_external_scratch_bounds_d2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8238,11 +7501,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8256,7 +7516,7 @@
 
   SUBROUTINE save_internal_scratch_shape_d2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8271,15 +7531,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8294,7 +7547,7 @@
   SUBROUTINE save_external_scratch_shape_d2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8308,11 +7561,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8326,7 +7576,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_d2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8345,11 +7595,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8364,7 +7611,7 @@
   SUBROUTINE save_external_scratch_bounds_d2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8383,11 +7630,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8415,11 +7659,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8451,11 +7692,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8491,11 +7729,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8532,11 +7768,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8566,11 +7800,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8601,11 +7833,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8642,11 +7872,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8684,11 +7912,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8704,7 +7930,7 @@
 
   SUBROUTINE free_internal_scratch_shape_d3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8719,15 +7945,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8743,7 +7962,7 @@
   SUBROUTINE free_external_scratch_shape_d3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8758,15 +7977,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8781,7 +7993,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_d3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -8800,11 +8012,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8819,7 +8028,7 @@
   SUBROUTINE free_external_scratch_bounds_d3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8838,11 +8047,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8856,7 +8062,7 @@
 
   SUBROUTINE save_internal_scratch_shape_d3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8871,15 +8077,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8894,7 +8093,7 @@
   SUBROUTINE save_external_scratch_shape_d3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8908,11 +8107,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8926,7 +8122,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_d3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8945,11 +8141,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -8964,7 +8157,7 @@
   SUBROUTINE save_external_scratch_bounds_d3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -8983,11 +8176,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9015,11 +8205,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9051,11 +8238,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9091,11 +8275,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9132,11 +8314,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9166,11 +8346,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9201,11 +8379,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9242,11 +8418,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9284,11 +8458,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9304,7 +8476,7 @@
 
   SUBROUTINE free_internal_scratch_shape_d4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -9319,15 +8491,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9343,7 +8508,7 @@
   SUBROUTINE free_external_scratch_shape_d4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -9358,15 +8523,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9381,7 +8539,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_d4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -9400,11 +8558,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9419,7 +8574,7 @@
   SUBROUTINE free_external_scratch_bounds_d4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -9438,11 +8593,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9456,7 +8608,7 @@
 
   SUBROUTINE save_internal_scratch_shape_d4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -9471,15 +8623,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9494,7 +8639,7 @@
   SUBROUTINE save_external_scratch_shape_d4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -9508,11 +8653,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9526,7 +8668,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_d4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -9545,11 +8687,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9564,7 +8703,7 @@
   SUBROUTINE save_external_scratch_bounds_d4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -9583,11 +8722,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9615,11 +8751,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9651,11 +8784,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9691,11 +8821,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9732,11 +8860,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9766,11 +8892,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9801,11 +8925,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9842,11 +8964,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9884,11 +9004,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9904,7 +9022,7 @@
 
   SUBROUTINE free_internal_scratch_shape_d5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -9919,15 +9037,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9943,7 +9054,7 @@
   SUBROUTINE free_external_scratch_shape_d5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -9958,15 +9069,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -9981,7 +9085,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_d5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -10000,11 +9104,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10019,7 +9120,7 @@
   SUBROUTINE free_external_scratch_bounds_d5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10038,11 +9139,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10056,7 +9154,7 @@
 
   SUBROUTINE save_internal_scratch_shape_d5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10071,15 +9169,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10094,7 +9185,7 @@
   SUBROUTINE save_external_scratch_shape_d5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10108,11 +9199,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10126,7 +9214,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_d5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10145,11 +9233,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10164,7 +9249,7 @@
   SUBROUTINE save_external_scratch_bounds_d5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10183,11 +9268,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10215,11 +9297,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10251,11 +9330,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10291,11 +9367,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10332,11 +9406,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10366,11 +9438,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10401,11 +9471,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10442,11 +9510,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10484,11 +9550,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10504,7 +9568,7 @@
 
   SUBROUTINE free_internal_scratch_shape_d6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10519,15 +9583,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10543,7 +9600,7 @@
   SUBROUTINE free_external_scratch_shape_d6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10558,15 +9615,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10581,7 +9631,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_d6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -10600,11 +9650,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10619,7 +9666,7 @@
   SUBROUTINE free_external_scratch_bounds_d6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10638,11 +9685,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10656,7 +9700,7 @@
 
   SUBROUTINE save_internal_scratch_shape_d6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10671,15 +9715,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10694,7 +9731,7 @@
   SUBROUTINE save_external_scratch_shape_d6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10708,11 +9745,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10726,7 +9760,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_d6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10745,11 +9779,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10764,7 +9795,7 @@
   SUBROUTINE save_external_scratch_bounds_d6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -10783,11 +9814,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10815,11 +9843,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10851,11 +9876,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10891,11 +9913,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10932,11 +9952,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -10966,11 +9984,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11001,11 +10017,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11042,11 +10056,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11084,11 +10096,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11104,7 +10114,7 @@
 
   SUBROUTINE free_internal_scratch_shape_r1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11119,15 +10129,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11143,7 +10146,7 @@
   SUBROUTINE free_external_scratch_shape_r1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11158,15 +10161,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11181,7 +10177,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_r1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -11200,11 +10196,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11219,7 +10212,7 @@
   SUBROUTINE free_external_scratch_bounds_r1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11238,11 +10231,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11256,7 +10246,7 @@
 
   SUBROUTINE save_internal_scratch_shape_r1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11271,15 +10261,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11294,7 +10277,7 @@
   SUBROUTINE save_external_scratch_shape_r1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11308,11 +10291,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11326,7 +10306,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_r1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11345,11 +10325,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11364,7 +10341,7 @@
   SUBROUTINE save_external_scratch_bounds_r1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11383,11 +10360,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11415,11 +10389,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11451,11 +10422,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11491,11 +10459,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11532,11 +10498,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11566,11 +10530,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11601,11 +10563,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11642,11 +10602,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11684,11 +10642,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11704,7 +10660,7 @@
 
   SUBROUTINE free_internal_scratch_shape_r2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11719,15 +10675,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11743,7 +10692,7 @@
   SUBROUTINE free_external_scratch_shape_r2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11758,15 +10707,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11781,7 +10723,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_r2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -11800,11 +10742,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11819,7 +10758,7 @@
   SUBROUTINE free_external_scratch_bounds_r2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11838,11 +10777,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11856,7 +10792,7 @@
 
   SUBROUTINE save_internal_scratch_shape_r2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11871,15 +10807,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11894,7 +10823,7 @@
   SUBROUTINE save_external_scratch_shape_r2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11908,11 +10837,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11926,7 +10852,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_r2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11945,11 +10871,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -11964,7 +10887,7 @@
   SUBROUTINE save_external_scratch_bounds_r2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -11983,11 +10906,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12015,11 +10935,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12051,11 +10968,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12091,11 +11005,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12132,11 +11044,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12166,11 +11076,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12201,11 +11109,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12242,11 +11148,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12284,11 +11188,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12304,7 +11206,7 @@
 
   SUBROUTINE free_internal_scratch_shape_r3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -12319,15 +11221,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12343,7 +11238,7 @@
   SUBROUTINE free_external_scratch_shape_r3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -12358,15 +11253,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12381,7 +11269,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_r3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -12400,11 +11288,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12419,7 +11304,7 @@
   SUBROUTINE free_external_scratch_bounds_r3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -12438,11 +11323,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12456,7 +11338,7 @@
 
   SUBROUTINE save_internal_scratch_shape_r3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -12471,15 +11353,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12494,7 +11369,7 @@
   SUBROUTINE save_external_scratch_shape_r3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -12508,11 +11383,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12526,7 +11398,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_r3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -12545,11 +11417,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12564,7 +11433,7 @@
   SUBROUTINE save_external_scratch_bounds_r3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -12583,11 +11452,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12615,11 +11481,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12651,11 +11514,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12691,11 +11551,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12732,11 +11590,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12766,11 +11622,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12801,11 +11655,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12842,11 +11694,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12884,11 +11734,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12904,7 +11752,7 @@
 
   SUBROUTINE free_internal_scratch_shape_r4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -12919,15 +11767,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12943,7 +11784,7 @@
   SUBROUTINE free_external_scratch_shape_r4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -12958,15 +11799,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -12981,7 +11815,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_r4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -13000,11 +11834,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13019,7 +11850,7 @@
   SUBROUTINE free_external_scratch_bounds_r4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13038,11 +11869,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13056,7 +11884,7 @@
 
   SUBROUTINE save_internal_scratch_shape_r4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13071,15 +11899,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13094,7 +11915,7 @@
   SUBROUTINE save_external_scratch_shape_r4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13108,11 +11929,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13126,7 +11944,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_r4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13145,11 +11963,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13164,7 +11979,7 @@
   SUBROUTINE save_external_scratch_bounds_r4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13183,11 +11998,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13215,11 +12027,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13251,11 +12060,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13291,11 +12097,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13332,11 +12136,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13366,11 +12168,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13401,11 +12201,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13442,11 +12240,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13484,11 +12280,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13504,7 +12298,7 @@
 
   SUBROUTINE free_internal_scratch_shape_r5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13519,15 +12313,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13543,7 +12330,7 @@
   SUBROUTINE free_external_scratch_shape_r5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13558,15 +12345,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13581,7 +12361,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_r5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -13600,11 +12380,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13619,7 +12396,7 @@
   SUBROUTINE free_external_scratch_bounds_r5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13638,11 +12415,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13656,7 +12430,7 @@
 
   SUBROUTINE save_internal_scratch_shape_r5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13671,15 +12445,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13694,7 +12461,7 @@
   SUBROUTINE save_external_scratch_shape_r5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13708,11 +12475,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13726,7 +12490,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_r5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13745,11 +12509,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13764,7 +12525,7 @@
   SUBROUTINE save_external_scratch_bounds_r5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -13783,11 +12544,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13815,11 +12573,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13851,11 +12606,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13891,11 +12643,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13932,11 +12682,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -13966,11 +12714,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14001,11 +12747,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14042,11 +12786,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14084,11 +12826,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14104,7 +12844,7 @@
 
   SUBROUTINE free_internal_scratch_shape_r6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14119,15 +12859,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14143,7 +12876,7 @@
   SUBROUTINE free_external_scratch_shape_r6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14158,15 +12891,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14181,7 +12907,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_r6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -14200,11 +12926,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14219,7 +12942,7 @@
   SUBROUTINE free_external_scratch_bounds_r6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14238,11 +12961,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14256,7 +12976,7 @@
 
   SUBROUTINE save_internal_scratch_shape_r6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14271,15 +12991,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14294,7 +13007,7 @@
   SUBROUTINE save_external_scratch_shape_r6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14308,11 +13021,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14326,7 +13036,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_r6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14345,11 +13055,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14364,7 +13071,7 @@
   SUBROUTINE save_external_scratch_bounds_r6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    REAL( REAL32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14383,11 +13090,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14415,11 +13119,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14451,11 +13152,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14491,11 +13189,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14532,11 +13228,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14566,11 +13260,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14601,11 +13293,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14642,11 +13332,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14684,11 +13372,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14704,7 +13390,7 @@
 
   SUBROUTINE free_internal_scratch_shape_il1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14719,15 +13405,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14743,7 +13422,7 @@
   SUBROUTINE free_external_scratch_shape_il1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14758,15 +13437,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14781,7 +13453,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_il1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -14800,11 +13472,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14819,7 +13488,7 @@
   SUBROUTINE free_external_scratch_bounds_il1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14838,11 +13507,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14856,7 +13522,7 @@
 
   SUBROUTINE save_internal_scratch_shape_il1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14871,15 +13537,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14894,7 +13553,7 @@
   SUBROUTINE save_external_scratch_shape_il1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14908,11 +13567,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14926,7 +13582,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_il1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14945,11 +13601,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -14964,7 +13617,7 @@
   SUBROUTINE save_external_scratch_bounds_il1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -14983,11 +13636,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15015,11 +13665,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15051,11 +13698,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15091,11 +13735,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15132,11 +13774,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15166,11 +13806,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15201,11 +13839,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15242,11 +13878,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15284,11 +13918,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15304,7 +13936,7 @@
 
   SUBROUTINE free_internal_scratch_shape_il2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -15319,15 +13951,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15343,7 +13968,7 @@
   SUBROUTINE free_external_scratch_shape_il2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -15358,15 +13983,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15381,7 +13999,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_il2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -15400,11 +14018,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15419,7 +14034,7 @@
   SUBROUTINE free_external_scratch_bounds_il2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -15438,11 +14053,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15456,7 +14068,7 @@
 
   SUBROUTINE save_internal_scratch_shape_il2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -15471,15 +14083,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15494,7 +14099,7 @@
   SUBROUTINE save_external_scratch_shape_il2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -15508,11 +14113,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15526,7 +14128,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_il2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -15545,11 +14147,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15564,7 +14163,7 @@
   SUBROUTINE save_external_scratch_bounds_il2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -15583,11 +14182,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15615,11 +14211,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15651,11 +14244,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15691,11 +14281,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15732,11 +14320,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15766,11 +14352,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15801,11 +14385,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15842,11 +14424,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15884,11 +14464,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15904,7 +14482,7 @@
 
   SUBROUTINE free_internal_scratch_shape_il3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -15919,15 +14497,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15943,7 +14514,7 @@
   SUBROUTINE free_external_scratch_shape_il3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -15958,15 +14529,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -15981,7 +14545,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_il3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -16000,11 +14564,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16019,7 +14580,7 @@
   SUBROUTINE free_external_scratch_bounds_il3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16038,11 +14599,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16056,7 +14614,7 @@
 
   SUBROUTINE save_internal_scratch_shape_il3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16071,15 +14629,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16094,7 +14645,7 @@
   SUBROUTINE save_external_scratch_shape_il3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16108,11 +14659,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16126,7 +14674,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_il3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16145,11 +14693,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16164,7 +14709,7 @@
   SUBROUTINE save_external_scratch_bounds_il3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16183,11 +14728,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16215,11 +14757,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16251,11 +14790,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16291,11 +14827,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16332,11 +14866,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16366,11 +14898,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16401,11 +14931,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16442,11 +14970,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16484,11 +15010,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16504,7 +15028,7 @@
 
   SUBROUTINE free_internal_scratch_shape_il4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16519,15 +15043,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16543,7 +15060,7 @@
   SUBROUTINE free_external_scratch_shape_il4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16558,15 +15075,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16581,7 +15091,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_il4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -16600,11 +15110,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16619,7 +15126,7 @@
   SUBROUTINE free_external_scratch_bounds_il4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16638,11 +15145,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16656,7 +15160,7 @@
 
   SUBROUTINE save_internal_scratch_shape_il4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16671,15 +15175,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16694,7 +15191,7 @@
   SUBROUTINE save_external_scratch_shape_il4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16708,11 +15205,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16726,7 +15220,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_il4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16745,11 +15239,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16764,7 +15255,7 @@
   SUBROUTINE save_external_scratch_bounds_il4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -16783,11 +15274,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16815,11 +15303,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16851,11 +15336,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16891,11 +15373,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16932,11 +15412,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -16966,11 +15444,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17001,11 +15477,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17042,11 +15516,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17084,11 +15556,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17104,7 +15574,7 @@
 
   SUBROUTINE free_internal_scratch_shape_il5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17119,15 +15589,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17143,7 +15606,7 @@
   SUBROUTINE free_external_scratch_shape_il5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17158,15 +15621,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17181,7 +15637,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_il5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -17200,11 +15656,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17219,7 +15672,7 @@
   SUBROUTINE free_external_scratch_bounds_il5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17238,11 +15691,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17256,7 +15706,7 @@
 
   SUBROUTINE save_internal_scratch_shape_il5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17271,15 +15721,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17294,7 +15737,7 @@
   SUBROUTINE save_external_scratch_shape_il5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17308,11 +15751,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17326,7 +15766,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_il5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17345,11 +15785,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17364,7 +15801,7 @@
   SUBROUTINE save_external_scratch_bounds_il5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17383,11 +15820,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17415,11 +15849,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17451,11 +15882,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17491,11 +15919,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17532,11 +15958,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17566,11 +15990,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17601,11 +16023,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17642,11 +16062,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17684,11 +16102,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17704,7 +16120,7 @@
 
   SUBROUTINE free_internal_scratch_shape_il6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17719,15 +16135,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17743,7 +16152,7 @@
   SUBROUTINE free_external_scratch_shape_il6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17758,15 +16167,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17781,7 +16183,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_il6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -17800,11 +16202,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17819,7 +16218,7 @@
   SUBROUTINE free_external_scratch_bounds_il6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17838,11 +16237,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17856,7 +16252,7 @@
 
   SUBROUTINE save_internal_scratch_shape_il6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17871,15 +16267,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17894,7 +16283,7 @@
   SUBROUTINE save_external_scratch_shape_il6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17908,11 +16297,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17926,7 +16312,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_il6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17945,11 +16331,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -17964,7 +16347,7 @@
   SUBROUTINE save_external_scratch_bounds_il6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT64 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -17983,11 +16366,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18015,11 +16395,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18051,11 +16428,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18091,11 +16465,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18132,11 +16504,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18166,11 +16536,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18201,11 +16569,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18242,11 +16608,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18284,11 +16648,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18304,7 +16666,7 @@
 
   SUBROUTINE free_internal_scratch_shape_i1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -18319,15 +16681,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18343,7 +16698,7 @@
   SUBROUTINE free_external_scratch_shape_i1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -18358,15 +16713,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18381,7 +16729,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_i1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -18400,11 +16748,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18419,7 +16764,7 @@
   SUBROUTINE free_external_scratch_bounds_i1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -18438,11 +16783,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18456,7 +16798,7 @@
 
   SUBROUTINE save_internal_scratch_shape_i1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -18471,15 +16813,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18494,7 +16829,7 @@
   SUBROUTINE save_external_scratch_shape_i1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -18508,11 +16843,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18526,7 +16858,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_i1(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -18545,11 +16877,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18564,7 +16893,7 @@
   SUBROUTINE save_external_scratch_bounds_i1(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(1,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -18583,11 +16912,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18615,11 +16941,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18651,11 +16974,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18691,11 +17011,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18732,11 +17050,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18766,11 +17082,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18801,11 +17115,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18842,11 +17154,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18884,11 +17194,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18904,7 +17212,7 @@
 
   SUBROUTINE free_internal_scratch_shape_i2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -18919,15 +17227,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18943,7 +17244,7 @@
   SUBROUTINE free_external_scratch_shape_i2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -18958,15 +17259,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -18981,7 +17275,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_i2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -19000,11 +17294,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19019,7 +17310,7 @@
   SUBROUTINE free_external_scratch_bounds_i2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19038,11 +17329,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19056,7 +17344,7 @@
 
   SUBROUTINE save_internal_scratch_shape_i2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19071,15 +17359,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19094,7 +17375,7 @@
   SUBROUTINE save_external_scratch_shape_i2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19108,11 +17389,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19126,7 +17404,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_i2(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19145,11 +17423,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19164,7 +17439,7 @@
   SUBROUTINE save_external_scratch_bounds_i2(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(2,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19183,11 +17458,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19215,11 +17487,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19251,11 +17520,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19291,11 +17557,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19332,11 +17596,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19366,11 +17628,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19401,11 +17661,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19442,11 +17700,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19484,11 +17740,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19504,7 +17758,7 @@
 
   SUBROUTINE free_internal_scratch_shape_i3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19519,15 +17773,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19543,7 +17790,7 @@
   SUBROUTINE free_external_scratch_shape_i3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19558,15 +17805,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19581,7 +17821,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_i3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -19600,11 +17840,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19619,7 +17856,7 @@
   SUBROUTINE free_external_scratch_bounds_i3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19638,11 +17875,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19656,7 +17890,7 @@
 
   SUBROUTINE save_internal_scratch_shape_i3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19671,15 +17905,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19694,7 +17921,7 @@
   SUBROUTINE save_external_scratch_shape_i3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19708,11 +17935,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19726,7 +17950,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_i3(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19745,11 +17969,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19764,7 +17985,7 @@
   SUBROUTINE save_external_scratch_bounds_i3(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(3,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -19783,11 +18004,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19815,11 +18033,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19851,11 +18066,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19891,11 +18103,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19932,11 +18142,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -19966,11 +18174,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20001,11 +18207,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20042,11 +18246,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20084,11 +18286,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20104,7 +18304,7 @@
 
   SUBROUTINE free_internal_scratch_shape_i4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20119,15 +18319,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20143,7 +18336,7 @@
   SUBROUTINE free_external_scratch_shape_i4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20158,15 +18351,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20181,7 +18367,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_i4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -20200,11 +18386,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20219,7 +18402,7 @@
   SUBROUTINE free_external_scratch_bounds_i4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20238,11 +18421,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20256,7 +18436,7 @@
 
   SUBROUTINE save_internal_scratch_shape_i4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20271,15 +18451,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20294,7 +18467,7 @@
   SUBROUTINE save_external_scratch_shape_i4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20308,11 +18481,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20326,7 +18496,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_i4(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20345,11 +18515,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20364,7 +18531,7 @@
   SUBROUTINE save_external_scratch_bounds_i4(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(4,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20383,11 +18550,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20415,11 +18579,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20451,11 +18612,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20491,11 +18649,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20532,11 +18688,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20566,11 +18720,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20601,11 +18753,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20642,11 +18792,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20684,11 +18832,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20704,7 +18850,7 @@
 
   SUBROUTINE free_internal_scratch_shape_i5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20719,15 +18865,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20743,7 +18882,7 @@
   SUBROUTINE free_external_scratch_shape_i5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20758,15 +18897,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20781,7 +18913,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_i5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -20800,11 +18932,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20819,7 +18948,7 @@
   SUBROUTINE free_external_scratch_bounds_i5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20838,11 +18967,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20856,7 +18982,7 @@
 
   SUBROUTINE save_internal_scratch_shape_i5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20871,15 +18997,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20894,7 +19013,7 @@
   SUBROUTINE save_external_scratch_shape_i5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20908,11 +19027,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20926,7 +19042,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_i5(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20945,11 +19061,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -20964,7 +19077,7 @@
   SUBROUTINE save_external_scratch_bounds_i5(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(5,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -20983,11 +19096,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21015,11 +19125,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21051,11 +19158,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21091,11 +19195,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21132,11 +19234,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21166,11 +19266,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21201,11 +19299,9 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(1:s(1),1:s(2),1:s(3),1:s(4),1:s(5),1:s(6)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21242,11 +19338,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21284,11 +19378,9 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(s(1,1):s(1,2),s(2,1):s(2,2),s(3,1):s(3,2),s(4,1):s(4,2),s(5,1):s(5,2),s(6,1):s(6,2)),STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21304,7 +19396,7 @@
 
   SUBROUTINE free_internal_scratch_shape_i6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -21319,15 +19411,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21343,7 +19428,7 @@
   SUBROUTINE free_external_scratch_shape_i6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -21358,15 +19443,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21381,7 +19459,7 @@
   
   SUBROUTINE free_internal_scratch_bounds_i6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
     
@@ -21400,11 +19478,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21419,7 +19494,7 @@
   SUBROUTINE free_external_scratch_bounds_i6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -21438,11 +19513,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21456,7 +19528,7 @@
 
   SUBROUTINE save_internal_scratch_shape_i6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -21471,15 +19543,8 @@
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
     !quick return if len <=0
-    IF( len_in_type <= 0) THEN
-       ierr = -1
-       RETURN
-    END IF
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21494,7 +19559,7 @@
   SUBROUTINE save_external_scratch_shape_i6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -21508,11 +19573,8 @@
 
     tag = TRIM( ADJUSTL( tagin ) )
     len_in_type = PRODUCT( s )
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21526,7 +19588,7 @@
 
   SUBROUTINE save_internal_scratch_bounds_i6(s, usr_ptr, tagin, ierr)
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -21545,11 +19607,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
@@ -21564,7 +19623,7 @@
   SUBROUTINE save_external_scratch_bounds_i6(pool_ext, s, usr_ptr, tagin, ierr)
     TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
     INTEGER( INT64 ), INTENT( IN )             :: s(6,2)
-    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( IN ) :: usr_ptr(:,:,:,:,:,:)
+    INTEGER( INT32 ), POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr(:,:,:,:,:,:)
     CHARACTER(*), INTENT( IN )                 :: tagin
     INTEGER( INT32 ), INTENT( OUT )            :: ierr
 
@@ -21583,11 +19642,8 @@
        len_in_type = len_in_type * &
             ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
     END DO
-    IF( len_in_type == 0 )THEN
-       ierr = 0
-       RETURN
-    ELSEIF( len_in_type < 0 )THEN
-       ierr = -1
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
        RETURN
     END IF
     len_in_char = len_in_type * type_size_in_char
