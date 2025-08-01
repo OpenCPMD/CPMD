@@ -2082,7 +2082,8 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
   logical                                    :: save
   INTEGER                                    :: i, ik, isub, ma, n1, nm, nnow_save, ig, &
                                                 nstates(2,1)
-  REAL(real_8)                               :: fa, rsum, scalef, rsumv
+  REAL(real_8)                               :: fa, rsum, scalef, rsumv, fac_r
+  COMPLEX(real_8)                            :: fac_c
   REAL(real_8), EXTERNAL                     :: ddot
   CHARACTER(*), PARAMETER                    :: procedureN = 'extrapwf'
   CALL tiset(procedureN,isub)
@@ -2110,10 +2111,17 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
 
   ma=numcold
   IF (ma.GT.1) THEN
-     CALL zeroing(c0(:,:,1:nkpt%nkpnt))!,nkpt%ngwk*nstate*nkpt%nkpnt)
      n1=nnow
      fa=-1.0_real_8
      DO i=1,ma
+        IF(i.eq.1)THEN
+           fac_r=0._real_8
+           fac_c=CMPLX(0._real_8,0._real_8)
+        ELSE
+           fac_r=1._real_8
+           fac_c=CMPLX(1._real_8,0._real_8)
+        END IF
+
         nm=nnow-i+1
         IF (nm.LE.0) nm=nm+m
         ! construct extrapolation polynomial coefficient.
@@ -2128,7 +2136,7 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
               CALL ovlap_c(nstate,gam,cold(:,:,ik,nm),cold(:,:,ik,n1))
               CALL mp_sum(gam,2*nstate*nstate,parai%allgrp)
               CALL rotate_c(CMPLX(fa,0._real_8,kind=real_8),cold(1,1,ik,nm),&
-                   CMPLX(1._real_8,0._real_8,kind=real_8),c0(1,1,ik),gam,nstate)
+                   fac_c,c0(1,1,ik),gam,nstate)
            ENDDO
         ELSE
            IF(pslo_com%tivan)THEN
@@ -2137,7 +2145,7 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
               CALL ovlap(nstate,gam,cold(:,:,1,nm),cold(:,:,1,n1))
            END IF
            CALL mp_sum(gam,nstate*nstate,parai%allgrp)
-           CALL rotate(fa,cold(:,:,1,nm),1._real_8,c0(:,:,1),gam,nstate,2*nkpt%ngwk,&
+           CALL rotate(fa,cold(:,:,1,nm),fac_r,c0(:,:,1),gam,nstate,2*nkpt%ngwk,&
                 cntl%tlsd,spin_mod%nsup,spin_mod%nsdown)
         ENDIF
      ENDDO
