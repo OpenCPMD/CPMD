@@ -41,6 +41,7 @@ CONTAINS
     IF(cntl%fft_tune_batchsize.OR.cntl%rnlsm_autotune)THEN
        num_it=MAX(fft_tune_max_it,cnti%rnlsm_autotune_maxit)
        DO it=1,num_it
+          WRITE(6,'(A,I7,A,I7,A)') 'Autotuning, iteration: ',it,' of ', num_it,' iterations'
           IF(it.LE.cnti%rnlsm_autotune_maxit.AND.cntl%overlapp_comm_comp)THEN
              CALL rnlsm(c0,nstate,1,1,.FALSE.,unpack_dfnl_fnl=.FALSE.)
           END IF
