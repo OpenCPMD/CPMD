@@ -17,11 +17,13 @@ MODULE vdw_param
   INTEGER, ALLOCATABLE, PUBLIC :: vdw_pair(:,:)
   DOUBLE PRECISION, PUBLIC :: rcut2_vdw, rcut2_cn
   CHARACTER(LEN=9) :: version = 'noGrimme '
+  CHARACTER(LEN=8) :: vdw_funct = ' '
   !
   ! version   : allowed values: D2, D3org-BJ, D3org-Z, D3mod-BJ, D3mod-Z
   ! vdw_input : allow input of new C6 coefficients (=1) or not (=0)
   ! vdw_dir   : use periodic boundary conditions (=1) or not (=0)
   ! vdw_pair  : apply vdW between pair of species (=1) or not (=0)
+  ! vdw_funct : choose Grimme parameters for this functional
   !
   ! rcut2_vdw : cut-off radius squared for vdW interactions (alat units)
   ! rcut2_cn  : cut-off radius squared for coordination number (alat units)
@@ -79,7 +81,7 @@ MODULE vdw_param
     ! Initialize parameters
     !---------------------------------------------------------------------------
     !
-    SUBROUTINE grimvdwin(iunit, ntyp, namtyp, alat, funct,error)
+    SUBROUTINE grimvdwin(iunit, ntyp, namtyp, alat, funct, error)
       !==--------------------------------------------------------------==
       !==  THIS ROUTINE READS THE GRIMME CORRECTION SUBSECTION         ==
       !==--------------------------------------------------------------==
@@ -92,6 +94,8 @@ MODULE vdw_param
       !==                                                              ==
       !==    VDW VERSION                                               ==
       !==      version                                                 ==
+      !==    VDW FUNCTIONAL                                            ==
+      !==      vdw_funct                                               ==
       !==    VDW RCUT                                                  ==
       !==      rcut_inp                                                ==
       !==    VDW PERIODICITY                                           ==
@@ -157,12 +161,20 @@ MODULE vdw_param
         !
         IF ( (INDEX(inpline,'END').NE.0) .AND. (INDEX(inpline,'GRIM').NE.0) ) GOTO 300
         !
-        IF ( (INDEX(inpline,'VDW').NE.0) .AND. (INDEX(inpline,'VERSION').NE.0) ) THEN
+        IF ( (INDEX(inpline,'VDW').NE.0) .AND. (INDEX(inpline,'VERSION').NE.0) ) THEN 
           !
           ! read version of Grimme correction scheme
           !
           READ(iunit,ERR=200,END=200,FMT='(a)') inpline
           version = adjustl(inpline)
+          GOTO 100
+          !
+        ELSE IF ( (INDEX(inpline,'VDW').NE.0) .AND. (INDEX(inpline,'FUNCT').NE.0) ) THEN
+          !
+          ! read functional for Grimme parameters
+          !
+          READ(iunit,ERR=200,END=200,FMT='(a)') inpline
+          vdw_funct = adjustl(inpline)
           GOTO 100
           !
         ELSE IF ( (INDEX(inpline,'VDW').NE.0) .AND. (INDEX(inpline,'RCUT').NE.0) ) THEN
@@ -216,6 +228,10 @@ MODULE vdw_param
            return
         endif
         !
+        ! Override functional for Grimme parameters
+        !
+        IF (vdw_funct /= ' ') functional = vdw_funct
+        !
         IF (rcut_inp <= 0.d0) then 
            CALL VDW_ERROR('GRIMVDWIN','ERROR INPUT VDW RCUT',error) 
            return
@@ -264,6 +280,7 @@ MODULE vdw_param
 !      ! broadcast data to all processes
 !      !
 !      CALL mp_bcast(version,  ionode_id)
+!      CALL mp_bcast(vdw_funct,ionode_id)
 !      CALL mp_bcast(vdw_input,ionode_id)
 !      CALL mp_bcast(vdw_dir,  ionode_id)
 !      CALL mp_bcast(vdw_pair, ionode_id)
@@ -271,6 +288,7 @@ MODULE vdw_param
       !
 !#ifdef PARALLEL
 !      CALL MY_CHAR_BCAST(version,IO_SOURCE,CP_GRP)
+!      CALL MY_CHAR_BCAST(vdw_funct,IO_SOURCE,CP_GRP)
 !      CALL MY_BCAST(vdw_input,1*4,IO_SOURCE,CP_GRP)
 !      CALL MY_BCAST(vdw_dir,3*4,IO_SOURCE,CP_GRP)
 !      CALL MY_BCAST(vdw_pair,numTypes*numTypes*4,IO_SOURCE,CP_GRP)
@@ -286,6 +304,14 @@ MODULE vdw_param
           s6_D2 = 1.25d0
         CASE ('BLYP')
           s6_D2 = 1.20d0
+        CASE ('BP86')
+          s6_D2 = 1.06d0
+        CASE ('TPSS')
+          s6_D2 = 1.0d0
+        CASE ('PBE0')
+          s6_D2 = 0.60d0
+        CASE ('B3LYP')
+          s6_D2 = 1.05d0
         CASE default
           WRITE(6,'(/1x,"Unknown functional: ",a8)') functional
           STOP
@@ -312,10 +338,50 @@ MODULE vdw_param
           rs6 = 0.4298d0
           s8  = 2.6996d0
           rs8 = 4.2359d0
+        CASE ('BP86')
+          rs6 = 0.3946d0
+          s8  = 3.2822d0
+          rs8 = 4.8516d0
+        CASE ('OPBE')
+          rs6 = 0.5512d0
+          s8  = 3.3816d0
+          rs8 = 2.9444d0
+        CASE ('OLYP')
+          rs6 = 0.5299d0
+          s8  = 2.6205d0
+          rs8 = 2.8065d0
+        CASE ('HCTC')
+          rs6 = 0.3563d0
+          s8  = 1.0821d0
+          rs8 = 4.3359d0
+        CASE ('TPSS')
+          rs6 = 0.4535d0
+          s8  = 1.9435d0
+          rs8 = 4.4752d0
         CASE ('HF')
           rs6 = 0.3385d0
           s8  = 0.9171d0
           rs8 = 2.8830d0
+        CASE ('PBE0')
+          rs6 = 0.4145d0
+          s8  = 1.2177d0
+          rs8 = 4.8593d0
+        CASE ('revPBE0')
+          rs6 = 0.4679d0
+          s8  = 1.7588d0
+          rs8 = 3.7619d0
+        CASE ('HSE06')
+          rs6 = 0.383d0
+          s8  = 2.310d0
+          rs8 = 5.685d0
+        CASE ('B3LYP')
+          rs6 = 0.3981d0
+          s8  = 1.9889d0
+          rs8 = 4.4122d0
+        CASE ('CAMB3LYP')
+          rs6 = 0.3708d0
+          s8  = 2.0674d0
+          rs8 = 5.4743d0
         CASE default
           WRITE(6,'(/1x,"Unknown functional: ",a8)') functional
           STOP
@@ -338,9 +404,39 @@ MODULE vdw_param
         CASE ('BLYP')
           rs6 = 1.094d0
           s8  = 1.682d0
+        CASE ('BP86')
+          rs6 = 1.139d0
+          s8  = 1.683d0
+        CASE ('OPBE')
+          rs6 = 0.837d0
+          s8  = 2.055d0
+        CASE ('OLYP')
+          rs6 = 0.806d0
+          s8  = 1.764d0
+        CASE ('HCTC')
+          rs6 = 1.d0
+          s8  = 1.d0
+        CASE ('TPSS')
+          rs6 = 1.221d0
+          s8  = 1.206d0
         CASE ('HF')
           rs6 = 1.158d0
           s8  = 1.746d0
+        CASE ('PBE0')
+          rs6 = 1.287d0
+          s8  = 0.928d0
+        CASE ('revPBE0')
+          rs6 = 0.949d0
+          s8  = 0.792d0
+        CASE ('HSE06')
+          rs6 = 1.129d0
+          s8  = 0.109d0
+        CASE ('B3LYP')
+          rs6 = 1.261d0
+          s8  = 1.703d0
+        CASE ('CAMB3LYP')
+          rs6 = 1.378d0
+          s8  = 1.217d0
         CASE default
           WRITE(6,'(/1x,"Unknown functional: ",a8)') functional
           STOP
@@ -527,6 +623,7 @@ MODULE vdw_param
       END IF
 
       CALL mpi_bcast(version,9,mpi_character,MASTER_RANK,MPI_COM,error)
+      CALL mpi_bcast(vdw_funct,8,mpi_character,MASTER_RANK,MPI_COM,error)
       CALL mpi_BCAST(vdw_input,1,mpi_integer,MASTER_RANK,MPI_COM,error)
       CALL mpi_BCAST(vdw_dir,3,mpi_integer,MASTER_RANK,MPI_COM,error)
       CALL mpi_BCAST(vdw_pair,numTypes*numTypes,mpi_integer,MASTER_RANK,MPI_COM,error)
@@ -543,6 +640,14 @@ MODULE vdw_param
                s6_D2 = 1.25d0
             CASE ('BLYP')
                s6_D2 = 1.20d0
+            CASE ('BP86')
+              s6_D2 = 1.06d0
+            CASE ('TPSS')
+              s6_D2 = 1.0d0
+            CASE ('PBE0')
+              s6_D2 = 0.60d0
+            CASE ('B3LYP')
+              s6_D2 = 1.05d0
             CASE default
                WRITE(6,'(/1x,"Unknown functional: ",a8)') functional
                STOP
@@ -569,10 +674,50 @@ MODULE vdw_param
                rs6 = 0.4298d0
                s8  = 2.6996d0
                rs8 = 4.2359d0
+            CASE ('BP86')
+              rs6 = 0.3946d0
+              s8  = 3.2822d0
+              rs8 = 4.8516d0
+            CASE ('OPBE')
+              rs6 = 0.5512d0
+              s8  = 3.3816d0
+              rs8 = 2.9444d0
+            CASE ('OLYP')
+              rs6 = 0.5299d0
+              s8  = 2.6205d0
+              rs8 = 2.8065d0
+            CASE ('HCTC')
+              rs6 = 0.3563d0
+              s8  = 1.0821d0
+              rs8 = 4.3359d0
+            CASE ('TPSS')
+              rs6 = 0.4535d0
+              s8  = 1.9435d0
+              rs8 = 4.4752d0
             CASE ('HF')
                rs6 = 0.3385d0
                s8  = 0.9171d0
                rs8 = 2.8830d0
+            CASE ('PBE0')
+              rs6 = 0.4145d0
+              s8  = 1.2177d0
+              rs8 = 4.8593d0
+            CASE ('revPBE0')
+              rs6 = 0.4679d0
+              s8  = 1.7588d0
+              rs8 = 3.7619d0
+            CASE ('HSE06')
+              rs6 = 0.383d0
+              s8  = 2.310d0
+              rs8 = 5.685d0
+            CASE ('B3LYP')
+              rs6 = 0.3981d0
+              s8  = 1.9889d0
+              rs8 = 4.4122d0
+            CASE ('CAMB3LYP')
+              rs6 = 0.3708d0
+              s8  = 2.0674d0
+              rs8 = 5.4743d0
             CASE default
                WRITE(6,'(/1x,"Unknown functional: ",a8)') functional
                STOP
@@ -595,9 +740,39 @@ MODULE vdw_param
             CASE ('BLYP')
                rs6 = 1.094d0
                s8  = 1.682d0
+            CASE ('BP86')
+              rs6 = 1.139d0
+              s8  = 1.683d0
+            CASE ('OPBE')
+              rs6 = 0.837d0
+              s8  = 2.055d0
+            CASE ('OLYP')
+              rs6 = 0.806d0
+              s8  = 1.764d0
+            CASE ('HCTC')
+              rs6 = 1.d0
+              s8  = 1.d0
+            CASE ('TPSS')
+              rs6 = 1.221d0
+              s8  = 1.206d0
             CASE ('HF')
                rs6 = 1.158d0
                s8  = 1.746d0
+            CASE ('PBE0')
+              rs6 = 1.287d0
+              s8  = 0.928d0
+            CASE ('revPBE0')
+              rs6 = 0.949d0
+              s8  = 0.792d0
+            CASE ('HSE06')
+              rs6 = 1.129d0
+              s8  = 0.109d0
+            CASE ('B3LYP')
+              rs6 = 1.261d0
+              s8  = 1.703d0
+            CASE ('CAMB3LYP')
+              rs6 = 1.378d0
+              s8  = 1.217d0
             CASE default
                WRITE(6,'(/1x,"Unknown functional: ",a8)') functional
                STOP

@@ -10,10 +10,11 @@ MODULE vdwin_utils
   USE dftd3_api,                       ONLY: dftd3_init,&
                                              dftd3_set_functional
   USE error_handling,                  ONLY: stopgm
-#ifdef _HAS_LIBGRIMMEVDW  
+#ifdef _HAS_LIBGRIMMEVDW
   USE func,                            ONLY: mgcx_is_pbex, &
                                              mgcx_is_revpbex, &
                                              func1
+  USE vdwcmod,                         ONLY: empvdwc
 #endif                                             
   USE inscan_utils,                    ONLY: inscan
   USE ions,                            ONLY: ions0,&
@@ -87,10 +88,9 @@ CONTAINS
 #ifdef _HAS_LIBGRIMMEVDW
     CHARACTER(len=3)                         :: typenames(99)
     CHARACTER(len=8)                         :: functional
-    
+
     ! initialize switch
     vdwl%grimme = .false.
-    
 #endif
 
     !
@@ -162,7 +162,8 @@ CONTAINS
                   ELSE IF(func1%mgcx.EQ.mgcx_is_revpbex) THEN
                     functional='revPBE'
                   ELSE
-                    functional='else'
+!                    functional='else'
+                    functional = TRIM(ADJUSTL(empvdwc%dft_func))
                   ENDIF
 
                   CALL vdw_grimme_read_input(iunit, ions1%nsp, typenames, 1.d0, functional, ierr)
@@ -273,7 +274,7 @@ CONTAINS
               CALL stopgm(procedureN,'Error while broadcasting GRIMME CORRECTION', __LINE__,__FILE__)
             ENDIF
           else
-#endif          
+#endif
             CALL empvdw_init()
 #ifdef _HAS_LIBGRIMMEVDW
           endif
