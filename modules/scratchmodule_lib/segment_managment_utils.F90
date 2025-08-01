@@ -80,6 +80,7 @@ CONTAINS
 
 #if defined(_DEBUG)
     WRITE( OUTPUT_UNIT, '(A)') "Warning, deallocating segment"
+    WRITE( OUTPUT_UNIT, '(A)') this%index_c
 #endif
     
     CALL deallocate_array( this%data, len, ierr )
@@ -395,9 +396,33 @@ CONTAINS
     ELSE
        CALL grow_index( this, ierr )
        IF( ierr /= 0 )EXIT_ON_ERROR
+       !shift all segments by one to the end
+       DO id = SIZE( this%index_i, 1 ), new_id + 2 , -1
+          this%index_i( id, : ) = this%index_i( id - 1, : )
+          this%index_l( id, : ) = this%index_l( id - 1, : )
+          this%index_c( id ) = this%index_c( id - 1 )
+       END DO
+#if defined(_DEBUG)
+       WRITE( OUTPUT_UNIT, '(A)' ) "after shift"
+       DO id = 1, SIZE( this%index_i, 1 )
+          WRITE( OUTPUT_UNIT, '(6I17)' ) this%index_i( id, : )
+          WRITE( OUTPUT_UNIT, '(2L2)' ) this%index_l( id, : )
+          WRITE( OUTPUT_UNIT, '(A)' ) this%index_c( id )
+       END DO
+#endif
+       
     END IF
 
     !split segment
+#if defined(_DEBUG)
+    WRITE( OUTPUT_UNIT, '(A)' ) "request to add a segment, new segment data 1"
+    DO id = 1, SIZE( this%index_i, 1 )
+       WRITE( OUTPUT_UNIT, '(6I17)' ) this%index_i( id, : )
+       WRITE( OUTPUT_UNIT, '(2L2)' ) this%index_l( id, : )
+       WRITE( OUTPUT_UNIT, '(A)' ) this%index_c( id )
+    END DO
+#endif
+
     
     !backup the old segment end
     this%index_i( new_id + 1 , 5 ) = this%index_i( new_id, 5 )
@@ -414,6 +439,15 @@ CONTAINS
     this%index_i( new_id + 1 , 4 ) = this%index_i( new_id, 5 ) + ONE_INT64
     this%index_i( new_id + 1 , 6 ) = this%index_i( new_id + 1, 5 ) - this%index_i( new_id + 1, 4 ) &
          + ONE_INT64
+    
+#if defined(_DEBUG)
+    WRITE( OUTPUT_UNIT, '(A)' ) "request to add a segment, new segment data 2"
+    DO id = 1, SIZE( this%index_i, 1 )
+       WRITE( OUTPUT_UNIT, '(6I17)' ) this%index_i( id, : )
+       WRITE( OUTPUT_UNIT, '(2L2)' ) this%index_l( id, : )
+       WRITE( OUTPUT_UNIT, '(A)' ) this%index_c( id )
+    END DO
+#endif
 
     CALL maximize_segment( this, new_id + 1 )
     this%index_l( new_id + 1, 1 ) = .TRUE.
@@ -597,7 +631,9 @@ CONTAINS
     END IF
     
     new_size = old_size - 1 !< decrease index by 1
-
+#if defined(_DEBUG)
+    WRITE( OUTPUT_UNIT ,'(A)') 'removing segment',this%index_c
+#endif
     IF( old_size /= 0 ) THEN !< get back old indexes
        CALL backup_index( this, this_backup )
     END IF

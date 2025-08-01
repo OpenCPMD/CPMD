@@ -35,6 +35,10 @@ CONTAINS
 
     INTEGER( INT32)                               :: id
 
+#if defined(_DEBUG)
+    WRITE( OUTPUT_UNIT, '(A,I17,A)') "Trying to find requested user ptr", requested_len, tag
+#endif
+
     DO id = 1, SIZE( this%node, 1 )
        CALL request_saved_segment( usr_ptr, this%node( id )%ptr, requested_len, tag,  ierr )
        !ierr < 0 nothing found, got to next node
@@ -60,6 +64,10 @@ CONTAINS
     INTEGER( INT32 ), INTENT( OUT )              :: ierr
 
     INTEGER( INT32)                              :: id
+
+#if defined(_DEBUG)
+    WRITE( OUTPUT_UNIT, '(A,I17,A)') "Trying to find requested user ptr", requested_len, tag
+#endif
 
     DO id = 1, SIZE( this%node, 1 )
        CALL save_segment( usr_ptr, this%node( id )%ptr, requested_len, tag, ierr )
@@ -88,6 +96,10 @@ CONTAINS
     INTEGER( INT32 )                              :: id
     LOGICAL                                       :: free
     INTEGER( INT64 )                              :: temp
+
+#if defined(_DEBUG)
+    WRITE( OUTPUT_UNIT, '(A,I17,A)') "Trying to allocate requested user ptr", requested_len, tag
+#endif
 
     DO id = 1, SIZE( this%node, 1 )
        CALL request_free_segment( usr_ptr, this%node( id )%ptr, requested_len, tag, ierr )
@@ -122,6 +134,10 @@ CONTAINS
     INTEGER( INT32 ), INTENT( OUT )              :: ierr
 
     INTEGER( INT32)                              :: id
+
+#if defined(_DEBUG)
+    WRITE( OUTPUT_UNIT, '(A,I17,A)') "Trying to find requested user ptr", requested_len, tag
+#endif
 
     DO id = 1, SIZE( this%node, 1 )
        CALL free_segment( usr_ptr, this%node( id )%ptr, requested_len, tag, ierr )
