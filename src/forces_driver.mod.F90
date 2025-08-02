@@ -554,7 +554,7 @@ CONTAINS
           ENDIF
        END IF
 
-       IF(tcsize) CALL csize(c2,nstate,gemax,cnorm,use_cp_grps=.FALSE.,special=cntl%nonort)
+       IF(tcsize) CALL csize(c2,nstate,gemax,cnorm,use_cp_grps=cntl%nonort,special=cntl%nonort)
 
        __NVTX_TIMER_STOP
        CALL tihalt(procedureN//'_b',isub3)

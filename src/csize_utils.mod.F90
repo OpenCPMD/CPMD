@@ -80,7 +80,7 @@ CONTAINS
     cnorm=0.0_real_8
     nocc=0
     IF(ngwk_local.GT.0) &
-         CALL csize_r(c2_r,ibeg_c0,nkpt%ngwk,nstate,geq0_local,sp,gemax,cnorm,nocc)
+         CALL csize_r(c2_r,ibeg_c0,nkpt%ngwk,ngwk_local,nstate,geq0_local,sp,gemax,cnorm,nocc)
     CALL mp_sum(cnorm,gid)
     CALL mp_max(gemax,gid)
     cnorm=SQRT(cnorm/REAL(nocc*spar%ngwks,kind=real_8))
@@ -89,8 +89,8 @@ CONTAINS
     RETURN
   END SUBROUTINE csize
   ! ==================================================================
-  SUBROUTINE csize_r(c2_r,ibeg,ngw,nstate,geq0,sp,gemax,cnorm,nocc)
-    INTEGER,INTENT(IN)                       :: nstate, ibeg, ngw
+  SUBROUTINE csize_r(c2_r,ibeg,ngw,ngw_local,nstate,geq0,sp,gemax,cnorm,nocc)
+    INTEGER,INTENT(IN)                       :: nstate, ibeg, ngw, ngw_local
     REAL(real_8),INTENT(IN)                  :: c2_r(2,ngw,*)
     REAL(real_8),INTENT(INOUT)               :: gemax, cnorm
     INTEGER,INTENT(INOUT)                    :: nocc
@@ -107,7 +107,7 @@ CONTAINS
           cnorm_l=0._real_8
           gemax_l=0._real_8
           gemax_ll=0._real_8
-          DO ig=ibeg,ngw
+          DO ig=ibeg,ngw_local
              cnorm_l=cnorm_l+c2_r(1,ig,i)**2+c2_r(2,ig,i)**2
              IF(gemax_ll.LT.ABS(c2_r(1,ig,i))+ABS(c2_r(2,ig,i)))THEN
                 gemax_ll=ABS(c2_r(1,ig,i))+ABS(c2_r(2,ig,i))
@@ -137,7 +137,7 @@ CONTAINS
              gemax_l=ABS(c2_r(1,ibeg,i))**2+ABS(c2_r(2,ibeg,i))**2
              gemax_ll=ABS(c2_r(1,ibeg,i))+ABS(c2_r(2,ibeg,i))
           END IF
-          DO ig=ibeg+1,ngw
+          DO ig=ibeg+1,ngw_local
              cnorm_l=cnorm_l+c2_r(1,ig,i)**2+c2_r(2,ig,i)**2
              IF(gemax_ll.LT.ABS(c2_r(1,ig,i))+ABS(c2_r(2,ig,i)))THEN
                 gemax_ll=ABS(c2_r(1,ig,i))+ABS(c2_r(2,ig,i))
