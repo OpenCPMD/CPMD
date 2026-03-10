@@ -6,9 +6,9 @@ The CPMD code is a parallelized **plane wave / pseudopotential** implementation 
 
 ## Copyright Notice
 
-The CPMD program is © 1990-2023 by IBM Corp. and © 1994-2001 by Max Planck Institute, Stuttgart. 
+The original CPMD program is © 1990-2023 by IBM Corp. and © 1994-2001 by Max Planck Institute, Stuttgart. 
 
 
 ## License
 
-The CPMD is freely distributed under the MIT License.
+The present OpenCPMD version, forked from the original CPMD, is freely distributed under the MIT License.
