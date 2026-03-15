@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE vofrhos_utils
   USE cp_xc_utils,                     ONLY: cp_xc
   USE cnst,                            ONLY: fpi
@@ -75,10 +77,12 @@ CONTAINS
     ! == RHOE:  in electronic density in real space                   ==
     ! ==       out total electronic potential in real space           ==
     ! ==--------------------------------------------------------------==
-    REAL(real_8)                             :: fion(:,:,:)
-    REAL(real_8), TARGET                     :: rhoe(:,:)
-    COMPLEX(real_8)                          :: v(:,:), vtemp(:,:)
-    LOGICAL                                  :: tfor, tstress
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:)
+    REAL(real_8),TARGET,INTENT(INOUT)&
+         __CONTIGUOUS                        :: rhoe(:,:)
+    COMPLEX(real_8),INTENT(INOUT)&
+         __CONTIGUOUS                        :: v(:,:), vtemp(:,:)
+    LOGICAL,INTENT(IN)                       :: tfor, tstress
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'vofrhos'
 
@@ -412,10 +416,12 @@ CONTAINS
     ! == RHOE:  in electronic density in real space                   ==
     ! ==       out total electronic potential in real space           ==
     ! ==--------------------------------------------------------------==
-    REAL(real_8)                             :: fion(:,:,:)
-    REAL(real_8), TARGET                     :: rhoe(:,:)
-    COMPLEX(real_8)                          :: v(:,:), vtemp(:,:)
-    LOGICAL                                  :: tfor, tstress
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:)
+    REAL(real_8),TARGET,INTENT(INOUT)&
+         __CONTIGUOUS                        :: rhoe(:,:)
+    COMPLEX(real_8),INTENT(INOUT)&
+         __CONTIGUOUS                        :: v(:,:), vtemp(:,:)
+    LOGICAL,INTENT(IN)                       :: tfor, tstress
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'vofrhor'
 

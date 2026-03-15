@@ -1,3 +1,4 @@
+#include "cpmd_global.h"
 MODULE vdwcmod
   USE dftd3_api,                       ONLY: dftd3_input,&
                                              dftd3_calc
@@ -14,6 +15,9 @@ MODULE vdwcmod
      LOGICAL :: dcacp
      LOGICAL :: vdwc
      LOGICAL :: vdwd
+#ifdef _HAS_LIBGRIMMEVDW
+     LOGICAL :: grimme
+#endif
   END TYPE vdwl_t
   TYPE(vdwl_t), SAVE :: vdwl
   TYPE :: vdwi_t
@@ -107,6 +111,7 @@ MODULE vdwcmod
   TYPE(vdwwfi_t) :: vdwwfi
   TYPE :: vdwwfr_t
      REAL(real_8) :: a6
+     REAL(real_8) :: rs_scfac
      REAL(real_8) :: zlevel
      REAL(real_8) :: enmonomer
      REAL(real_8) :: xmfacwf

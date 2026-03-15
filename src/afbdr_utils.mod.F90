@@ -3,8 +3,7 @@ MODULE afbdr_utils
                                              fnlalloc,&
                                              fnldealloc
   USE kinds,                           ONLY: real_8
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE system,                          ONLY: ncpw
   USE tdnlfor_utils,                   ONLY: tdnlfor
 
@@ -48,11 +47,7 @@ CONTAINS
     INTEGER                                  :: lafbdr, nstate
     CHARACTER(len=30)                        :: tag
 
-    INTEGER                                  :: lrnlsm, lscr
-
-    CALL give_scr_rnlsm(lrnlsm,tag,nstate,.TRUE.)
-    lscr=nstate+100
-    lafbdr=MAX(lrnlsm,lscr)
+    lafbdr=nstate+100
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE give_scr_afbdr

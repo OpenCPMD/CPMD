@@ -31,11 +31,9 @@ MODULE ohfd_utils
   USE phfac_utils,                     ONLY: phfac
   USE poin,                            ONLY: rhoo
   USE pslo,                            ONLY: pslo_com
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr,&
-                                             rhoofr
+  USE rhoofr_utils,                    ONLY: rhoofr
   USE rinitwf_utils,                   ONLY: give_scr_rinitwf
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE ropt,                            ONLY: iteropt,&
                                              ropt_mod
   USE setirec_utils,                   ONLY: read_irec,&
@@ -190,7 +188,7 @@ CONTAINS
     CALL zhwwf(2,irec,c0,c2,crge%n,eigv,tau0,tau0,tau0,iteropt%nfi)
     ! ..transform to canonical orbitals and get eigenvalues
     CALL forcedr(c0(:,:,1),c2,sc0,rhoe,psi,tau0,fion,eigv,&
-         crge%n,1,.FALSE.,.FALSE.)
+         crge%n,1,.FALSE.,.FALSE.,.TRUE.)
     CALL canon(c0,c2,crge%f,crge%n,eigv)
     IF (paral%parent) THEN
        IF (paral%io_parent)&
@@ -243,7 +241,7 @@ CONTAINS
                tau0,velp,taup,fion,ifcalc,&
                irec,.FALSE.,.FALSE.)
           CALL forcedr(c0(:,:,1),c2,sc0,rhoe,psi,tau0,fion,eigp,&
-               crge%n,1,.FALSE.,.FALSE.)
+               crge%n,1,.FALSE.,.FALSE.,.TRUE.)
           CALL canon(c0,c2,crge%f,crge%n,eigp)
           IF (soft_com%exsoft) GOTO 100
           IF (paral%io_parent)&
@@ -259,7 +257,7 @@ CONTAINS
                tau0,velp,taup,fion,ifcalc,&
                irec,.FALSE.,.FALSE.)
           CALL forcedr(c0(:,:,1),c2,sc0,rhoe,psi,tau0,fion,eigm,&
-               crge%n,1,.FALSE.,.FALSE.)
+               crge%n,1,.FALSE.,.FALSE.,.TRUE.)
           CALL canon(c0,c2,crge%f,crge%n,eigm)
           crge%f(knfi,1)=crge%f(knfi,1)+cntr%fdiff
           DO i=1,crge%n
@@ -361,19 +359,16 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
 
     INTEGER                                  :: lcanon, lcopot, lforces_diag, &
-                                                lrhoofr, lrinitwf, lrnlsm, &
+                                                lrinitwf, &
                                                 nstate
 
     nstate=crge%n
-    lrnlsm=0
     lcopot=0
     CALL give_scr_rinitwf(lrinitwf,tag,nstate)
-    IF (pslo_com%tivan) CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
-    CALL give_scr_rhoofr(lrhoofr,tag)
     CALL give_scr_forces_diag(lforces_diag,tag,nstate,.TRUE.)
     CALL give_scr_canon(lcanon,tag,nstate)
     IF (corel%tinlc) CALL give_scr_copot(lcopot,tag)
-    lohfd=MAX(lrinitwf,lrnlsm,lrhoofr,lforces_diag,lcopot,lcanon)
+    lohfd=MAX(lrinitwf,lforces_diag,lcopot,lcanon)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE give_scr_ohfd

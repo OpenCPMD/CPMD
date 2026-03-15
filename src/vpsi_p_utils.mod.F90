@@ -110,9 +110,6 @@ CONTAINS
              IF (is2.GT.nstate) THEN
                 !CDIR NODEP
                 !ocl NOVREC
-#ifdef __SR8000
-                !poption parallel
-#endif
                 !$omp parallel do private(IG) shared(IS1)
                 DO ig=1,ncpw%ngw
                    aux(nzhs(ig))      = c0(ig,is1)
@@ -123,9 +120,6 @@ CONTAINS
                 !CDIR NODEP
                 !ocl NOALIAS 
                 !ocl NOVREC  
-#ifdef __SR8000
-                !poption parallel
-#endif
                 !$omp parallel do private(IG) shared(IS1,IS2)
                 DO ig=1,ncpw%ngw
                    auxre(1,nzhs(ig))  = REAL(c0(ig,is1))-AIMAG(c0(ig,is2))
@@ -146,9 +140,6 @@ CONTAINS
        IF (is2.GT.nstate) THEN
           !CDIR NODEP
           !ocl NOVREC
-#ifdef __SR8000
-          !poption parallel
-#endif
           !$omp parallel do private(IG) shared(IS1)
           DO ig=1,ncpw%ngw
              psi(nzhs(ig))=c1(ig,is1)
@@ -159,9 +150,6 @@ CONTAINS
           !CDIR NODEP
           !ocl NOALIAS 
           !ocl NOVREC  
-#ifdef __SR8000
-          !poption parallel
-#endif
           !$omp parallel do private(IG) shared(IS1,IS2)
           DO ig=1,ncpw%ngw
              psire(1,nzhs(ig))  = REAL(c1(ig,is1)) - AIMAG(c1(ig,is2))
@@ -295,9 +283,6 @@ CONTAINS
           CALL zeroing(psi)!,maxfft)
           IF (is2.GT.nstate) THEN
              !CDIR NODEP
-#ifdef __SR8000
-             !poption parallel
-#endif
              !$omp parallel do private(IG) shared(IS1)
              DO ig=1,ncpw%ngw
                 psi(nzhs(ig))=c0(ig,is1)
@@ -306,9 +291,6 @@ CONTAINS
              IF (geq0) psi(nzhs(1))=c0(1,is1)
           ELSE
              !CDIR NODEP
-#ifdef __SR8000
-             !poption parallel
-#endif
              !$omp parallel do private(IG) shared(IS1,IS2)
              DO ig=1,ncpw%ngw
                 psire(1,nzhs(ig))  = REAL(c0(ig,is1)) - AIMAG(c0(ig,is2))
@@ -385,9 +367,6 @@ CONTAINS
        is2 = is+1
        IF (is2.GT.nstate) THEN
           !CDIR NODEP
-#ifdef __SR8000
-          !poption parallel
-#endif
           !$omp parallel do private(IG) shared(IS1)
           DO ig=1,ncpw%ngw
              psi(nzhs(ig))   = c0(ig,is1)
@@ -406,9 +385,6 @@ CONTAINS
           ENDIF
        ELSE
           !CDIR NODEP
-#ifdef __SR8000
-          !poption parallel
-#endif
           !$omp parallel do private(IG) shared(IS1,IS2)
           DO ig=1,ncpw%ngw
 

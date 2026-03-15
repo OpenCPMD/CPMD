@@ -420,7 +420,7 @@ CONTAINS
                eigv,rhoe,psi,crge%n,.TRUE.,infi)
        ELSE
           CALL forcedr(c0(:,:,1),c2(:,:,1),sc0(:,:,1),rhoe,psi,tau0,fion,eigv,&
-               crge%n,1,.TRUE.,.TRUE.)
+               crge%n,1,.TRUE.,.TRUE.,.TRUE.)
        ENDIF
        etotbs=ener_com%etot
        IF (cntl%bsymm)THEN
@@ -428,7 +428,7 @@ CONTAINS
           bsclcs=2
           CALL setbsstate
           CALL forcedr(c0(:,:,2),c2(:,:,2),sc0(:,:,2),rhoe,psi,tau0,&
-               fion,eigv,crge%n,1,.TRUE.,.TRUE.)
+               fion,eigv,crge%n,1,.TRUE.,.TRUE.,.TRUE.)
           etoths=ener_com%etot
           ener_com%etot = (1.0_real_8+cnstwgt)*etotbs-cnstwgt*etoths
           IF (paral%parent)CALL lsforce(fnbs,fion)
@@ -717,7 +717,7 @@ CONTAINS
                                  eigv,rhoe,psi,crge%n,.TRUE.,infi)
                          ELSE
                             CALL forcedr(c0(:,:,1),c2(:,:,1),sc0(:,:,1),rhoe,psi,tau0,fion,eigv,&
-                                 crge%n,1,.TRUE.,.TRUE.)
+                                 crge%n,1,.TRUE.,.TRUE.,.TRUE.)
                          ENDIF
                          IF (cntl%bsymm)THEN
                             IF (paral%parent)CALL dcopy(3*maxsys%nax*maxsys%nsx,fion,1,fnbs,1)
@@ -726,7 +726,7 @@ CONTAINS
                             CALL setbsstate
                             CALL forcedr(c0(:,:,2),c2(:,:,2),sc0(:,:,2),rhoe,&
                                  psi,tau0,fion,eigv,crge%n,1,&
-                                 .TRUE.,.TRUE.)
+                                 .TRUE.,.TRUE.,.TRUE.)
                             etoths=ener_com%etot
                             ener_com%etot = (1.0_real_8+cnstwgt)*etotbs-cnstwgt*etoths
                             IF (paral%parent)CALL lsforce(fnbs,fion)

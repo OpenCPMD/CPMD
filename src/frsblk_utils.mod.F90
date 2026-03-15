@@ -20,8 +20,7 @@ MODULE frsblk_utils
                                              paral
   USE prng_utils,                      ONLY: repprngu_vec_cmplx
   USE rgs_utils,                       ONLY: rgs
-  USE summat_utils,                    ONLY: give_scr_summat,&
-                                             summat
+  USE summat_utils,                    ONLY: summat
   USE system,                          ONLY: cnti,&
                                              cntl,&
                                              cntr,&
@@ -393,14 +392,12 @@ CONTAINS
     INTEGER                                  :: ndiag
 
     INTEGER                                  :: lhpsi, lscr, lscrdiag, &
-                                                lsummat, nk
+                                                nk
 
     lhpsi=0
-    lsummat=0
     lscr=0
     lscrdiag=0
     CALL give_scr_hpsi(lhpsi,tag,ndiag)
-    CALL give_scr_summat(lsummat,tag,ndiag)
     nk=cnti%nkry_block*cnti%nkry_max
     IF (tkpts%tkpnt) THEN
        lscrdiag=(3*ndiag-2) + 2*(2*ndiag)
@@ -417,8 +414,8 @@ CONTAINS
             (cnti%nkry_block*cnti%nkry_block*cnti%nkry_max)+       & ! BETA
             (ndiag*ndiag)                           ! ADAV
     ENDIF
-    lfrsblk=lscr+MAX(lhpsi,lsummat,lscrdiag)+10
-    tag='LSCR+MAX(HPSI,SUMMAT,DIAG)'
+    lfrsblk=lscr+MAX(lhpsi,lscrdiag)+10
+    tag='LSCR+MAX(HPSI,DIAG)'
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE give_scr_frsblk

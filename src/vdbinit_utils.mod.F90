@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE vdbinit_utils
   USE aavan,                           ONLY: indv
   USE cnst,                            ONLY: fpi
@@ -5,7 +7,9 @@ MODULE vdbinit_utils
                                              qrad
   USE cvan,                            ONLY: dvan,&
                                              nelev,&
-                                             qq
+                                             qq,&
+                                             qg,&
+                                             qg_dipole
   USE error_handling,                  ONLY: stopgm
   USE fitpack_utils,                   ONLY: curv1,&
                                              curv2
@@ -16,6 +20,7 @@ MODULE vdbinit_utils
                                              nlps_com
   USE parac,                           ONLY: parai
   USE pslo,                            ONLY: pslo_com
+  USE geq0mod,                         ONLY: geq0
   USE qspl,                            ONLY: ggng,&
                                              ggnh,&
                                              nqdim,&
@@ -25,12 +30,14 @@ MODULE vdbinit_utils
                                              qspl1,&
                                              twns
   USE qvan1_utils,                     ONLY: qvan1
+  USE qvan2_utils,                     ONLY: qvan2
   USE radin_utils,                     ONLY: radin,&
                                              radlg
   USE system,                          ONLY: maxsys,&
                                              nbrx,&
                                              ncpw,&
-                                             parm
+                                             parm,&
+                                             cntl
   USE timer,                           ONLY: tihalt,&
                                              tiset
   USE vdbp,                            ONLY: betar,&
@@ -49,7 +56,8 @@ MODULE vdbinit_utils
 
   PUBLIC :: vdbinit
   PUBLIC :: qinit
-
+  PUBLIC :: qvan2_init
+  PUBLIC :: qvan2_init_dipole
 CONTAINS
 
   ! ==================================================================
@@ -108,6 +116,9 @@ CONTAINS
           ENDDO
        ENDDO
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(nghtol)
+#endif
     ! ==--------------------------------------------------------------==
     ! ==   INDV(1)=1         ! QQ ORDER:                              ==
     ! ==   INDV(2)=3         ! s_1 p_x1 p_z1 p_y1 s_2 p_x2 p_z2 p_y2  ==
@@ -161,6 +172,9 @@ CONTAINS
           ENDIF
        ENDDO
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(dvan)
+#endif
     CALL tihalt('   VDBINIT',isub)
     ! ==--------------------------------------------------------------==
     RETURN
@@ -173,7 +187,7 @@ CONTAINS
     CHARACTER(*), PARAMETER                  :: procedureN = 'qinit'
 
     INTEGER                                  :: ierr, il, ir, is, isub, iv, &
-                                                jv, l, lqx, lval, mmax, nngh
+                                                jv, l, lqx, lval, mmax, nngh, nhh
     REAL(real_8)                             :: fqrad, ggl, qg0, xg
     REAL(real_8), ALLOCATABLE                :: qrd0(:,:), qsp1(:), qsp2(:), &
                                                 qsp3(:)
@@ -194,6 +208,7 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ==  CALCULATION OF ARRAY  QRAD(IGL,IV,JV,IS)                    ==
     ! ==--------------------------------------------------------------==
+    nhh=0
     DO is=1,ions1%nsp
        IF (pslo_com%tvan(is)) THEN
           lval=ncpr1%nvales(is)
@@ -309,6 +324,9 @@ CONTAINS
           ENDDO
        ENDIF
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(qq)
+#endif
     ! ==--------------------------------------------------------------==
     DEALLOCATE(qsp1,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
@@ -327,5 +345,96 @@ CONTAINS
     RETURN
   END SUBROUTINE qinit
   ! ==================================================================
+  SUBROUTINE qvan2_init()
+    ! ==--------------------------------------------------------------==
+    ! ==  CALCULATION OF ARRAY QG SAVE ONLY FOR BIGMEM                ==
+    ! ==--------------------------------------------------------------==
+    CHARACTER(*), PARAMETER                  :: procedureN = 'qvan2_init'
 
+    INTEGER                                  :: ierr, is, isub, iv, &
+                                                jv, nhh
+
+    CALL tiset(procedureN,isub)
+    IF(cntl%bigmem)THEN
+       nhh=0
+       DO is=1,ions1%nsp
+          IF(pslo_com%tvan(is))nhh=nhh+nlps_com%ngh(is)*(nlps_com%ngh(is)+1)/2
+       END DO
+       ALLOCATE(qg(ncpw%nhg,nhh),STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
+            __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map (alloc:qg)
+#endif
+       nhh=0
+       DO is=1,ions1%nsp
+          IF(pslo_com%tvan(is))THEN
+             DO iv=1,nlps_com%ngh(is)
+                DO jv=iv,nlps_com%ngh(is)
+                   nhh=nhh+1
+                   CALL qvan2(iv,jv,is,qg(:,nhh))
+                   IF(geq0) qg(1,nhh)=cmplx(real(qg(1,nhh),kind=real_8),0.0_real_8,&
+                        kind=real_8)
+                END DO
+             END DO
+          END IF
+       END DO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(qg)
+#endif
+    END IF
+    CALL tihalt(procedureN,isub)
+    RETURN
+  END SUBROUTINE qvan2_init
+  ! ==================================================================
+  ! ==================================================================
+  SUBROUTINE qvan2_init_dipole(aug_ind,aug_cntrl)
+    ! ==--------------------------------------------------------------==
+    ! ==  CALCULATION OF ARRAY QG SAVE ONLY FOR BIGMEM                ==
+    ! ==--------------------------------------------------------------==
+    CHARACTER(*), PARAMETER                  :: procedureN = 'qvan2_init_dipole'
+
+    INTEGER, INTENT(IN)          :: aug_ind(6)
+    LOGICAL, INTENT(IN)          :: aug_cntrl(6)
+
+    INTEGER                                  :: ierr, is, isub, iv, &
+                                                jv, nhh,k
+
+    CALL tiset(procedureN,isub)
+    IF(cntl%bigmem)THEN
+       nhh=0
+       DO is=1,ions1%nsp
+          IF(pslo_com%tvan(is))nhh=nhh+nlps_com%ngh(is)*(nlps_com%ngh(is)+1)/2
+       END DO
+       ALLOCATE(qg_dipole(6,nhh),STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
+            __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:qg_dipole)
+#endif
+       qg_dipole=cmplx(0.0_real_8,0.0_real_8)
+       nhh=0
+       DO is=1,ions1%nsp
+          IF(pslo_com%tvan(is))THEN
+             DO iv=1,nlps_com%ngh(is)
+                DO jv=iv,nlps_com%ngh(is)
+                   nhh=nhh+1
+                   DO k=1, 6
+                      IF (aug_cntrl(k)) THEN
+                         qg_dipole(k,nhh)=qg(aug_ind(k),nhh)
+                      ENDIF
+                   ENDDO
+                END DO
+             END DO
+          END IF
+       END DO
+       CALL mp_sum(qg_dipole,6*nhh,parai%allgrp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(qg_dipole)
+#endif
+    END IF
+    CALL tihalt(procedureN,isub)
+    RETURN
+  END SUBROUTINE qvan2_init_dipole
+  ! ==================================================================
 END MODULE vdbinit_utils

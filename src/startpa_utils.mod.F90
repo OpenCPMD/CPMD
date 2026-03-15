@@ -54,8 +54,11 @@ CONTAINS
     CALL mp_task_query(parai%cp_grp)
     CALL mp_environ(parai%cp_grp,parai%cp_nproc,parai%cp_me)
     ! 
+#if defined __PARALLEL
+    parai%allgrp%MPI_VAL=-123456789;parai%nproc=-1234567;parai%me=-123456;parai%mepos=-12345;
+#else
     parai%allgrp=-123456789;parai%nproc=-1234567;parai%me=-123456;parai%mepos=-12345;
-
+#endif
     ! ==--------------------------------------------------------------==
     ! 
     ! get the number of cp groups from input
@@ -95,7 +98,7 @@ CONTAINS
     CALL mp_bcast_byte(parai%cp_nogrp,size_in_bytes_of(parai%cp_nogrp),0,parai%cp_grp)
     ! ==--------------------------------------------------------------==
     ! 
-    ! set the cp groups, parent, io_parent, source and io_source
+    ! set the cp groups, parent, io_parent, source, io_source, node_grp and cp_inter_node_grp
     ! 
     CALL set_cp_grp()
 

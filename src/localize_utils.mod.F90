@@ -1,11 +1,22 @@
 MODULE localize_utils
   USE atwf,                            ONLY: atwp,&
                                              loadc_foc_array_size
+  USE cppt,                            ONLY: gk,&
+                                             nzh,&
+                                             nzhs,&
+                                             indz,&
+                                             indzs,&
+                                             inyh,&
+                                             igl,&
+                                             isptr
   USE ddip,                            ONLY: ngwmax
   USE ddipo_utils,                     ONLY: set_operator,&
-                                             setdip
+                                             setdip,&
+                                             get_augind,&
+                                             get_aug
   USE dotp_utils,                      ONLY: dotp
   USE error_handling,                  ONLY: stopgm
+  USE fft,                             ONLY: jhg
   USE forcedr_driver,                  ONLY: forcedr
   USE forcep_utils,                    ONLY: rhoe_psi_size
   USE gvec,                            ONLY: gvec_com
@@ -22,6 +33,7 @@ MODULE localize_utils
   USE opeigr_utils,                    ONLY: opeigr
   USE parac,                           ONLY: parai,&
                                              paral
+  USE pslo,                            ONLY: pslo_com
   USE response_pmod,                   ONLY: lower_left,&
                                              lower_left_value,&
                                              response1,&
@@ -41,6 +53,7 @@ MODULE localize_utils
   USE timer,                           ONLY: tihalt,&
                                              tiset
   USE utils,                           ONLY: rmatmov
+  USE vdbinit_utils,                   ONLY: qvan2_init_dipole
   USE wann,                            ONLY: wan05,&
                                              wannc,&
                                              wanni,&
@@ -58,7 +71,6 @@ MODULE localize_utils
   PUBLIC :: localize
   PUBLIC :: localize2
   PUBLIC :: wc_print
-  !public :: wannier_save
 
 CONTAINS
 
@@ -81,17 +93,19 @@ CONTAINS
     COMPLEX(real_8), ALLOCATABLE, &
       DIMENSION(:, :)                        :: lbasis
     COMPLEX(real_8), ALLOCATABLE, SAVE       :: xyzmat(:,:,:)
-    INTEGER :: i, ia, iaorb, iat, ierr, il_psi_1d, il_psi_2d, il_rhoe_1d, &
+    INTEGER :: i, j, k, ia, iaorb, iat, ierr, il_psi_1d, il_psi_2d, il_rhoe_1d, &
       il_rhoe_2d, info, is, isub, ix1, ix2, ixl, ixx, n1, natst, nmcol, nxmax
     INTEGER, ALLOCATABLE, SAVE               :: mapcol(:), mapful(:)
     REAL(real_8)                             :: foc(loadc_foc_array_size), sfc
     REAL(real_8), ALLOCATABLE                :: center(:,:), eigv(:), &
                                                 fion(:,:,:), rhoe(:,:)
-    REAL(real_8), ALLOCATABLE, DIMENSION(:)  :: ovl, s, work
-    REAL(real_8), ALLOCATABLE, &
-      DIMENSION(:, :)                        :: u, vt
+    REAL(real_8), ALLOCATABLE                :: ovl(:), s(:), work(:), &
+                                                u(:,:), vt(:,:)
     REAL(real_8), ALLOCATABLE, SAVE          :: rotlsd(:), rotmat(:,:)
 
+    COMPLEX(real_8), ALLOCATABLE             :: xyz_aug(:,:,:) 
+    INTEGER                                  :: aug_ind(6)
+    LOGICAL                                  :: aug_cntrl(6)
 ! 
 ! ==--------------------------------------------------------------==
 ! ..Wannier functions
@@ -111,13 +125,13 @@ CONTAINS
             WRITE(6,'(A)') '         OPTIMISATION: STEEPEST DESCENT'
        IF (wanni%w_opt.EQ.2)&
             WRITE(6,'(A)') '         OPTIMISATION: JACOBI ROTATION'
-       WRITE(6,'(A,T56,1PE10.4)')&
+       WRITE(6,'(A,T56,1PE11.4)')&
             '         CONVERGENCE CRITERIA:',wannr%w_eps
        WRITE(6,'(A,T56,I10)')&
             '         MAXIMUM # OF STEPS:',wanni%w_maxs
-       WRITE(6,'(A,T56,1PE10.4)')&
+       WRITE(6,'(A,T56,1PE11.4)')&
             '         RANDOMIZATION AMPLITUDE:',wannr%w_ran
-       WRITE(6,'(A,T56,1PE10.4)')&
+       WRITE(6,'(A,T56,1PE11.4)')&
             '         STEP SIZE:',wannr%w_step
     ENDIF
     ! ..initialization
@@ -136,6 +150,7 @@ CONTAINS
     CALL setdip(mapful,mapcol)
     ! ..initialization for Wannier function part
     CALL set_operator(.TRUE.)
+
     ALLOCATE(xyzmat(nstate,nstate,wannc%nwanopt),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
@@ -149,7 +164,20 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
     ENDIF
+    IF (pslo_com%tivan) THEN
+       ALLOCATE(xyz_aug(nstate,nstate,6),STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
+            __LINE__,__FILE__)
+    END IF
+    
+    ! initialization for uspp case 
+    IF (pslo_com%tivan) THEN
+       CALL get_augind(aug_ind,aug_cntrl)
+       CALL qvan2_init_dipole(aug_ind,aug_cntrl)
+    END IF
+
     ! ..electronic contribution
+
     ALLOCATE(ddmat(nstate, nstate),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
@@ -170,6 +198,11 @@ CONTAINS
     DEALLOCATE(ddmat,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
+ 
+    IF (pslo_com%tivan) THEN
+       CALL get_aug(nstate, aug_ind, aug_cntrl, xyz_aug)
+       xyzmat = xyzmat + xyz_aug
+    ENDIF
 
     ! Calculation of the spread BEFORE the actual localization
     IF (paral%io_parent) THEN
@@ -324,7 +357,7 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
        CALL forcedr(c0,c2,sc0,rhoe,psi,tau0,fion,eigv,nstate,&
-            1,.FALSE.,.TRUE.)
+            1,.FALSE.,.TRUE.,.TRUE.)
     ENDIF
     ! calculate the centers and spread of the wannier functions
     CALL wannier_center(xyzmat,nstate,nstate,center,tau0)
@@ -342,7 +375,7 @@ CONTAINS
     IF (wannl%twmol) THEN
        CALL molorb(c0,c2,tau0,nstate,center)
        CALL forcedr(c0,c2,sc0,rhoe,psi,tau0,fion,eigv,nstate,&
-            1,.FALSE.,.TRUE.)
+            1,.FALSE.,.TRUE.,.TRUE.)
     ENDIF
     IF (wannl%twdos) CALL wc_dos(c0,c2,nstate,center)
 
@@ -353,6 +386,12 @@ CONTAINS
     IF(response1%tvoa) THEN
        voa_data%rotmat=rotmat
     ENDIF
+
+    IF (pslo_com%tivan) THEN
+       DEALLOCATE(xyz_aug,STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+            __LINE__,__FILE__)
+    END IF
 
     DEALLOCATE(center,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
@@ -373,9 +412,12 @@ CONTAINS
     DEALLOCATE(rotmat,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
-    IF (cntl%tlsd) DEALLOCATE(rotlsd,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
+    IF (cntl%tlsd) THEN
+       DEALLOCATE(rotlsd,STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+            __LINE__,__FILE__)
+    END IF
+
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN

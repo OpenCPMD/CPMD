@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE quenbo_utils
   USE coor,                            ONLY: tau0
   USE elct,                            ONLY: crge
@@ -38,10 +40,13 @@ CONTAINS
   SUBROUTINE quenbo(c0,c2,sc0,taur,rhoe,psi)
     ! ==--------------------------------------------------------------==
 
-    COMPLEX(real_8)                          :: c0(:,:), c2(ncpw%ngw,crge%n), &
+    COMPLEX(real_8),INTENT(INOUT)&
+         __CONTIGUOUS                        :: c0(:,:)
+    COMPLEX(real_8),INTENT(OUT)              :: c2(ncpw%ngw,crge%n), &
                                                 sc0(ncpw%ngw,crge%n)
-    REAL(real_8)                             :: taur(:,:,:), rhoe(:,:)
-    COMPLEX(real_8)                          :: psi(:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: taur(:,:,:)
+    REAL(real_8),INTENT(OUT) __CONTIGUOUS    :: rhoe(:,:)
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: psi(:,:)
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'quenbo'
 
@@ -76,7 +81,7 @@ CONTAINS
           ALLOCATE(pme((ncpw%ngw*crge%n+8)*cnti%mdiis),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
-          ALLOCATE(gde(((ncpw%ngw*crge%n+8)*cnti%mdiis)/4),STAT=ierr)
+          ALLOCATE(gde(((ncpw%ngw*crge%n+8)*cnti%mdiis)),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
           ALLOCATE(vpp(ncpw%ngw),STAT=ierr)
@@ -99,7 +104,7 @@ CONTAINS
           ALLOCATE(pme((ncpw%ngw*crge%n+8)*cnti%mdiis),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
-          ALLOCATE(gde(((ncpw%ngw*crge%n+8)*cnti%mdiis)/4),STAT=ierr)
+          ALLOCATE(gde(((ncpw%ngw*crge%n+8)*cnti%mdiis)),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
           ALLOCATE(vpp(ncpw%ngw),STAT=ierr)
@@ -134,6 +139,9 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     iteropt%iinfi=0
     update_pot=.TRUE.
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map (alloc:vpp,gde,pme,eigv)
+#endif
 100 CONTINUE
     time1=m_walltime()
     ! UPDATE THE WAVEFUNCTIONS
@@ -156,6 +164,9 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ==     END OF MAIN LOOP                                         ==
     ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map (delete:vpp,gde,pme,eigv)
+#endif
     DEALLOCATE(pme,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)

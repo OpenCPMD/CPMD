@@ -58,11 +58,15 @@ Description of options:
    -coverage   (-c) With GCC compiler only, allows for specific configuration files,
                     to generate the code coverage/profiling during an execution
    -qmmm            Generates a makefile for QMMM 
+   -scr             Use scratch library
+   -vdw             Compile and include vdw_lib module
    -iphigenie       Support for external interface to iphigenie
    -omp             Enables the use of OMP instructions (if the config file allows that)
                     OMP3 is in general triggered by the config keyword OMP3_DISABLED,
                     which can either be true or false (or a script that sets true/false
                     according a certain compiler version)
+   -omp_offload     Enable OpenMP offload to GPUs
+   -gpu_aware_mpi   Enable GPU aware MPI with OpenMP Offload
    -disable_omp3    Overrides any specification (compiler/configuration file) and disables
                     OMP3 instructions
    -minpack=<PATH>  Compiles enabling MINPACK and links using the provided library
@@ -127,12 +131,28 @@ do
       omp3=1
       echo "** Enabling OMP instructions (if the config file allows that)" >&2
       ;;
-    -disable_omp3)
+    -omp_offload)
+      omp_offload=1
+      echo "** Enabling OMP OFFLOAD instructions (if the config file allows that)" >&2
+      ;;
+    -gpu_aware_mpi)
+      gpu_aware_mpi=1
+      echo "** Enabling GPU aware MPI with OMP OFFLOAD (if the config file allows that)" >&2
+      ;;
+     -disable_omp3)
       omp3=0
       ;;
     -qmmm|-q)
       qmmm=1
       echo "** Enabling QM/MM (if Gromos and MM_Interface modules will be available)" >&2
+      ;;
+    -scr)
+      scr=1
+      echo "** Using scratch_lib **" >&2
+      ;;
+    -vdw)
+      vdw=1
+      echo "** Using vdw_lib **" >&2
       ;;
     -debug|-d)
       debug=1
@@ -240,7 +260,7 @@ fi
 #--------------------------------------------------------------------#
 
 CPPFLAGS_GROMOS='-DEWALD -DEWATCUT -DHAT_SHAPE -DUNPACKED_GRID'
-
+EXTRA_DEPS=''
 #QM/MM compilation setup
 if [ $qmmm ]; then
   if [ -f ${MOD_DIR}/QMMM_SOURCES ]; then
@@ -263,6 +283,19 @@ if [ $iffi ]; then
     echo "The file IFFIINTER_SOURCES does not exist" >&2
     exit 1
   fi
+fi
+if [ $vdw ]; then
+  VDWCPPFLAG="-D__HAS_LIBGRIMMEVDW "
+  VDWLIB=' $(LIBDIR)/libgrimme.a'
+  EXTRA_DEPS="$EXTRA_DEPS \$(GRIMME_LIB)"
+else
+  VDWLIB=''
+  VDWCPPFLAG=''
+fi
+if [ $scr ]; then
+  SCRCPPFLAG="-D__USE_SCRATCHLIBRARY "
+  SCRLIB=' $(LIBDIR)/libscratch_module.a'
+  EXTRA_DEPS="$EXTRA_DEPS \$(SCRATCHMODULE_LIB) "
 fi
       
 if [ -n $DEST ]; then
@@ -338,6 +371,16 @@ IFFIINTER_LIB =  \$(LIBDIR)/libiffiinter.a
 END
 fi
 
+if [ $vdw ]; then
+cat << END >&3
+GRIMME_LIB = ${VDWLIB} 
+END
+fi
+if [ $scr ]; then
+cat << END >&3
+SCRATCHMODULE_LIB = ${SCRLIB} 
+END
+fi
 cat << END >&3
 
 .SUFFIXES: .F90 .f90 .c .o
@@ -351,11 +394,11 @@ END
 
 cat << END >&3
 FFLAGS = ${FFLAGS} -I\${SRCDIR} -I\${OBJDIR}
-LFLAGS = ${LFLAGS} ${MINPACKLIB}
+LFLAGS = ${LFLAGS} ${MINPACKLIB} \$(GRIMME_LIB) \$(SCRATCHMODULE_LIB) 
 CFLAGS = ${CFLAGS} -I\${SRCDIR}
 NVCCFLAGS = ${NVCCFLAGS} -I\${SRCDIR}
 CPP = ${CPP}
-CPPFLAGS = ${CPPFLAGS} ${QMMM_FLAGS} ${CPPFLAGS_OMP3} ${MINPACKCPP}  -I\${SRCDIR} -D'SVN_REV="r\$(shell svnversion -n ${CPMD_ROOT})"'
+CPPFLAGS = ${CPPFLAGS} ${QMMM_FLAGS} ${CPPFLAGS_OMP3} ${MINPACKCPP} ${VDWCPPFLAG} ${SCRCPPFLAG} -I\${SRCDIR} -D'__GIT_REV="\$(shell ${CPMD_ROOT}/scripts/getversion.sh ${CPMD_ROOT})"'
 NOOPT_FLAG = ${NOOPT_FLAG}
 END
 
@@ -606,7 +649,13 @@ if [ $iffi ]; then
     echo "include \$(MODDIR)/IPhigenie_Interface/IFFIINTER_SOURCES" >&3
     echo "OBJECTS_IFFIINTER = \$(IFFIINTER_SRC:%.F90=%.o)"     >&3
 fi
-
+if [ $vdw ]; then
+    echo "include \$(MODDIR)/vdw_lib/VDWLIB_SOURCES" >&3
+fi
+if [ $scr ]; then
+    echo "include \$(MODDIR)/scratchmodule_lib/SCRATCHLIB_SOURCES" >&3
+fi
+echo "EXTRA_DEPS = ${EXTRA_DEPS}" >&3
 printf "Add explicit rules..." >&2
 cat << END >&3
 ################################################################################
@@ -682,7 +731,7 @@ endif
 END
 if [ $qmmm ]; then
 cat << END >&3
-\$(TARGET): \$(CPMD_LIB) \$(GROMOS_LIB) \$(INTERFACE_LIB) timetag.o cpmd.o
+\$(TARGET): \$(CPMD_LIB) \$(EXTRA_DEPS) \$(GROMOS_LIB) \$(INTERFACE_LIB) timetag.o cpmd.o
 	\$(LD) \$(FFLAGS) -o \$(TARGET) timetag.o cpmd.o \$(CPMD_LIB) \$(GROMOS_LIB) \$(INTERFACE_LIB) \$(LFLAGS)
 	@ls -l \$(TARGET)
 	@echo "Compilation done."
@@ -706,14 +755,14 @@ else
 endif
 
 # create cpmd.x and independent libiffiinter.a
-\$(TARGET): \$(CPMD_LIB) \$(IFFIINTER_LIB) timetag.o cpmd.o
+\$(TARGET): \$(CPMD_LIB) \$(EXTRA_DEPS) \$(IFFIINTER_LIB) timetag.o cpmd.o
 	\$(LD) \$(FFLAGS) -o \$(TARGET) timetag.o cpmd.o \$(CPMD_LIB) \$(LFLAGS)
 	@ls -l \$(TARGET)
 	@echo "Compilation done."
 END
 else
 cat << END >&3
-\$(TARGET): \$(CPMD_LIB) timetag.o cpmd.o
+\$(TARGET): \$(CPMD_LIB) \$(EXTRA_DEPS) timetag.o cpmd.o
 	\$(LD) \$(FFLAGS) -o \$(TARGET) timetag.o cpmd.o \$(CPMD_LIB) \$(LFLAGS)
 	@ls -l \$(TARGET)
 	@echo "Compilation done."
@@ -815,7 +864,48 @@ cat << END >&3
 	\$(RANLIB) \$(IFFIINTER_LIB)
 END
 fi
+if [ $vdw ]; then
+ cat << END >&3
+OBJ_GRIMME     = \$(SRC_GRIMME:%.F90=%.o)
+\$(OBJ_GRIMME):                                                            
+	\$(FC) -I\$(MODDIR)/vdw_lib/ -c \$(FFLAGS) \$(CPPFLAGS) -o \$@ \$(MODDIR)/vdw_lib/\$(@F:.o=.F90)
+                                                                          
+vdw_interface.mod: vdw_interface.o                                        
+	@true                                                             
+vdw_param.mod: vdw_param.o                                                
+	@true                                                             
+vdw_calculator.mod: vdw_calculator.o                                                       
+	@true                                                             
+vdw_interface.o: vdw_param.mod vdw_calculator.mod \$(MODDIR)/vdw_lib/vdw_interface.F90
+vdw_calculator.o: vdw_param.mod \$(MODDIR)/vdw_lib/vdw_calculator.F90      
+                             
+\$(GRIMME_LIB): \$(OBJ_GRIMME)
+	\$(AR) \$(GRIMME_LIB) \$(OBJ_GRIMME)
+	\$(RANLIB) \$(GRIMME_LIB)
+END
+fi
+if [ $scr ]; then
+  cat << END >&3
+\$(OBJ_SCRATCHMODULE):                                                            
+	\$(FC) -I\$(MODDIR)/scratchmodule_lib/ -c \$(FFLAGS) \$(CPPFLAGS) -o \$@ \$(MODDIR)/scratchmodule_lib/\$(@F:.o=.F90)
 
+data_managment_utils.mod: data_managment_utils.o
+	@true
+segment_managment_utils.mod: segment_managment_utils.o
+	@true
+pool_managment_utils.mod: pool_managment_utils.o
+	@true
+scratch_interface.mod: scratch_interface.o
+	@true
+segment_managment_utils.o: data_managment_utils.mod \$(MODDIR)/scratchmodule_lib/segment_managment_utils.F90
+pool_managment_utils.o:  segment_managment_utils.mod \$(MODDIR)/scratchmodule_lib/pool_managment_utils.F90
+scratch_interface.o: pool_managment_utils.mod \$(MODDIR)/scratchmodule_lib/scratch_interface.F90
+\$(SCRATCHMODULE_LIB): \$(OBJ_SCRATCHMODULE)
+	\$(AR) \$(SCRATCHMODULE_LIB) \$(OBJ_SCRATCHMODULE)
+	\$(RANLIB) \$(SCRATCHMODULE_LIB)
+
+END
+fi
 cat << END >&3
 ################################################################################
 # Module dependencies
@@ -845,15 +935,26 @@ do
   if [ $verbose ]; then
     printf "[%s]" $name
   fi
-  ${AWK} -v qmmm=${qmmm}  '
+  ${AWK} -v qmmm=${qmmm} -v scr=${scr} '
        NR==1 { # Add here any exclusion to external modules
                SkipInclude["xc_f03_lib_m"] = 0;
                SkipInclude["mpif.h"] = 0;
                SkipInclude["mpi"] = 0;
+               SkipInclude["mpi_f08"] = 0;
                SkipInclude["rhjsx.inc"] = 0;
                SkipInclude["uhjsx.inc"] = 0;
+               SkipInclude["mkl_service"] = 0;
+	       SkipInclude["onemkl_blas_omp_offload_lp64"] =0;
+	       SkipInclude["onemkl_lapack_omp_offload_lp64"] =0;
+	       SkipInclude["fftw3_omp_offload"] =0;
+	       SkipInclude["omp_lib"] =0;
+	       SkipInclude["iso_fortran_env"] =0;
+               SkipInclude["elpa"] = 0;
                if (qmmm != 1) {
                   SkipInclude["coordsz"] = 0;
+               }
+               if (scr != 1) {
+                 SkipInclude["scratch_interface"] = 0;
                }
                MaxLength=60;
                ll = length(FILENAME);

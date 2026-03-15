@@ -1,9 +1,13 @@
+#include "cpmd_global.h"
+
 MODULE mm_qmmm_forcedr_utils
   USE bsym,                            ONLY: bsclcs
   USE ener,                            ONLY: ener_com
   USE error_handling,                  ONLY: stopgm
   USE forcedr_driver,                  ONLY: forcedr
   USE kinds,                           ONLY: real_8
+  USE kpts,                            ONLY: tkpts
+  USE ions,                            ONLY: ions1
   USE machine,                         ONLY: m_walltime
   USE mm_dim_utils,                    ONLY: mm_dim
   USE mm_dimmod,                       ONLY: mm_go_mm,&
@@ -20,11 +24,17 @@ MODULE mm_qmmm_forcedr_utils
   USE mp_interface,                    ONLY: mp_bcast,&
                                              mp_sum,&
                                              mp_sync
-  USE norhoe_utils,                    ONLY: norhoe
   USE parac,                           ONLY: parai,&
                                              paral
+  USE pslo,                            ONLY: pslo_com
   USE puttau_utils,                    ONLY: taucl
+  USE rgsvan_utils,                    ONLY: rgsvan
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE rhoofr_utils,                    ONLY: rhoofr
+  USE spin,                            ONLY: clsd,&
+                                             lspin2,&
+                                             lspin3,&
+                                             spin_mod
   USE rswfmod,                         ONLY: rsactive
   USE system,                          ONLY: cntl,&
                                              fpar,&
@@ -49,30 +59,30 @@ CONTAINS
        eigv,nstate,unused_int,lproj,update_pot, update_files)
     ! ==--------------------------------------------------------------==
     ! 
-    REAL(real_8)                             :: rhoe(:,:)
-    COMPLEX(real_8)                          :: psi(:,:)
-    REAL(real_8)                             :: tau(:,:,:), fion(:,:,:), &
-                                                eigv(*)
-    INTEGER                                  :: nstate
-    COMPLEX(real_8)                          :: sc0(ncpw%ngw,nstate), &
-                                                c2(ncpw%ngw,nstate), &
-                                                c0(ncpw%ngw,nstate)
-    INTEGER                                  :: unused_int
-    LOGICAL                                  :: lproj, update_pot, &
-                                                update_files
+#if defined (__GROMOS)
+    REAL(real_8),INTENT(OUT) __CONTIGUOUS    :: rhoe(:,:)
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: psi(:,:)
+    REAL(real_8),INTENT(OUT) __CONTIGUOUS    :: fion(:,:,:)
+    REAL(real_8),INTENT(OUT)                 :: eigv(*)
+    COMPLEX(real_8),INTENT(INOUT)            :: c2(ncpw%ngw,nstate), &
+                                                sc0(ncpw%ngw,nstate)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: tau(:,:,:)
+    INTEGER,INTENT(IN)                       :: nstate
+    COMPLEX(real_8),INTENT(IN),TARGET        :: c0(ncpw%ngw,nstate)
+    INTEGER,INTENT(IN)                       :: unused_int
+    LOGICAL,INTENT(IN)                       :: lproj, update_files
+    LOGICAL                                  :: update_pot
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'mm_qmmm_forcedr'
 
     INTEGER                                  :: i, ierr, ipx, isub, numx
-    INTEGER, SAVE                            :: qmmm_icon = 0
     LOGICAL                                  :: status, statusdummy
     REAL(real_8) :: elstat_inten, epot_mm, epot_mm_loc, time_rho, timeei1, &
       timeei2, timef1, timef2, timeg1, timeg2
-    REAL(real_8), ALLOCATABLE                :: mm_FION(:,:,:)
-    REAL(real_8), ALLOCATABLE, SAVE          :: qmmm_xmat1(:,:), qmmm_xmat2(:)
+    REAL(real_8), ALLOCATABLE                :: mm_FION(:,:,:), qmmm_smat(:,:)
     REAL(real_8), SAVE                       :: e_fix
-
-#if defined (__GROMOS)
+    COMPLEX(real_8), ALLOCATABLE, TARGET     :: qmmm_c0_ort(:,:)
+    COMPLEX(real_8), POINTER __CONTIGUOUS    :: c0_ptr(:,:)
     CALL tiset(procedureN,isub)
 
     CALL mp_sync(parai%qmmmgrp)
@@ -91,60 +101,40 @@ CONTAINS
     IF (iqmmm%coupl_model.GE.1)THEN
        timeei1=m_walltime()
        IF (paral%qmnode) THEN
-          ! 
+          !
           ! Added for Vanderbilt PPs
-          IF (qmmm_icon.EQ.0) THEN
-             IF (cntl%nonort) THEN
-                IF (paral%parent) THEN
-                   numx=1
-                   IF (cntl%bsymm)numx=2
-                   ALLOCATE(qmmm_xmat1(nstate*nstate,numx),STAT=ierr)
-                   IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-                        __LINE__,__FILE__)
-                   ALLOCATE(qmmm_xmat2(nstate*nstate),STAT=ierr)
-                   IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-                        __LINE__,__FILE__)
-                   DO i=1,numx
-                      CALL unitmx(qmmm_xmat1(1,i),nstate)
-                   ENDDO
-                ELSE
-                   ! Avoid Fortran 'not allocated' error
-                   ALLOCATE(qmmm_xmat1(1,1),STAT=ierr)
-                   IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
-                        __LINE__,__FILE__)
-                   ALLOCATE(qmmm_xmat2(1),STAT=ierr)
-                   IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
-                        __LINE__,__FILE__)
-                ENDIF
-             ENDIF
-             qmmm_icon=1
-          ENDIF
-          ! 
-          ! Calculate the electronic density
-          IF (cntl%nonort)THEN
-             IF (cntl%bsymm)THEN
-                ipx=bsclcs
-             ELSE
-                ipx=1
-             ENDIF
-             ! Calculate electronic density for nonorthogonal basis
-             CALL mm_dim(mm_go_qm,statusdummy)
-             IF (paral%parent) THEN
-                CALL norhoe(c0,sc0,eigv,rhoe,psi(:,1),qmmm_xmat1(1,ipx),&
-                     qmmm_xmat2,nstate)
-             ELSE
-                CALL norhoe(c0,sc0,eigv,rhoe,psi(:,1),qmmm_xmat1,&
-                     qmmm_xmat2,nstate)
-             ENDIF
-             CALL mm_dim(mm_go_mm,statusdummy)
+          IF (cntl%nonort) THEN
+             !TK norhoe goes here...
+             IF (lspin2%tlse) CALL stopgm('NORHOE','NO LSE ALLOWED HERE',&
+                  __LINE__,__FILE__)
+             IF (tkpts%tkpnt) CALL stopgm('NORHOE','K-POINTS NOT IMPLEMENTED',&
+                  __LINE__,__FILE__)
+             ALLOCATE(qmmm_smat(nstate,nstate),STAT=ierr)
+             IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
+                  __LINE__,__FILE__)
+             ALLOCATE(qmmm_c0_ort(ncpw%ngw,nstate),STAT=ierr)
+             IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
+                  __LINE__,__FILE__)
+             c0_ptr=> qmmm_c0_ort
+             CALL dcopy(2*ncpw%ngw*nstate,c0,1,qmmm_c0_ort,1)
+             IF(pslo_com%tivan) CALL rnlsm(c0(:,:),nstate,1,1,.FALSE.)
+             CALL rgsvan(c0_ptr(:,:),nstate,qmmm_smat,store_nonort=.FALSE.)
+             IF (.NOT.pslo_com%tivan) CALL rnlsm(c0_ptr(:,:),nstate,1,1,.FALSE.)
+             DEALLOCATE(qmmm_smat,stat=ierr)
+             IF (ierr.NE.0) CALL stopgm(procedureN,'Deallocation problem',&
+                  __LINE__,__FILE__)
+             DEALLOCATE(qmmm_c0_ort,stat=ierr)
+             IF (ierr.NE.0) CALL stopgm(procedureN,'Deallocation problem',&
+                  __LINE__,__FILE__)
           ELSE
-             ! Calculate electronic density for orthogonal basis
-             rsactive=cntl%krwfn
-             CALL mm_dim(mm_go_qm,statusdummy)
-             CALL rhoofr(c0,rhoe,psi(:,1),nstate)
-             CALL mm_dim(mm_go_mm,statusdummy)
-             rsactive=.FALSE.
-          ENDIF
+             c0_ptr=>c0
+          END IF
+          ! Calculate electronic density for orthogonal basis
+          rsactive=cntl%krwfn
+          CALL mm_dim(mm_go_qm,statusdummy)
+          CALL rhoofr(c0_ptr,rhoe,psi(:,1),nstate)
+          CALL mm_dim(mm_go_mm,statusdummy)
+          rsactive=.FALSE.
           ! physical sign to RHOE
           !$omp parallel do private(i)
 #ifdef _vpp_
@@ -192,14 +182,14 @@ CONTAINS
           CALL zeroing(fion)!,3*maxsys%nax*maxsys%nsx)
        ELSE
           CALL forcedr(c0,c2,sc0,rhoe,psi,tau,fion,eigv,&
-               nstate,1,lproj,.TRUE.)
+               nstate,1,lproj,.TRUE.,.TRUE.)
        ENDIF
        timef2=m_walltime()
     ENDIF
 
     CALL mp_sync(parai%qmmmgrp)
     CALL mm_dim(mm_go_mm,statusdummy)
-    IF (paral%parent.AND. .NOT.clc%classical)THEN
+    IF (paral%io_parent.AND. .NOT.clc%classical)THEN
        CALL daxpy(3*maxsys%nax*maxsys%nsx,1.0_real_8,fion(1,1,1),1,mm_FION(1,1,1),1)
        ! parent has the short range  contribution + the QM forces; if parent.eq.mmnode, has also lr
     ENDIF
@@ -284,7 +274,20 @@ CONTAINS
     CALL mm_dim(mm_revert,status)
 
     CALL tihalt(procedureN,isub)
+#else
 
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS    :: rhoe(:,:)
+    COMPLEX(real_8),INTENT(INOUT) __CONTIGUOUS :: psi(:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS    :: fion(:,:,:)
+    REAL(real_8),INTENT(INOUT)                 :: eigv(*)
+    COMPLEX(real_8),INTENT(INOUT)              :: c2(ncpw%ngw,nstate), &
+                                                sc0(ncpw%ngw,nstate)
+    REAL(real_8),INTENT(IN) __CONTIGUOUS  :: tau(:,:,:)
+    INTEGER,INTENT(IN)                       :: nstate
+    COMPLEX(real_8),INTENT(IN),TARGET        :: c0(ncpw%ngw,nstate)
+    INTEGER,INTENT(IN)                       :: unused_int
+    LOGICAL,INTENT(IN)                       :: lproj, update_files
+    LOGICAL                                  :: update_pot
 #endif
     RETURN
   END SUBROUTINE mm_qmmm_forcedr

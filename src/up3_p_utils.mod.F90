@@ -13,7 +13,6 @@ MODULE up3_p_utils
   USE parac,                           ONLY: parai,&
                                              paral
   USE rkpnt_utils,                     ONLY: rkpnt
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm
   USE setirec_utils,                   ONLY: write_irec
   USE sphe,                            ONLY: tsphere
   USE system,                          ONLY: fpar,&
@@ -251,12 +250,10 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
     INTEGER                                  :: nstate
 
-    INTEGER                                  :: lhpsi, lortho, lrnlsm
+    INTEGER                                  :: lhpsi, lortho
 
-    CALL give_scr_rnlsm(lrnlsm,tag,2*nstate,.FALSE.)
     CALL give_scr_ortho(lortho,tag,2*nstate)
-    lhpsi =2*nstate+2*maxsys%nax+                   MAX(2*2*ncpw%ngw,lrnlsm)+&
-         100
+    lhpsi =2*nstate+2*maxsys%nax+2*2*ncpw%ngw+100
 
     lupdrho= MAX(lhpsi,lortho)
     ! ==--------------------------------------------------------------==

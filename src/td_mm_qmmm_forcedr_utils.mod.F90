@@ -106,7 +106,7 @@ CONTAINS
           CALL zeroing(fion)!,3*maxsys%nax*maxsys%nsx)
        ELSE
           CALL forcedr(c0,c2,sc0,rhoe,psi,tau,fion,eigv,nstate,&
-               1,lproj,.TRUE.)
+               1,lproj,.TRUE.,.TRUE.)
        ENDIF
        timef2=m_walltime()
     ENDIF

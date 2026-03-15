@@ -1,15 +1,12 @@
 #INFO#
 #INFO# General Configuration for Intel KNL architecture 
-#INFO# Modules needed: licsrv/intel  flavor/buildtarget/x86_64
-#INFO#                 intel/17.0.6.256  mkl/17.0.6.256
-#INFO#                 feature/mkl/lp64 flavor/buildcompiler/intel/17
-#INFO#                 flavor/buildmpi/openmpi/2.0  feature/openmpi/net/auto
-#INFO#                 .tuning/openmpi/2.0  mpi/openmpi/2.0.4
+#INFO# Modules needed: intel/20.0.0 mkl/20.0.0
+#INFO#                 .tuning/openmpi/4.0.5  mpi/openmpi/4.0.5
 #INFO# Intel Composer v.17 or later - OpenMPI 2.0 or later + OMP 3.0 (or later)
 #INFO# For optimal performance you should use the Intel xiar driver
 #INFO# instead of the standard GNU ar
 #INFO# Flags for KNL are slightly cumbersome, yet necessary.
-#INFO# (M. Boero, IPCMS & University of Nagoya, 2018). 
+#INFO# (M. Boero, IPCMS & University of Nagoya, 2021). 
 #INFO#
      IRAT=2
      FC='mpif90'
@@ -17,10 +14,12 @@
      LD='mpif90'
      CPP='/lib/cpp -P -traditional'
      CPPFLAGS='-D__INTEL -D__HAS_FFT_DEFAULT -D__ALPHALINUX -D__HPC -D__HASNT_OMP_45 \
-         -D__PARALLEL -D__HAS_SIZEOF -D__HASNT_F08_ISO_FORTRAN_ENV -D__HAS_BF_STREAM_IO'
+         -D__PARALLEL -D__HAS_SIZEOF -D__HASNT_F08_ISO_FORTRAN_ENV -D__HAS_BF_STREAM_IO \
+         -D__HASNT_OMP_SET_NESTED'
      CPPFLAGS_GROMOS='-DEWALD -DEWATCUT -DHAT_SHAPE -DUNPACKED_GRID \
              -D__INTEL -D__HAS_FFT_DEFAULT -D__ALPHALINUX -D__HPC -D__HASNT_OMP_45 \
-             -D__PARALLEL -D__HAS_SIZEOF -D__HASNT_F08_ISO_FORTRAN_ENV -D__HAS_BF_STREAM_IO'
+             -D__PARALLEL -D__HAS_SIZEOF -D__HASNT_F08_ISO_FORTRAN_ENV -D__HAS_BF_STREAM_IO \
+             -D__HASNT_OMP_SET_NESTED'
      FFLAGS_GROMOS='-fixed $(FFLAGS)'
      FFLAGS_GROMOS_MODULES=' $(FFLAGS)'
      AR='xiar -r'

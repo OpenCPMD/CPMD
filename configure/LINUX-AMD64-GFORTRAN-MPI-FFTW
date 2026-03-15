@@ -1,0 +1,47 @@
+#INFO#
+#INFO# Configuration to build a parallel MPI/OMP QM/MM executable for a linux HPC
+#INFO# using GNU Fortran/C ver. 4.9.2 to 12.2.0 and OpenMPI 2.0.2 to 5.0.2 (or later)
+#INFO# Note:The options "-ffast-math"i and "-fstrength-reduce" might allow the code
+#INFO#      to run faster, or die trying (especially the last one !).
+#INFO#      Some GFortran versions are unable to interpret -fallow-argument-mismatch
+#INFO#      If you want to activate this option, see below.
+#INFO# More information at https://gcc.gnu.org/onlinedocs/gfortran/Fortran-Dialect-Options.html
+#INFO# This version is for the use of the FFTW fast Fourier transform routine
+#INFO# Usually a quick installation places the needed include files in /usr/local/include
+#INFO# You have to change this according to your HPC platform. Generally is something
+#INFO# like -I$(MKLROOT)/include/fftw but you must have a look in the modules available to you.
+#INFO# Strasbourg/Tokyo/Nagoya - March 2024
+#INFO#
+
+     IRAT=2
+     FC='mpif90'
+     CC='mpicc'
+     LD='mpif90'
+     CPP='cpp -P -traditional'
+     CPPFLAGS='-D__Linux -D__GNU -D__HAS_FFT_FFTW3 -D__HAS_SIZEOF -D__HASNT_OMP_45 \
+               -D__PARALLEL -D__HASNT_MULTITHREAD_MPI_SUPPORT -D__HPC -D__HAS_BF_STREAM_IO'
+     FFLAGS_GROMOS='-ffixed-form  $(FFLAGS)' 
+     FFLAGS_GROMOS_MODULES='$(FFLAGS)' 
+     if [ $debug ]; then
+       FFLAGS='-g -O0 -I/usr/local/include -fcheck=all -Wuninitialized -Wall'
+       CFLAGS='-g -O0 -I/usr/local/include -Wall'
+     else
+       FFLAGS='-O2 -I/usr/local/include -Wall -ffree-line-length-none -falign-commons -funroll-loops -ftree-vectorize -mtune=native'
+       CFLAGS='-O2 -I/usr/local/include -Wall -ffree-line-length-none -falign-commons -funroll-loops -ftree-vectorize -mtune=native'
+# If you need -fallow-argument-mismatch use the lines here below
+#       FFLAGS='-O2 -I/usr/local/include -Wall -ffree-line-length-none -falign-commons -funroll-loops -fallow-argument-mismatch -ftree-vectorize -mtune=native'
+#       CFLAGS='-O2 -I/usr/local/include -Wall -ffree-line-length-none -falign-commons -funroll-loops -fallow-argument-mismatch -ftree-vectorize -mtune=native'
+     fi
+     if [ $omp ]; then
+       FFLAGS=${FFLAGS}' -fopenmp'
+       OMP3_DISABLED='false'
+       LIBS='-static-libgfortran -llapack -lblas -lfftw3_mpi -lfftw3_threads -lfftw3'
+     else
+       LIBS='-static-libgfortran -llapack -lblas -lfftw3_mpi -lfftw3'
+     fi
+     LFLAGS=' '${LIBS}
+     if [ $coverage ]; then
+       FFLAGS=${FFLAGS}' --coverage'
+       LFLAGS='--coverage '${LFLAGS}
+     fi
+

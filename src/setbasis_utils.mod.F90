@@ -1,7 +1,3 @@
-#ifdef __SR11000
-!option OPT(O(3))
-#endif
-
 MODULE setbasis_utils
   USE adat,                            ONLY: elem,&
                                              nelcon
@@ -81,14 +77,24 @@ CONTAINS
     ! == SET ATOMIC BASIS         (call once)                         ==
     ! ==--------------------------------------------------------------==
     ! Variables
+#ifdef __PARALLEL
+    USE mpi_f08
+#endif
     CHARACTER(*), PARAMETER                  :: procedureN = 'setbasis'
     CHARACTER(len=1), DIMENSION(0:3), &
       PARAMETER                              :: lq = (/'S','P','D','F'/)
     INTEGER, PARAMETER                       :: ifnum = 21 
 
+#ifdef __PARALLEL
+    INTEGER                                  :: i, iatom, ibtype(maxsp), &
+                                                ierr, iosource, ir, &
+                                                is, isub, l, m, ms, n, ne(4,7)
+    type(MPI_COMM)                           :: iogroup
+#else
     INTEGER                                  :: i, iatom, ibtype(maxsp), &
                                                 ierr, iogroup, iosource, ir, &
                                                 is, isub, l, m, ms, n, ne(4,7)
+#endif
     INTEGER, SAVE                            :: ifirst = 0
     LOGICAL                                  :: ionode
     REAL(real_8)                             :: dclog, valch, zc
@@ -1010,9 +1016,6 @@ CONTAINS
           IF (atwf_mod%nbcut.EQ.1) THEN
              IF (cntl%bigmem) THEN
                 !$omp     parallel do private(IG,CC) shared(LY,NSPLPO)
-#ifdef __SR8000
-                !poption parallel
-#endif
                 DO ig=1,nngw
                    cc=curv2(hg(ig),nsplpo,ggnh(1),cat(1,1,ish,is),&
                         cat(1,2,ish,is),0.0_real_8)*vol
@@ -1020,9 +1023,6 @@ CONTAINS
                 ENDDO
              ELSE
                 !$omp     parallel do private(IG,CC,EI123) shared(LY,NSPLPO)
-#ifdef __SR8000
-                !poption parallel
-#endif
                 DO ig=1,nngw
                    cc=curv2(hg(ig),nsplpo,ggnh(1),cat(1,1,ish,is),&
                         cat(1,2,ish,is),0.0_real_8)*vol
@@ -1035,9 +1035,6 @@ CONTAINS
              IF (nngw.GT.ncpw%ngw) CALL stopgm('LOADC','NGW',& 
                   __LINE__,__FILE__)
              !$omp     parallel do private(IG,CC) shared(LY,NSPLPO)
-#ifdef __SR8000
-             !poption parallel
-#endif
              DO ig=1,nngw
                 cc=curv2(hg(ig),nsplpo,ggng(1),cat(1,1,ish,is),&
                      cat(1,2,ish,is),0.0_real_8)*vol

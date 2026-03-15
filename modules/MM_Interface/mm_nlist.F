@@ -2,7 +2,7 @@ C     ==================================================================
       SUBROUTINE mm_nlist_el(TAU,nn_sr,nn_esp,nn_lr,nn_atom,nn_sp,
      c                    nn_excl_mm,q_mm)
 C     ==--------------------------------------------------------------==
-cmb - Revised on 04 December 2012
+cmb - Revised on 14 March 2024
       use kinds, only: real_4, real_8, int_1, int_2, int_4, int_8
       use error_handling, only: stopgm
       use timer, only: tiset, tihalt
@@ -59,9 +59,6 @@ C      character*3 inc_group
       endif
 
 !$OMP parallel do private(ig)
-#ifdef __SR11000
-*poption parallel, tlocal(ig)
-#endif
       DO ig=1,mmdim%NATm
         lab(ig)=lab_DM
       ENDDO 

@@ -1321,9 +1321,6 @@ SUBROUTINE dgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
      ELSE
         IF (beta.EQ.zero) THEN
            !$omp parallel do private(I,IY)
-#ifdef __SR8000
-           !poption parallel, tlocal(I,IY)
-#endif 
            DO i=1,leny
               iy=ky+(i-1)*incy
               y(iy)=zero
@@ -1332,9 +1329,6 @@ SUBROUTINE dgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
            !$omp parallel do private(I,IY)
            !OCL NOVREC(Y)
            !CDIR NODEP(Y)
-#ifdef __SR8000
-           !poption parallel, tlocal(I,IY)
-#endif 
            DO i=1,leny
               iy=ky+(i-1)*incy
               y(iy)=beta*y(iy)
@@ -1425,9 +1419,6 @@ SUBROUTINE dgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
               temp=alpha*x(j)
               !$omp parallel do private(I,IY)
               !CDIR NODEP(Y)
-#ifdef __SR8000
-              !poption parallel, tlocal(I,IY)
-#endif 
               DO i=1,m
                  iy=iiy(i)
                  y(iy)=y(iy)+temp*a(i,j)
@@ -1445,9 +1436,6 @@ SUBROUTINE dgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
               temp=alpha*x(jx)
               !$omp parallel do private(I,IY)
               !CDIR NODEP(Y)
-#ifdef __SR8000
-              !poption parallel, tlocal(I,IY)
-#endif 
               DO i=1,m
                  iy=iiy(i)
                  y(iy)=y(iy)+temp*a(i,j)
@@ -1468,9 +1456,6 @@ SUBROUTINE dgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
         !$omp parallel do private(J,I,JY,TEMP) 
         !OCL NOVREC(Y)
         !CDIR NODEP(Y)
-#ifdef __SR8000
-        !poption parallel, tlocal(J,I,JY,TEMP)
-#endif 
         DO j=1,n
            temp=zero
            DO i=1,m
@@ -1488,9 +1473,6 @@ SUBROUTINE dgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
         !$omp parallel do private(J,I,IX,JY,TEMP) 
         !OCL NOVREC(Y)
         !CDIR NODEP(Y)
-#ifdef __SR8000
-        !poption parallel, tlocal(J,I,IX,JY,TEMP)
-#endif 
         DO j=1,n
            temp=zero
            DO i=1,m
@@ -3213,9 +3195,6 @@ SUBROUTINE zgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
      ELSE
         IF (beta.EQ.zero) THEN
            !$omp parallel do private(I,IY)
-#ifdef __SR8000
-           !poption parallel, tlocal(I,IY)
-#endif 
            DO i=1,leny
               iy=ky+(i-1)*incy
               y(iy)=zero
@@ -3224,9 +3203,6 @@ SUBROUTINE zgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
            !$omp parallel do private(I,IY)
            !OCL NOVREC(Y)
            !CDIR NODEP(Y)
-#ifdef __SR8000
-           !poption parallel, tlocal(I,IY)
-#endif 
            DO i=1,leny
               iy=ky+(i-1)*incy
               y(iy)=beta*y(iy)
@@ -3265,9 +3241,6 @@ SUBROUTINE zgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
            temp=alpha*x(jx)
            !$omp parallel do private(I,IY)
            !CDIR NODEP(Y)
-#ifdef __SR8000
-           !poption parallel, tlocal(I,IY)
-#endif 
            DO i=1,m
               iy=iiy(i)
               y(iy)=y(iy)+temp*a(i,j)
@@ -3288,9 +3261,6 @@ SUBROUTINE zgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
            !$omp parallel do private(J,I,TEMP,JY)
            !OCL NOVREC(Y)
            !CDIR NODEP(Y)
-#ifdef __SR8000
-           !poption parallel, tlocal(J,I,TEMP,JY)
-#endif 
            DO j=1,n
               temp=zero
               DO i=1,m
@@ -3303,9 +3273,6 @@ SUBROUTINE zgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
            !$omp parallel do private(J,I,TEMP,JY)
            !OCL NOVREC(Y)
            !CDIR NODEP(Y)
-#ifdef __SR8000
-           !poption parallel, tlocal(J,I,TEMP,JY)
-#endif 
            DO j=1,n
               temp=zero
               DO i=1,m
@@ -3325,9 +3292,6 @@ SUBROUTINE zgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
            !$omp parallel do private(J,I,IX,JY,TEMP)
            !OCL NOVREC(Y)
            !CDIR NODEP(Y)
-#ifdef __SR8000
-           !poption parallel, tlocal(J,I,IX,JY,TEMP)
-#endif 
            DO j=1,n
               temp=zero
               DO i=1,m
@@ -3341,9 +3305,6 @@ SUBROUTINE zgemv(trans,m,n,alpha,a,lda,x,incx,beta,y,incy)
            !$omp parallel do private(J,I,IX,JY,TEMP)
            !OCL NOVREC(Y)
            !CDIR NODEP(Y)
-#ifdef __SR8000
-           !poption parallel, tlocal(J,I,IX,JY,TEMP)
-#endif 
            DO j=1,n
               temp=zero
               DO i=1,m

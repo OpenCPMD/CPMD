@@ -1,4 +1,7 @@
 MODULE if_parallel
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
   !     ==--------------------------------------------------------------==
   !     == IFMEPOS : RANK in the Interface group                        ==
   !     == IFNPROC : Number of processes in the interface group         ==
@@ -10,7 +13,11 @@ MODULE if_parallel
   TYPE ifparai_t
      INTEGER :: ifmepos 
      INTEGER :: ifnproc 
+#ifdef __PARALLEL
+     type(MPI_COMM) :: ifgrp 
+#else
      INTEGER :: ifgrp 
+#endif
      INTEGER :: ifsource 
      INTEGER :: ifsrcpos
   END TYPE ifparai_t

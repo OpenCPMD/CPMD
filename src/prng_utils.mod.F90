@@ -1,10 +1,13 @@
-
+#include "cpmd_global.h"
 
 ! a minimal implementation of L'Ecuyer MRG32k3a
 ! with wrappers to simplify calling from around CPMD
 MODULE prng_utils
-  USE kinds,                           ONLY: real_8
-  USE parac,                           ONLY: parai
+  USE error_handling,                  ONLY: stopgm
+  USE kinds,                           ONLY: real_8,&
+                                             int_8
+  USE parac,                           ONLY: parai,&
+                                             paral
   USE prng,                            ONLY: prng_com
   USE system,                          ONLY: cnti
 
@@ -110,14 +113,13 @@ CONTAINS
     REAL(real_8), PARAMETER :: m1 = 4294967087.0_real_8               , &
       m2 = 4294944443.0_real_8               
 
-    INTEGER                                  :: i, last
+    INTEGER __ASYNCHRONOUS                   :: i, last
 
     last = seed
     DO i=1,3
        last= IEOR(last,ISHFT(last,-30))
        last=last*1812433253 + i
-       sprng(1,i)=last
-       IF (sprng(1,i).LT.0) sprng(1,i)=-sprng(1,i)
+       sprng(1,i)=ABS(last)      
        DO WHILE (sprng(1,i).GT.m1)
           sprng(1,i)=sprng(1,i)-m1
        ENDDO
@@ -125,8 +127,7 @@ CONTAINS
     DO i=1,3
        last= IEOR(last,ISHFT(last,-30))
        last=last*1812433253 + i
-       sprng(2,i)=last
-       IF (sprng(2,i).LT.0) sprng(2,i)=-sprng(2,i)
+       sprng(2,i)=ABS(last)
        DO WHILE (sprng(2,i).GT.m2)
           sprng(2,i)=sprng(2,i)-m2
        ENDDO
@@ -181,15 +182,46 @@ CONTAINS
   SUBROUTINE prnginit()
     ! TEST OF THE IMPLEMENTATION : the sum must be ~ 5001090.95 (see
     ! L'Ecuyer, Op.Res. 47, 159 (1999))
-    ! REAL(8) ss
-    ! REPSEED=12345
-    ! ss=0.0_real_8
-    ! do i=1,10000000
-    ! ss=ss+REPPRNGU()
-    ! enddo
-    ! write(6,*) "PRNG SUM IS ", ss
+    IMPLICIT NONE
+    REAL(real_8)                             :: ss, sprng(2,3)
+    INTEGER                                  :: i
+    CHARACTER(*), PARAMETER                  :: procedureN = 'prnginit'
+    sprng=12345.0_real_8
+    ss=0.0_real_8
+    do i=1,10000000
+       ss=ss+prngunif(sprng)
+    enddo
 
-    CALL prngseed(cnti%iprng, prng_com%repseed)
+    IF(paral%io_parent) write(6,*) "PRNG SUM IS ", ss ,"Expected is ~5001090.95"
+    IF( ABS(ss-5001090.95) .GT. 1.0_real_8) CALL stopgm(procedureN,'faild, prng not working', &
+         __LINE__,__FILE__)
+
+    CALL prngseed(123456,sprng)
+    prng_com%repseed(1,1)=848462657.0_real_8
+    prng_com%repseed(2,1)=2013345766.0_real_8
+    prng_com%repseed(1,2)=1590858151.0_real_8
+    prng_com%repseed(2,2)=88691419.0_real_8
+    prng_com%repseed(1,3)=479153281.0_real_8
+    prng_com%repseed(2,3)=1892001281.0_real_8
+    IF(ALL(INT(prng_com%repseed,KIND=int_8).NE.INT(sprng,KIND=int_8)))THEN
+       IF(cnti%iprng.EQ.123456) THEN
+          IF(paral%io_parent) then
+             write(6,*) 'WARNING prngseed not working properly, using precomputed values'
+             write(6,*) 'expected'
+             write(6,*) INT(prng_com%repseed)
+             write(6,*) 'calculated'
+             write(6,*) INT(sprng)
+          END IF
+       ELSE
+          CALL stopgm(procedureN,'faild, prngseed not working', &
+               __LINE__,__FILE__)
+       END IF
+    END IF
+    IF(cnti%iprng.NE.123456)THEN
+       CALL prngseed(cnti%iprng, prng_com%repseed)
+       IF( ANY(prng_com%repseed.LT.0) ) CALL stopgm(procedureN,'faild, prngseed not working', &
+            __LINE__,__FILE__)
+    END IF
     CALL prngskip(prng_com%repseed,prng_com%paraseed)
     CALL prngparaskip(prng_com%paraseed,prng_com%paraseed)
   END SUBROUTINE prnginit

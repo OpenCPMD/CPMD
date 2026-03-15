@@ -1,7 +1,3 @@
-#ifdef __SR8000
-!option MP(P(0)), LANGLVL(SAVE(0))
-#endif
-
 MODULE sysin_utils
   USE cdftmod,                         ONLY: cdft_mat,&
                                              cdftlog,&

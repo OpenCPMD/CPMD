@@ -2434,7 +2434,7 @@ contains
               ! counting function exponential has a better long-range behavior than MH
               damp=1.d0/(1.d0+exp(-k1*(rr-1.0d0)))
               xn=xn+damp
-              ! print '("cn(",I2,I2,"): ",E14.8)',i,iat,damp
+              ! print '("cn(",I2,I2,"): ",E15.8)',i,iat,damp
 
             end do
           end do

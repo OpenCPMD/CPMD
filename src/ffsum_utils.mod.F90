@@ -41,9 +41,6 @@ CONTAINS
     vol=1._real_8/parm%omega
     IF (cntl%bigmem) THEN
        !$omp parallel do private(IG,IS,IA,ISA0,ISA,SFACS,DSUML)
-#ifdef __SR8000
-       !poption parallel, tlocal(IG,IS,IA,ISA0,ISA,SFACS,DSUML)
-#endif 
        DO ig=1,ncpw%nhg
           isa0=0
           DO is=1,ions1%nsp
@@ -60,9 +57,6 @@ CONTAINS
        ENDDO
     ELSE
        !$omp parallel do private(IG,IS,IA,ISA0,ISA,SFACS,DSUML)
-#ifdef __SR8000
-       !poption parallel, tlocal(IG,IS,IA,ISA0,ISA,SFACS,DSUML)
-#endif 
        DO ig=1,ncpw%nhg
           isa0=0
           DO is=1,ions1%nsp

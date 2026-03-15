@@ -1,7 +1,3 @@
-#ifdef __SR8000
-!option MP(P(0)), LANGLVL(SAVE(0))
-#endif
-
 MODULE functionals_utils
   USE cnst,                            ONLY: fpi,&
                                              pi

@@ -1,17 +1,20 @@
 MODULE ddipo_utils
   USE atwf,                            ONLY: atwp,&
                                              loadc_foc_array_size
+  USE cppt,                            ONLY: gk
   USE ddip,                            ONLY: ngg1,&
                                              ngg2,&
                                              ngg3,&
                                              ngwmax,&
                                              pdipole,&
                                              pdipolt
+  USE distribution_utils,              ONLY: dist_entity
   USE dipomod,                         ONLY: moment
   USE dotp_utils,                      ONLY: dotp
   USE elct,                            ONLY: crge
   USE error_handling,                  ONLY: stopgm
   USE forcedr_utils,                   ONLY: give_scr_forcedr
+  USE fft,                             ONLY: jhg
   USE gvec,                            ONLY: epsg,&
                                              gvec_com
   USE ions,                            ONLY: ions0,&
@@ -27,10 +30,13 @@ MODULE ddipo_utils
   USE numpw_utils,                     ONLY: gkpwf
   USE opeigr_utils,                    ONLY: give_scr_opeigr,&
                                              opeigr
+  USE phfac_utils,                     ONLY: phfac_dipole
   USE parac,                           ONLY: parai,&
                                              paral
   USE prcp,                            ONLY: prcp_com
+  USE pslo,                            ONLY: pslo_com
   USE rggen_utils,                     ONLY: recips
+  USE rhov_utils,                      ONLY: rhov
   USE rotate_utils,                    ONLY: rotate
   USE sd_wannier_utils,                ONLY: give_scr_sdwann
   USE setbasis_utils,                  ONLY: loadc
@@ -51,7 +57,9 @@ MODULE ddipo_utils
   USE timer,                           ONLY: tihalt,&
                                              tiset
   USE utils,                           ONLY: icopy,&
-                                             rmatmov
+                                             rmatmov,&
+                                             determ
+  USE vdbinit_utils,                   ONLY: qvan2_init_dipole
   USE wann,                            ONLY: wan05,&
                                              wannc,&
                                              wanni,&
@@ -59,6 +67,7 @@ MODULE ddipo_utils
                                              wannr
   USE wannier_center_utils,            ONLY: wannier_center
   USE zeroing_utils,                   ONLY: zeroing
+
 
   IMPLICIT NONE
 
@@ -68,6 +77,8 @@ MODULE ddipo_utils
   PUBLIC :: give_scr_ddipo
   PUBLIC :: setdip
   PUBLIC :: set_operator
+  PUBLIC :: get_augind
+  PUBLIC :: get_aug
 
 CONTAINS
 
@@ -163,6 +174,10 @@ CONTAINS
     REAL(real_8), ALLOCATABLE, &
       DIMENSION(:, :)                        :: u, vt
     REAL(real_8), ALLOCATABLE, SAVE          :: rotlsd(:), rotmat(:,:)
+ 
+    COMPLEX(real_8), ALLOCATABLE             :: xyz_aug(:,:,:) 
+    INTEGER, SAVE                            :: aug_ind(6)
+    LOGICAL, SAVE                            :: aug_cntrl(6)
 
 ! ==--------------------------------------------------------------==
 ! ..Wannier functions
@@ -180,6 +195,7 @@ CONTAINS
     IF (paral%io_parent.AND.wannier_recomput) &
          WRITE(6,*) procedureN//': RECOMPUTE DIPOLE MATRICES'
 
+    ALLOCATE(xyz_aug(nstate,nstate,6))
     ! ..initialization on first call to subroutine
     IF (ifirst.EQ.0) THEN
        n1=0
@@ -195,6 +211,11 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
        CALL setdip(mapful,mapcol)
+
+       ! initialization for uspp case 
+       IF (pslo_com%tivan) CALL get_augind(aug_ind,aug_cntrl)
+       IF (pslo_com%tivan) CALL qvan2_init_dipole(aug_ind,aug_cntrl)
+
        ! ..initialization for Wannier function part
        IF (wannl%twann) THEN
           CALL set_operator(.TRUE.)
@@ -276,19 +297,34 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
     IF (wannier_recomput) THEN
+       ! Compute augmentation charges in uspp case 
+       IF (pslo_com%tivan) CALL get_aug(nstate,aug_ind,aug_cntrl,xyz_aug)
+
        CALL opeigr(c0,c2,sc0,nstate,mapful,mapcol,ddmat,&
             1,0,dd1)
        IF (wannl%twann) CALL dcopy(2*nstate*nstate,ddmat,1,xyzmat(1,1,1),1)
+       IF (pslo_com%tivan) THEN
+          ddmat = ddmat + xyz_aug(:,:,1)
+          CALL determ(ddmat,nstate,nstate,dd1)
+       ENDIF
        det=dd1*ephase1
        d1=ATAN(AIMAG(det)/REAL(det))
        CALL opeigr(c0,c2,sc0,nstate,mapful,mapcol,ddmat,&
             2,0,dd2)
        IF (wannl%twann) CALL dcopy(2*nstate*nstate,ddmat,1,xyzmat(1,1,2),1)
+       IF (pslo_com%tivan) THEN
+          ddmat = ddmat + xyz_aug(:,:,2)
+          CALL determ(ddmat,nstate,nstate,dd2)
+       ENDIF
        det=dd2*ephase2
        d2=ATAN(AIMAG(det)/REAL(det))
        CALL opeigr(c0,c2,sc0,nstate,mapful,mapcol,ddmat,&
             3,0,dd3)
        IF (wannl%twann) CALL dcopy(2*nstate*nstate,ddmat,1,xyzmat(1,1,3),1)
+       IF (pslo_com%tivan) THEN
+          ddmat = ddmat + xyz_aug(:,:,3)
+          CALL determ(ddmat,nstate,nstate,dd3)
+       ENDIF
        det=dd3*ephase3
        d3=ATAN(AIMAG(det)/REAL(det))
        ! ..Sum up dipoles
@@ -310,6 +346,9 @@ CONTAINS
              CALL dcopy(2*nstate*nstate,ddmat,1,xyzmat(1,1,i),1)
           ENDDO
        ENDIF
+
+       IF (pslo_com%tivan) xyzmat = xyzmat + xyz_aug       
+
        ! Optimisers
        IF (wanni%w_opt.EQ.1) THEN
           IF (paral%parent) THEN
@@ -453,6 +492,7 @@ CONTAINS
        CALL wannier_center(xyzmat,nstate,nstate,center,tau0)
     ENDIF
     DEALLOCATE(ddmat,STAT=ierr)
+    DEALLOCATE(xyz_aug,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
     CALL tihalt(procedureN,isub)
@@ -651,9 +691,6 @@ CONTAINS
     ngg1=0
     ngg2=0
     ngg3=0
-#ifdef __SR8000
-    !poption parallel, tlocal(IG), max(NGG1,NGG2,NGG3)
-#endif
     !$omp parallel do private(IG) &
     !$omp             reduction(max:NGG1,NGG2,NGG3)
     DO ig=1,spar%ngws
@@ -667,9 +704,6 @@ CONTAINS
     ngg1=2*(ngg1+1)+1
     ngg2=2*(ngg2+1)+1
     ngg3=2*(ngg3+1)+1
-#ifdef __SR8000
-    !poption parallel, tlocal(IG,I1,I2,I3,J1,J2,J3)
-#endif
     !$omp parallel do private(IG,I1,I2,I3,J1,J2,J3)
     DO ig=1,spar%ngws
        i1=iny(1,ig)+ngg1h
@@ -822,4 +856,110 @@ CONTAINS
   END SUBROUTINE set_operator
   ! ==================================================================
 
+  ! ==================================================================
+  SUBROUTINE get_augind(aug_ind, aug_cntrl)
+   ! ==--------------------------------------------------------------==
+   ! == Searches for right inidices for the augementation charges    ==
+   ! ==--------------------------------------------------------------==
+
+   INTEGER                      :: i 
+   INTEGER, INTENT(OUT)         :: aug_ind(6)
+   LOGICAL, INTENT(OUT)         :: aug_cntrl(6)
+
+   aug_ind=0
+   aug_cntrl=.FALSE.
+
+   DO i=1, jhg
+      IF (gvec_com%b1(1) .EQ. gk(1,i) .AND. &
+           gvec_com%b1(2) .EQ. gk(2,i) .AND. &
+           gvec_com%b1(3) .EQ. gk(3,i) .AND. .NOT. aug_cntrl(1))& 
+           THEN
+         aug_ind(1)=i
+         aug_cntrl(1)=.TRUE.  
+      ELSEIF (gvec_com%b2(1) .EQ. gk(1,i) .AND. &
+           gvec_com%b2(2) .EQ. gk(2,i) .AND. &
+           gvec_com%b2(3) .EQ. gk(3,i) .AND. .NOT. aug_cntrl(2))& 
+           THEN
+         aug_ind(2)=i
+         aug_cntrl(2)=.TRUE.  
+      ELSEIF (gvec_com%b3(1) .EQ. gk(1,i) .AND. &
+           gvec_com%b3(2) .EQ. gk(2,i) .AND. &
+           gvec_com%b3(3) .EQ. gk(3,i) .AND. .NOT. aug_cntrl(3))& 
+           THEN
+         aug_ind(3)=i
+         aug_cntrl(3)=.TRUE.  
+      ELSEIF (gvec_com%b1(1)+gvec_com%b2(1) .EQ. gk(1,i) .AND. &
+           gvec_com%b1(2)+gvec_com%b2(2) .EQ. gk(2,i) .AND. &
+           gvec_com%b1(3)+gvec_com%b2(3) .EQ. gk(3,i) .AND. .NOT. aug_cntrl(4))& 
+           THEN
+         aug_ind(4)=i
+         aug_cntrl(4)=.TRUE.  
+      ELSEIF (gvec_com%b1(1)+gvec_com%b3(1) .EQ. gk(1,i) .AND. &
+           gvec_com%b1(2)+gvec_com%b3(2) .EQ. gk(2,i) .AND. &
+           gvec_com%b1(3)+gvec_com%b3(3) .EQ. gk(3,i) .AND. .NOT. aug_cntrl(5))& 
+           THEN
+         aug_ind(5)=i
+         aug_cntrl(5)=.TRUE.  
+      ELSEIF (gvec_com%b2(1)+gvec_com%b3(1) .EQ. gk(1,i) .AND. &
+           gvec_com%b2(2)+gvec_com%b3(2) .EQ. gk(2,i) .AND. &
+           gvec_com%b2(3)+gvec_com%b3(3) .EQ. gk(3,i) .AND. .NOT. aug_cntrl(6))& 
+           THEN
+         aug_ind(6)=i
+         aug_cntrl(6)=.TRUE.   
+      ENDIF
+   END DO
+   ! ==--------------------------------------------------------------==
+   RETURN
+  END SUBROUTINE get_augind
+  ! ==================================================================
+
+  ! ==================================================================
+  SUBROUTINE get_aug(nstate, aug_ind, aug_cntrl, xyz_aug)
+   ! ==--------------------------------------------------------------==
+   ! == Calculates augmentation charges to add to xyzmat for the     ==
+   ! == localization routine in the uspp case                        ==
+   ! ==--------------------------------------------------------------==
+    CHARACTER(*),PARAMETER::procedureN='get_aug' 
+   INTEGER, INTENT(IN)          :: aug_ind(6), nstate
+   LOGICAL, INTENT(IN)          :: aug_cntrl(6)
+  
+   COMPLEX(real_8), INTENT(OUT) :: xyz_aug(:,:,:)
+
+   INTEGER                      :: i, j, k, nstate_total,ij,ierr,nstates(2,1)
+   COMPLEX(real_8)              :: aug(6)
+   INTEGER, ALLOCATABLE, SAVE :: nst(:,:)
+   
+   xyz_aug=cmplx(0.0_real_8,0.0_real_8)
+   CALL phfac_dipole(aug_ind,aug_cntrl)
+   nstate_total=nstate*(nstate+1)/2
+   IF(.not.allocated(nst))THEN
+      ALLOCATE(nst(2,0:parai%nproc-1),stat=ierr)
+      IF (ierr /= 0) CALL stopgm(procedureN, 'allocation problem)',&
+           __LINE__,__FILE__)
+   END IF
+ 
+   CALL dist_entity(nstate_total,parai%nproc,nst)
+
+   ij=0
+   DO i=1, nstate
+      DO j=i,nstate
+         ij=ij+1
+         if(ij.ge.nst(1,parai%mepos).and.ij.le.nst(2,parai%mepos))then
+            nstates(1,1)=i
+            nstates(2,1)=j
+            call rhov(nstates,psi=aug,dipole=.TRUE.)
+            do k=1,6
+               xyz_aug(i,j,k)=aug(k)*parm%omega
+               xyz_aug(j,i,k)=aug(k)*parm%omega
+            end do
+         end if
+      end DO
+   end DO
+    
+   CALL mp_sum(xyz_aug, 6*nstate*nstate, parai%allgrp) 
+   
+   ! ==--------------------------------------------------------------==
+   RETURN
+  END SUBROUTINE get_aug
+  ! ==================================================================
 END MODULE ddipo_utils

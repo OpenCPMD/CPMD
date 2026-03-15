@@ -88,11 +88,9 @@ MODULE specpt_utils
   USE readsr_utils,                    ONLY: xstring
   USE reshaper,                        ONLY: reshape_inplace
   USE rho1pri_utils,                   ONLY: rho1pri
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr,&
-                                             rhoofr
+  USE rhoofr_utils,                    ONLY: rhoofr
   USE rhopri_utils,                    ONLY: give_scr_rhopri,&
                                              rhopri
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm
   USE ropt,                            ONLY: infw,&
                                              iteropt,&
                                              ropt_mod
@@ -902,7 +900,7 @@ CONTAINS
                   eigv,no,1,.FALSE.,.FALSE.,.TRUE.)
           ELSE
              CALL forcedr(c0(:,:,1),c2(:,:,1),sc0,rhoe,psi,tau0,fion,eigv,&
-                  no,1,.FALSE.,.FALSE.)
+                  no,1,.FALSE.,.FALSE.,.TRUE.)
           ENDIF
           CALL canon(c0,c2,crge%f,no,eigv)
           IF (td03%treorder) THEN
@@ -1003,7 +1001,7 @@ CONTAINS
                   eigv,no,1,.FALSE.,.FALSE.,.FALSE.)
           ELSE
              CALL forcedr(c0(:,:,1),c2(:,:,1),sc0,rhoe,psi,tau0,fion,eigv,&
-                  no,1,.FALSE.,.TRUE.)
+                  no,1,.FALSE.,.TRUE.,.TRUE.)
           ENDIF
           CALL dcopy(fpar%nnr1*clsd%nlsd,rhoe,1,potr,1)
           DO is=1,no
@@ -1047,7 +1045,7 @@ CONTAINS
                eigv,no,1,.FALSE.,.FALSE.,.TRUE.)
        ELSE
           CALL forcedr(c0(:,:,1),c2(:,:,1),sc0,rhoe,psi,tau0,fion,eigv,&
-               no,1,.FALSE.,.TRUE.)
+               no,1,.FALSE.,.TRUE.,.TRUE.)
        ENDIF
        CALL canon(c0,c2,crge%f,no,eigv)
        IF (td03%treorder) THEN
@@ -1075,7 +1073,7 @@ CONTAINS
                eigv,no,1,.FALSE.,.FALSE.,.TRUE.)
        ELSE
           CALL forcedr(c0(:,:,1),c2(:,:,1),sc0,rhoe,psi,tau0,fion,eigv,&
-               no,1,.FALSE.,.TRUE.)
+               no,1,.FALSE.,.TRUE.,.TRUE.)
        ENDIF
        DO is=1,no
           CALL dscal(2*ncpw%ngw,1._real_8/crge%f(is,1),c2(1,is,1),1)
@@ -1397,15 +1395,13 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
 
     INTEGER :: l_diag, lcanon, lforces, linitrun, llocal, llr_diag, lortho, &
-      lrhoofr, lrhopri, lrnlsm, ltd_force, lupdwf, nstate
+      lrhopri, ltd_force, lupdwf, nstate
 
     nstate=crge%n
     CALL give_scr_initrun(linitrun,tag)
     CALL give_scr_updwf(lupdwf,tag,nstate,.FALSE.)
-    CALL give_scr_rhoofr(lrhoofr,tag)
     CALL give_scr_forcedr(lforces,tag,nstate,.FALSE.,.FALSE.)
     CALL give_scr_canon(lcanon,tag,nstate)
-    CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
     CALL give_scr_lr_diag(llr_diag,tag)
     nstate=crge%n+MAX(td01%ns_tri,td01%ns_sin,td01%ns_mix)
     IF (cntl%tlanc) THEN
@@ -1435,7 +1431,7 @@ CONTAINS
        CALL give_scr_td_force(ltd_force,nstate,tag)
     ENDIF
     ! 
-    lspectra=MAX(linitrun,lupdwf,lrhoofr,lforces,lcanon,lrnlsm,&
+    lspectra=MAX(linitrun,lupdwf,lforces,lcanon,&
          llr_diag,l_diag,lortho,llocal,lrhopri,ltd_force)
     ! ==--------------------------------------------------------------==
     RETURN
@@ -1523,9 +1519,6 @@ CONTAINS
     CALL xstring(cipnum,i1,i2)
     filen=cflbod(n1:n2)//cipnum(i1:i2)
     !$omp parallel do private (IR)
-#ifdef __SR8000
-    !poption parallel
-#endif
     DO ir=1,fpar%nnr1
        psi(ir)=CMPLX(rhoe(ir,1),0._real_8,kind=real_8)
     ENDDO

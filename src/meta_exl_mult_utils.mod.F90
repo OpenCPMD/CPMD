@@ -706,10 +706,7 @@ CONTAINS
 
     CALL zeroing(tscr)!,3*maxsys%nax*maxsys%nsx)
     CALL gettau(tscr,fi_harm)
-#ifdef __SR11000
-    !poption parallel, tlocal(IS,IA,FACT)
-    !voption indep(FHILLS,TSCR)
-#endif
+!$OMP parallel do private(IS,IA,FACT)
     DO is=1,ions1%nsp
        fact= dt_ions*dtb2mi(is)
        DO ia=1,ions0%na(is)

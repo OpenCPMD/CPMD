@@ -1213,10 +1213,6 @@ CONTAINS
 
 
     ! Set Default Values
-#ifdef __SR11000
-    !poption parallel, tlocal(IC)
-    !voption indep(CSCL_FAC,TAD_SCF)
-#endif
     DO ic = 1,ncolvar
        cscl_fac(1,ic) = 1.0_real_8
        cscl_fac(2,ic) = 0.2_real_8

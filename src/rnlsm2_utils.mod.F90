@@ -1,502 +1,336 @@
+#include "cpmd_global.h"
+
 MODULE rnlsm2_utils
   USE cppt,                            ONLY: gk,&
-                                             twnl
+                                             twnl_nghtol_gk
+  USE cp_grp_utils,                    ONLY: cp_grp_split_atoms,&
+                                             cp_grp_redist_dfnl_fnl
   USE error_handling,                  ONLY: stopgm
   USE geq0mod,                         ONLY: geq0
+  USE fnl_utils,                       ONLY: unpack_dfnl,&
+                                             sort_dfnl
   USE ions,                            ONLY: ions0,&
                                              ions1
-  USE kinds,                           ONLY: real_8
+  USE kinds,                           ONLY: real_8,&
+                                             int_8,&
+                                             int_4
   USE kpnt,                            ONLY: eigkr,&
                                              rk
   USE kpts,                            ONLY: tkpts
-  USE mm_dimmod,                       ONLY: mmdim
-  USE mp_interface,                    ONLY: mp_sum
+  USE machine,                         ONLY: m_walltime
+  USE mp_interface,                    ONLY: mp_sum,mp_bcast
   USE nlps,                            ONLY: imagp,&
                                              nghtol,&
-                                             nlm,&
-                                             nlps_com
-  USE parac,                           ONLY: parai
+                                             nlm
+  !$ USE omp_lib,                      ONLY: omp_set_nested,&
+  !$                                         omp_get_thread_num,&
+  !$                                         omp_set_num_threads
+  USE parac,                           ONLY: parai,&
+                                             paral
+  USE reshaper,                        ONLY: reshape_inplace
+  USE rnlsm_helper,                    ONLY: proj_beta,&
+                                             set_buffers,&
+                                             tune_rnlsm
   USE sfac,                            ONLY: dfnl,&
-                                             eigr
-  USE system,                          ONLY: ncpw,&
+                                             dfnla,&
+                                             dfnl_packed,&
+                                             eigr,&
+                                             il_dfnl_packed
+  USE system,                          ONLY: cntl,&
+                                             cnti,&
+                                             cntr,&
+                                             ncpw,&
                                              nkpt,&
-                                             parap,&
-                                             parm
+                                             parap
   USE timer,                           ONLY: tihalt,&
                                              tiset
   USE zeroing_utils,                   ONLY: zeroing
+#ifdef _USE_SCRATCHLIBRARY
+  USE scratch_interface,               ONLY: request_scratch,&
+                                             free_scratch
+#endif
+#ifdef _INTEL_MKL
+  use mkl_service
+#endif
 
   IMPLICIT NONE
 
   PRIVATE
 
   PUBLIC :: rnlsm2
-  PUBLIC :: give_scr_rnlsm2
 
 CONTAINS
 
-#if defined(__SR8000) || defined(_vpp_) || defined (__ES) 
-
   ! ==================================================================
-  SUBROUTINE RNLSM2(C0,NSTATE,IKPT,IKIND)
+  SUBROUTINE RNLSM2(c0,nstate,ikpt,ikind,dfnl_unpack)
     ! ==--------------------------------------------------------------==
     ! ==                        COMPUTES                              ==
     ! ==  THE ARRAY DFNL WHICH IS USED IN THE SUBROUTINE RNLFOR       ==
     ! ==  K-POINT VERSION IS IMPLEMENTED                              ==
     ! ==          NOT IMPLEMENTED FOR TSHEL(IS)=TRUE                  ==
+    ! == Rewritten: Tobias Kloeffel, FAU Erlangen-Nuernberg April 2019==
+    ! == Introduce overlapping communication computation algorithm    ==
+    ! == enable via USE_OVERLAPPING_COMM_COMP in the &CPMD section    ==
+    ! == Set block counts via INPUT: RNLSM2_BLOCKCOUNT                ==
+    ! == First blocksize: RNLSM2_BLOCKSIZE1 (non overlapping part)    ==
+    ! == Other blocksizes: RNLSM2_BLOCKSIZE2 (overlapping part)       ==
+    ! == Or use autotuning: RNLSM2_AUTOTUNE (needs number of          ==
+    ! == iterations for timing measurements                           ==
+    ! == special case for uspp: keep only a packed version of the dfnl==
+    ! == array, no glosum performed, optimzed rnlfor/rnlfl routines   ==
+    ! == are way faster than a global summation                       ==
+    ! == cp_grp distribution along beta projectors, only active for   ==
+    ! == uspp part(disabled unpacking of dfnl array)                  ==
+    ! == full performance only with saved arrays or scratch_library   ==
     ! ==--------------------------------------------------------------==
-    INTEGER                                  :: NSTATE
-    COMPLEX(real_8)                          :: C0(nkpt%ngwk,NSTATE)
-    INTEGER                                  :: IKPT, IKIND
+    INTEGER,INTENT(IN)                       :: nstate, ikpt, ikind
+    COMPLEX(real_8),INTENT(IN)               :: c0(nkpt%ngwk,nstate)
+    LOGICAL,OPTIONAL,INTENT(IN)              :: dfnl_unpack
 
-    CHARACTER(*), PARAMETER                  :: procedureN = 'RNLSM2'
-    COMPLEX(real_8), PARAMETER               :: ZONE = (1._real_8,0._real_8) ,&
-                                                ZZERO = (0._real_8,0._real_8)
+    LOGICAL                                  :: unpack
+    CHARACTER(*), PARAMETER                  :: procedureN = 'rnlsm2'
+    REAL(real_8)                             :: temp
+    INTEGER, PARAMETER                       :: maxbuff=15
+    INTEGER                                  :: i, ierr, ig, k, isub, isub2, &
+                                                methread, nthreads, nested_threads, &
+                                                tot_work, start_dai, ld_dai, end_dai, &
+                                                ia_sum,start_ia,end_ia,&
+                                                buffcount, buff, igeq0, ld_buffer(maxbuff),&
+                                                start_buffer(maxbuff)
+    INTEGER(int_8)                           :: il_eiscr(2), il_dai(1)
+    INTEGER,ALLOCATABLE                      :: na_buff(:,:,:), na_grp(:,:,:)
+    REAL(real_8),POINTER __CONTIGUOUS &
+                       , ASYNCHRONOUS        :: dai(:)
+#ifdef _USE_SCRATCHLIBRARY
+    COMPLEX(real_8),POINTER __CONTIGUOUS &
+                       , ASYNCHRONOUS        :: eiscr(:,:)
+#else
+    COMPLEX(real_8),ALLOCATABLE &
+                       , ASYNCHRONOUS        :: eiscr(:,:)
+#endif
+    REAL(real_8), SAVE                       :: timings(2)=0.0_real_8
+    INTEGER, SAVE                            :: autotune_it=0
+    !$ LOGICAL                               :: locks(maxbuff)
 
-    COMPLEX(real_8)                          :: CI, ZFAC
-    COMPLEX(real_8), ALLOCATABLE             :: EISCR(:,:,:)
-    INTEGER                                  :: I, IA, IG, II, IS, ISA, ISA0, &
-                                                ISUB, IV
-    LOGICAL                                  :: MASK
-    REAL(real_8)                             :: ARG1, ARG2, ARG3, CII, CIR, &
-                                                EI, ER, TFAC
-    REAL(real_8), ALLOCATABLE                :: DAI(:,:,:,:)
-
-! ==--------------------------------------------------------------==
-! If no non-local components -> return.
-
+    ! ==--------------------------------------------------------------==
+    ! IF no non-local components -> return.
     IF(NLM.EQ.0) RETURN
     ! ==--------------------------------------------------------------==
-    CALL TISET('    RNLSM2',ISUB)
-    ALLOCATE(eiscr(nkpt%ngwk, 3, mmdim%naxq),STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
-         __LINE__,__FILE__)
-    ALLOCATE(dai(imagp, 3, mmdim%naxq, nstate),STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
-         __LINE__,__FILE__)
+    CALL TISET(procedureN,ISUB)
     ! ==--------------------------------------------------------------==
-    CALL zeroing(DAI)!,IMAGP*3*mmdim%naxq*NSTATE)
-    IF(tkpts%tkpnt) THEN
-       ZFAC=parm%tpiba*ZONE
+
+    ! If we store packed dfnl, we are able to skip glosum
+    IF(PRESENT(dfnl_unpack))THEN
+       unpack=dfnl_unpack
     ELSE
-       TFAC=2._real_8*parm%tpiba
-    ENDIF
-    MASK=IMAGP.EQ.2
-    ISA0=0
-    DO IS=1,ions1%nsp
-       DO IV=1,nlps_com%ngh(IS)
-          CI=(0.0_real_8,-1.0_real_8)**(NGHTOL(IV,IS)+1)
-          CIR=REAL(CI)
-          CII=AIMAG(CI)
-          IF(tkpts%tkpnt) THEN
-#ifdef __SR8000
-             !poption parallel, tlocal(ISA,ARG1,ARG2,ARG3,ER,EI)
-             !voption indep(EISCR)
+       unpack=.TRUE.
+    END IF
+    ! split atoms between cp_groups
+    ALLOCATE(na_grp(2,ions1%nsp,0:parai%cp_nogrp-1), stat=ierr)
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate na_grp',&
+         __LINE__,__FILE__)
+
+    CALL cp_grp_split_atoms(na_grp)
+
+    ! set autotuning stuff
+    CALL set_buffers(autotune_it,maxbuff,timings,cnti%rnlsm2_bc,cntr%rnlsm2_b1,&
+         cntr%rnlsm2_b2,na_grp(:,:,parai%cp_inter_me),na_buff,ld_buffer,start_buffer,&
+         tot_work,nstate,3*imagp,.NOT.unpack)
+    buffcount=cnti%rnlsm2_bc
+    ! allocate memory
+    il_dai(1)=tot_work*nstate
+    il_eiscr(1)=nkpt%ngwk
+    il_eiscr(2)=MAXVAL(ld_buffer)/imagp
+    IF(buffcount.GT.1)THEN
+#ifdef _USE_SCRATCHLIBRARY
+       CALL request_scratch(il_dai,dai,procedureN//'_dai',ierr)
+#else
+       ALLOCATE(dai(il_dai(1)), stat=ierr)
 #endif
-             !$omp parallel do private(IA,IG,ISA,ARG1,ARG2,ARG3,ER,EI)
-             DO IA=1,ions0%na(IS)
-                ISA=ISA0+IA
-                ! Make use of the special structure of CI
-                IF(ABS(CIR).GT.0.5_real_8) THEN
-                   ! CI is real
-#ifdef _vpp_
-                   !OCL NOALIAS
-#endif 
-                   DO IG=1,NGW
-                      ARG1=(GK(1,IG)+&
-                           &                 RK(1,IKIND))*TWNL(IG,IV,IS,IKIND)*CIR
-                      ARG2=(GK(2,IG)+&
-                           &                 RK(2,IKIND))*TWNL(IG,IV,IS,IKIND)*CIR
-                      ARG3=(GK(3,IG)+&
-                           &                 RK(3,IKIND))*TWNL(IG,IV,IS,IKIND)*CIR
-
-                      ER=REAL(EIGKR(IG,ISA,IKIND))
-                      EI=AIMAG(EIGKR(IG,ISA,IKIND))
-                      EISCR(IG,1,IA) = CMPLX(ARG1*ER,ARG1*EI,kind=real_8)
-                      EISCR(IG,2,IA) = CMPLX(ARG2*ER,ARG2*EI,kind=real_8)
-                      EISCR(IG,3,IA) = CMPLX(ARG3*ER,ARG3*EI,kind=real_8)
-                   ENDDO
-#ifdef __SR8000
-                   !poption parallel
+       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dai',&
+            __LINE__,__FILE__)
+    ELSE
+       CALL reshape_inplace(dfnl_packed, (/INT(il_dai(1),kind=int_4)/), dai)
+    END IF
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_eiscr,eiscr,procedureN//'_eiscr',ierr)
+#else
+    ALLOCATE(eiscr(il_eiscr(1),il_eiscr(2)), stat=ierr)
 #endif
-#ifdef _vpp_
-                   !OCL NOALIAS
-#endif 
-                   DO IG=NGW+1,nkpt%ngwk
-                      ARG1=(-GK(1,IG-NGW)+&
-                           &                 RK(1,IKIND))*TWNL(IG,IV,IS,IKIND)*CIR         
-                      ARG2=(-GK(2,IG-NGW)+&
-                           &                 RK(2,IKIND))*TWNL(IG,IV,IS,IKIND)*CIR        
-                      ARG3=(-GK(3,IG-NGW)+&
-                           &                 RK(3,IKIND))*TWNL(IG,IV,IS,IKIND)*CIR
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate eiscr',&
+         __LINE__,__FILE__)
+    IF(tkpts%tkpnt)THEN
+       igeq0=ncpw%ngw+1
+    ELSE
+       igeq0=1
+    END IF
+    buff=1
+    start_dai=start_buffer(buff)
+    ld_dai=ld_buffer(buff)
+    end_dai=start_dai-1+ld_dai*nstate
+    IF (autotune_it.GT.0.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit) temp=m_walltime()
+    IF(ld_dai.GT.0)THEN
+       CALL proj_beta(na_buff(:,:,buff),igeq0,nstate,c0,nkpt%ngwk,eigkr(:,:,ikind),&
+            eiscr,nkpt%ngwk,1,dai(start_dai:end_dai),ld_dai/imagp,&
+            .TRUE.,tkpts%tkpnt,geq0,twnl_nghtol_gk=twnl_nghtol_gk(:,:,:,:,ikind))
+    END IF
+    IF(autotune_it.GT.0.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit)&
+         timings(1)=timings(1)+m_walltime()-temp
 
-                      ER=REAL(EIGKR(IG,ISA,IKIND))
-                      EI=AIMAG(EIGKR(IG,ISA,IKIND))
-                      EISCR(IG,1,IA) = CMPLX(ARG1*ER,ARG1*EI,kind=real_8)
-                      EISCR(IG,2,IA) = CMPLX(ARG2*ER,ARG2*EI,kind=real_8)
-                      EISCR(IG,3,IA) = CMPLX(ARG3*ER,ARG3*EI,kind=real_8)
-                   ENDDO
-                ELSE
-                   ! CI is imaginary
-#ifdef _vpp_
-                   !OCL NOALIAS
-#endif 
-                   DO IG=1,NGW
-                      ARG1=(GK(1,IG)+&
-                           &                 RK(1,IKIND))*TWNL(IG,IV,IS,IKIND)*CII           
-                      ARG2=(GK(2,IG)+&
-                           &                 RK(2,IKIND))*TWNL(IG,IV,IS,IKIND)*CII          
-                      ARG3=(GK(3,IG)+&
-                           &                 RK(3,IKIND))*TWNL(IG,IV,IS,IKIND)*CII
+    !old algorithm active if dfnl needs to be unpacked
+    IF(unpack)THEN
+       IF(autotune_it.GT.0.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit)&
+            timings(1)=timings(1)+m_walltime()-temp
 
-                      ER=REAL(EIGKR(IG,ISA,IKIND))
-                      EI=AIMAG(EIGKR(IG,ISA,IKIND))
-                      EISCR(IG,1,IA) = CMPLX(-ARG1*EI,ARG1*ER,kind=real_8)
-                      EISCR(IG,2,IA) = CMPLX(-ARG2*EI,ARG2*ER,kind=real_8)
-                      EISCR(IG,3,IA) = CMPLX(-ARG3*EI,ARG3*ER,kind=real_8)
-                   ENDDO
-#ifdef __SR8000
-                   !poption parallel
+       !now we split up the threads, thread=0 is used to communicate,
+       !thread=1 is used to do the dgemms and copy the data to its destionation.
+
+       IF(cntl%overlapp_comm_comp)THEN
+          nthreads=MIN(2,parai%ncpus)
+          nested_threads=(MAX(parai%ncpus-1,1))
+#if !defined(_INTEL_MKL)
+          CALL stopgm(procedureN, 'Overlapping communication and computation: Behavior of &
+               BLAS routine inside parallel region not checked',&
+               __LINE__,__FILE__)
 #endif
-#ifdef _vpp_
-                   !OCL NOALIAS
-#endif 
-                   DO IG=NGW+1,nkpt%ngwk
-                      ARG1=(-GK(1,IG-NGW)+&
-                           &                 RK(1,IKIND))*TWNL(IG,IV,IS,IKIND)*CII            
-                      ARG2=(-GK(2,IG-NGW)+&
-                           &                 RK(2,IKIND))*TWNL(IG,IV,IS,IKIND)*CII           
-                      ARG3=(-GK(3,IG-NGW)+&
-                           &                 RK(3,IKIND))*TWNL(IG,IV,IS,IKIND)*CII
-
-                      ER=REAL(EIGKR(IG,ISA,IKIND))
-                      EI=AIMAG(EIGKR(IG,ISA,IKIND))
-                      EISCR(IG,1,IA) = CMPLX(-ARG1*EI,ARG1*ER,kind=real_8)
-                      EISCR(IG,2,IA) = CMPLX(-ARG2*EI,ARG2*ER,kind=real_8)
-                      EISCR(IG,3,IA) = CMPLX(-ARG3*EI,ARG3*ER,kind=real_8)
-                   ENDDO
-                ENDIF
-                IF(GEQ0) EISCR(NGW+1,1,IA)=CMPLX(0._real_8,0._real_8,kind=real_8)
-                IF(GEQ0) EISCR(NGW+1,2,IA)=CMPLX(0._real_8,0._real_8,kind=real_8)
-                IF(GEQ0) EISCR(NGW+1,3,IA)=CMPLX(0._real_8,0._real_8,kind=real_8)
-             ENDDO
-             CALL ZGEMM('C','N',3*ions0%na(IS),NSTATE,nkpt%ngwk,ZFAC,&
-                  &             EISCR(1,1,1),nkpt%ngwk,C0(1,1),nkpt%ngwk,ZZERO,&
-                  &             DAI(1,1,1,1),3*mmdim%naxq)
-          ELSE
-#ifdef __SR8000
-             !poption parallel, tlocal(ISA,ARG1,ARG2,ARG3,ER,EI) 
-             !voption indep(EISCR)
-#endif 
-             !$omp parallel do private(IA,IG,ISA,ARG1,ARG2,ARG3,ER,EI)
-             DO IA=1,ions0%na(IS)
-                ISA=ISA0+IA
-                ! Make use of the special structure of CI
-                IF(ABS(CIR).GT.0.5_real_8) THEN
-                   ! CI is real
-#ifdef _vpp_
-                   !OCL NOALIAS
-#endif 
-                   DO IG=1,NGW
-                      ! !                ARG1=GK(1,IG)*TWNL(IG,IV,IS,1)*CIR
-                      ! !                ARG2=GK(2,IG)*TWNL(IG,IV,IS,1)*CIR
-                      ! !                ARG3=GK(3,IG)*TWNL(IG,IV,IS,1)*CIR
-                      ! !                ER=real(EIGR(IG,ISA))
-                      ! !                EI=aimag(EIGR(IG,ISA))
-                      ARG1=GK(1,IG)
-                      ARG2=GK(2,IG)
-                      ARG3=GK(3,IG)
-                      ER=CIR*TWNL(IG,IV,IS,1)*REAL(EIGR(IG,ISA))
-                      EI=CIR*TWNL(IG,IV,IS,1)*AIMAG(EIGR(IG,ISA))
-                      EISCR(IG,1,IA) = CMPLX(ARG1*ER,ARG1*EI,kind=real_8)
-                      EISCR(IG,2,IA) = CMPLX(ARG2*ER,ARG2*EI,kind=real_8)
-                      EISCR(IG,3,IA) = CMPLX(ARG3*ER,ARG3*EI,kind=real_8)
-                   ENDDO
-                ELSE
-                   ! CI is imaginary
-#ifdef _vpp_
-                   !OCL NOALIAS
-#endif 
-                   !dir$ prefervector
-                   DO IG=1,NGW
-                      ! !                ARG1=GK(1,IG)*TWNL(IG,IV,IS,1)*CII
-                      ! !                ARG2=GK(2,IG)*TWNL(IG,IV,IS,1)*CII
-                      ! !                ARG3=GK(3,IG)*TWNL(IG,IV,IS,1)*CII
-                      ! !                ER=real(EIGR(IG,ISA))
-                      ! !                EI=aimag(EIGR(IG,ISA))
-                      ARG1=GK(1,IG)
-                      ARG2=GK(2,IG)
-                      ARG3=GK(3,IG)
-                      ER=CII*TWNL(IG,IV,IS,1)*REAL(EIGR(IG,ISA))
-                      EI=CII*TWNL(IG,IV,IS,1)*AIMAG(EIGR(IG,ISA))
-                      EISCR(IG,1,IA) = CMPLX(-ARG1*EI,ARG1*ER,kind=real_8)
-                      EISCR(IG,2,IA) = CMPLX(-ARG2*EI,ARG2*ER,kind=real_8)
-                      EISCR(IG,3,IA) = CMPLX(-ARG3*EI,ARG3*ER,kind=real_8)
-                   ENDDO
-                ENDIF
-                IF(GEQ0) THEN 
-                   EISCR(1,1,IA)=0.5_real_8*EISCR(1,1,IA)
-                   EISCR(1,2,IA)=0.5_real_8*EISCR(1,2,IA)
-                   EISCR(1,3,IA)=0.5_real_8*EISCR(1,3,IA)
-                ENDIF
-             ENDDO
-             IF(nkpt%ngwk.GT.0) THEN
-                IF (ions0%na(IS).GT.1) THEN
-                   CALL DGEMM('T','N',3*ions0%na(IS),NSTATE,2*nkpt%ngwk,TFAC,&
-                        &             EISCR(1,1,1),2*nkpt%ngwk,C0(1,1),2*nkpt%ngwk,0.0_real_8,&
-                        &             DAI(1,1,1,1),3*mmdim%naxq)
-                ELSE
-                   CALL DGEMM('T','N',3,NSTATE,2*nkpt%ngwk,TFAC,&
-                        &             EISCR(1,1,1),2*nkpt%ngwk,C0(1,1),2*nkpt%ngwk,0.0_real_8,&
-                        &             DAI(1,1,1,1),3*mmdim%naxq)
-                ENDIF
-             ENDIF
-          ENDIF
-          CALL mp_sum(DAI,IMAGP*3*mmdim%naxq*NSTATE,parai%allgrp)
-#ifdef __SR8000
-          !poption parallel, tlocal(II)  
-#endif 
-          !$omp parallel do private(I,IA,IG,II)
-          DO I=parap%NST12(parai%mepos,1),parap%NST12(parai%mepos,2)
-             II=I-parap%NST12(parai%mepos,1)+1
-#ifdef _vpp_
-             !OCL NOALIAS
-             DO IA=1,ions0%na(IS)
-                DFNL(1,ISA0+IA,IV,1,II,IKIND)=DAI(1,1,IA,I)
-                DFNL(1,ISA0+IA,IV,2,II,IKIND)=DAI(1,2,IA,I)
-                DFNL(1,ISA0+IA,IV,3,II,IKIND)=DAI(1,3,IA,I)
-                IF(MASK) THEN 
-                   DFNL(2,ISA0+IA,IV,1,II,IKIND)=DAI(2,1,IA,I)
-                   DFNL(2,ISA0+IA,IV,2,II,IKIND)=DAI(2,2,IA,I)
-                   DFNL(2,ISA0+IA,IV,3,II,IKIND)=DAI(2,3,IA,I)
-                ENDIF
-             ENDDO
-#else 
-             !dir$ prefervector
-             DO IG=1,IMAGP
-                DO IA=1,ions0%na(IS)
-                   DFNL(IG,ISA0+IA,IV,1,II,IKIND)=DAI(IG,1,IA,I)
-                   DFNL(IG,ISA0+IA,IV,2,II,IKIND)=DAI(IG,2,IA,I)
-                   DFNL(IG,ISA0+IA,IV,3,II,IKIND)=DAI(IG,3,IA,I)
-                ENDDO
-             ENDDO
-#endif 
+       ELSE
+          nthreads=1
+          nested_threads=parai%ncpus
+       END IF
+       methread=0
+       IF(buffcount.EQ.1)THEN
+          nthreads=1
+          nested_threads=parai%ncpus
+       END IF
+       methread=0
+       IF(buffcount.eq.1)THEN
+          nthreads=1
+          nested_threads=parai%ncpus
+       END IF
+       methread=0
+       !$ locks=.TRUE.
+       !$ locks(1)=.FALSE.
+       !$omp parallel if(nthreads.eq.2) num_threads(nthreads) &
+       !$omp private(methread,buff,ld_dai,end_dai,start_dai)&
+       !$omp shared(locks,nthreads) proc_bind(close)
+       !$ methread = omp_get_thread_num()
+       !$ IF(methread.EQ.1)THEN
+       !$    CALL omp_set_max_active_levels(2)
+       !$    CALL omp_set_num_threads(nested_threads)
+#ifdef _INTEL_MKL
+       !$    CALL mkl_set_dynamic(0)
+       !$    ierr = mkl_set_num_threads_local(nested_threads)
+#endif
+       !$ END IF
+       
+       IF(methread.EQ.1.OR.nthreads.EQ.1) THEN
+          DO buff=2,buffcount
+             ld_dai=ld_buffer(buff)
+             start_dai=start_buffer(buff)
+             end_dai=start_dai-1+ld_dai*nstate
+             IF(ld_dai.GT.0)THEN
+                CALL proj_beta(na_buff(:,:,buff),igeq0,nstate,c0,nkpt%ngwk,eigkr(:,:,ikind),&
+                     eiscr,nkpt%ngwk,1,dai(start_dai:end_dai),ld_dai/imagp,&
+                     .TRUE.,tkpts%tkpnt,geq0,twnl_nghtol_gk=twnl_nghtol_gk(:,:,:,:,ikind))
+             END IF
+             !$ locks(buff) = .FALSE.
+             !$omp flush(locks)
           ENDDO
-       ENDDO
-       ISA0=ISA0+ions0%na(IS)
-    ENDDO
+       ENDIF
 
-    DEALLOCATE(eiscr,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+       IF(methread.EQ.0.or.nthreads.EQ.1) THEN
+          DO buff=1,buffcount
+             ld_dai=ld_buffer(buff)
+             start_dai=start_buffer(buff)
+             end_dai=start_dai-1+ld_dai*nstate
+             CALL TISET(procedureN//'_barrier',ISUB2)
+             !$omp flush(locks)
+             !$ DO WHILE ( locks(buff) )
+             !$omp flush(locks)
+             !$ END DO
+             CALL TIHALT(procedureN//'_barrier',ISUB2)
+             IF(autotune_it.GT.0.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit) temp=m_walltime()
+             IF(ld_dai.GT.0)THEN
+                CALL mp_sum(dai(start_dai:end_dai),end_dai-start_dai+1,parai%allgrp)
+             END IF
+             IF(autotune_it.GT.0.AND.autotune_it.LE.cnti%rnlsm_autotune_maxit)&
+                  timings(2)=timings(2)+m_walltime()-temp
+          ENDDO
+       ENDIF
+       
+       !$ IF (methread.EQ.1) THEN
+       !$    CALL omp_set_max_active_levels(1)
+       !$    CALL omp_set_num_threads(parai%ncpus)
+#ifdef _INTEL_MKL
+       !$    CALL mkl_set_dynamic(1)
+       !$    ierr = mkl_set_num_threads_local(0)
+#endif
+       !$ END IF
+       
+       !$OMP end parallel
+       IF(buffcount.GT.1)THEN
+          CALL sort_dfnl(buffcount,na_buff(:,:,:),dai,dfnl_packed,&
+               start_buffer,ld_buffer)
+       END IF
+       !only local states need to be unpacked
+       IF(tkpts%tkpnt)THEN
+          CALL unpack_dfnl(na_grp(:,:,parai%cp_inter_me),&
+               dfnl_packed(:,parap%nst12(parai%mepos,1):parap%nst12(parai%mepos,2)),&
+               unpacked_k=dfnl(:,:,:,:,:,ikind))
+       ELSE
+          CALL unpack_dfnl(na_grp(:,:,parai%cp_inter_me),&
+               dfnl_packed(:,parap%nst12(parai%mepos,1):parap%nst12(parai%mepos,2)),&
+               unpacked=dfnla)
+       END IF
+       IF(parai%cp_nogrp.GT.1)CALL cp_grp_redist_dfnl_fnl(.FALSE.,.TRUE.,nstate,ikind)
+       !set buffcount/buffsizes
+       IF(cnti%rnlsm_autotune_maxit.GT.0)THEN
+          IF(autotune_it.EQ.cnti%rnlsm_autotune_maxit)THEN
+             !stop timemeasurements
+             autotune_it=autotune_it+1
+             IF(paral%parent)THEN
+                CALL tune_rnlsm(cnti%rnlsm2_bc,cntr%rnlsm2_b1,&
+                     cntr%rnlsm2_b2,timings,INT(il_dfnl_packed(1),KIND=int_4),nstate)
+                WRITE(6,*) "####rnlsm2_autotuning results####"
+                WRITE(6,*) cnti%rnlsm2_bc
+                WRITE(6,*) cntr%rnlsm2_b1
+                WRITE(6,*) cntr%rnlsm2_b2
+                WRITE(6,*) timings
+             END IF
+             !broadcast results
+             CALL mp_bcast(cnti%rnlsm2_bc,parai%source,parai%allgrp)
+             CALL mp_bcast(cntr%rnlsm2_b1,parai%source,parai%allgrp)
+             CALL mp_bcast(cntr%rnlsm2_b2,parai%source,parai%allgrp)
+          END IF
+       END IF
+    END IF
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_eiscr,eiscr,procedureN//'_eiscr',ierr)
+#else
+    DEALLOCATE(eiscr, stat=ierr)
+#endif
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate eiscr',&
          __LINE__,__FILE__)
-    DEALLOCATE(dai,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+    IF(buffcount.GT.1)THEN
+#ifdef _USE_SCRATCHLIBRARY
+       CALL free_scratch(il_dai,dai,procedureN//'_dai',ierr)
+#else
+       DEALLOCATE(dai, stat=ierr)
+#endif
+       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate dai',&
+            __LINE__,__FILE__)
+    END IF
+    DEALLOCATE(na_buff, stat=ierr)
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate na_buff',&
+         __LINE__,__FILE__)
+    DEALLOCATE(na_grp, stat=ierr)
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate na_grp',&
          __LINE__,__FILE__)
 
-    CALL TIHALT('    RNLSM2',ISUB)
+    CALL TIHALT(procedureN,ISUB)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE RNLSM2
   ! ==================================================================
-  SUBROUTINE GIVE_SCR_RNLSM2(LRNLSM2,TAG,NSTATE)
-    ! ==--------------------------------------------------------------==
-    INTEGER                                  :: LRNLSM2
-    CHARACTER(LEN=30)                        :: TAG
-    INTEGER                                  :: NSTATE
-
-! ==--------------------------------------------------------------==
-
-    IF(NLM.EQ.0) THEN
-       LRNLSM2=0
-    ELSE
-       LRNLSM2=2*nkpt%ngwk*mmdim%naxq*3+IMAGP*mmdim%naxq*NSTATE*3
-       TAG=   '2*NGWK*NAXq*3+IMAGP*NAXq*...'
-    ENDIF
-    ! ==--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE GIVE_SCR_RNLSM2
-  ! ==================================================================
-#else 
-  ! ==================================================================
-  SUBROUTINE RNLSM2(C0,NSTATE,IKPT,IKIND)
-    ! ==--------------------------------------------------------------==
-    ! ==                        COMPUTES                              ==
-    ! ==  THE ARRAY DFNL WHICH IS USED IN THE SUBROUTINE RNLFOR       ==
-    ! ==  K-POINT VERSION IS IMPLEMENTED                              ==
-    ! ==          NOT IMPLEMENTED FOR TSHEL(IS)=TRUE                  ==
-    ! ==--------------------------------------------------------------==
-    INTEGER                                  :: NSTATE
-    COMPLEX(real_8)                          :: C0(nkpt%ngwk,NSTATE)
-    INTEGER                                  :: IKPT, IKIND
-
-    CHARACTER(*), PARAMETER                  :: procedureN = 'RNLSM2'
-    COMPLEX(real_8), PARAMETER               :: ZONE = (1._real_8,0._real_8) ,&
-                                                ZZERO = (0._real_8,0._real_8)
-
-    COMPLEX(real_8)                          :: CI, ZFAC
-    COMPLEX(real_8), ALLOCATABLE             :: EISCR(:,:)
-    INTEGER                                  :: I, IA, ierr, IG, II, IS, ISA, &
-                                                ISA0, ISUB, IV, K
-    REAL(real_8)                             :: ARG, CII, CIR, EI, ER, TFAC
-    REAL(real_8), ALLOCATABLE                :: DAI(:,:,:)
-
-! ==--------------------------------------------------------------==
-! If no non-local components -> return.
-
-    IF(NLM.EQ.0) RETURN
-    ! ==--------------------------------------------------------------==
-    CALL TISET('    RNLSM2',ISUB)
-    ALLOCATE(eiscr(nkpt%ngwk, mmdim%naxq),STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
-         __LINE__,__FILE__)
-    ALLOCATE(dai(imagp, mmdim%naxq, nstate),STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
-         __LINE__,__FILE__)
-    ! ==--------------------------------------------------------------==
-    CALL zeroing(DAI)!,IMAGP*mmdim%naxq*NSTATE)
-    IF(tkpts%tkpnt) THEN
-       ZFAC=parm%tpiba*ZONE
-    ELSE
-       TFAC=2._real_8*parm%tpiba
-    ENDIF
-    DO K=1,3
-       ISA0=0
-       DO IS=1,ions1%nsp
-          DO IV=1,nlps_com%ngh(IS)
-             CI=(0.0_real_8,-1.0_real_8)**(NGHTOL(IV,IS)+1)
-             CIR=REAL(CI)
-             CII=AIMAG(CI)
-             IF(tkpts%tkpnt) THEN
-                !$omp parallel do private(ia,isa,ig,arg,er,ei)
-#ifdef __SR8000 
-                !poption parallel, tlocal(ia,isa,ig,arg,er,ei)
-#endif 
-                DO IA=1,ions0%na(IS)
-                   ISA=ISA0+IA
-                   ! Make use of the special structure of CI
-                   IF(ABS(CIR).GT.0.5_real_8) THEN
-                      ! CI is real
-                      DO IG=1,ncpw%ngw
-                         ARG=(GK(K,IG)+&
-                                ! TODO refactor this 
-                              &                   RK(K,IKIND))*TWNL(IG,IV,IS,IKIND)*CIR
-
-                         ER=REAL(EIGKR(IG,ISA,IKIND))
-                         EI=AIMAG(EIGKR(IG,ISA,IKIND))
-                         EISCR(IG,IA) = CMPLX(ARG*ER,ARG*EI,kind=real_8)
-                      ENDDO
-                      DO IG=ncpw%ngw+1,nkpt%ngwk
-                         ARG=(-GK(K,IG-ncpw%ngw)+&
-                                ! TODO refactor this
-                              &                   RK(K,IKIND))*TWNL(IG,IV,IS,IKIND)*CIR
-
-                         ER=REAL(EIGKR(IG,ISA,IKIND))
-                         EI=AIMAG(EIGKR(IG,ISA,IKIND))
-                         EISCR(IG,IA) = CMPLX(ARG*ER,ARG*EI,kind=real_8)
-                      ENDDO
-                   ELSE
-                      ! CI is imaginary
-                      DO IG=1,ncpw%ngw
-                         ARG=(GK(K,IG)+&
-                                ! TODO refactor this
-                              &                   RK(K,IKIND))*TWNL(IG,IV,IS, IKIND) *CII
-
-                         ER=REAL(EIGKR(IG,ISA,IKIND))
-                         EI=AIMAG(EIGKR(IG,ISA,IKIND))
-                         EISCR(IG,IA) = CMPLX(-ARG*EI,ARG*ER,kind=real_8)
-                      ENDDO
-                      DO IG=ncpw%ngw+1,nkpt%ngwk
-                         ARG=(-GK(K,IG-ncpw%ngw)+&
-                                ! TODO refactor this
-                              &                   RK(K,IKIND))*TWNL(IG,IV,IS,IKIND)*CII
-
-                         ER=REAL(EIGKR(IG,ISA,IKIND))
-                         EI=AIMAG(EIGKR(IG,ISA,IKIND))
-                         EISCR(IG,IA) = CMPLX(-ARG*EI,ARG*ER,kind=real_8)
-                      ENDDO
-                   ENDIF
-                   IF(GEQ0) EISCR(ncpw%ngw+1,IA)=CMPLX(0._real_8,0._real_8,kind=real_8)
-                ENDDO
-                CALL ZGEMM('C','N',ions0%na(IS),NSTATE,nkpt%ngwk,ZFAC,&
-                     &               EISCR(1,1),nkpt%ngwk,C0(1,1),nkpt%ngwk,ZZERO,&
-                     &               DAI(1,1,1),mmdim%naxq)
-             ELSE
-                !$omp parallel do private(ia,isa,ig,arg,er,ei)
-#ifdef __SR8000
-                !poption parallel, tlocal(ia,isa,ig,arg,er,ei)
-#endif 
-                DO IA=1,ions0%na(IS)
-                   ISA=ISA0+IA
-                   ! Make use of the special structure of CI
-                   IF(ABS(CIR).GT.0.5_real_8) THEN
-                      ! CI is real
-                      DO IG=1,ncpw%ngw
-                         ARG=GK(K,IG)*TWNL(IG,IV,IS,1)*CIR
-                         ER=REAL(EIGR(IG,ISA,1))
-                         EI=AIMAG(EIGR(IG,ISA,1))
-                         EISCR(IG,IA) = CMPLX(ARG*ER,ARG*EI,kind=real_8)
-                      ENDDO
-                   ELSE
-                      ! CI is imaginary
-                      DO IG=1,ncpw%ngw
-                         ARG=GK(K,IG)*TWNL(IG,IV,IS,1)*CII
-                         ER=REAL(EIGR(IG,ISA,1))
-                         EI=AIMAG(EIGR(IG,ISA,1))
-                         EISCR(IG,IA) = CMPLX(-ARG*EI,ARG*ER,kind=real_8)
-                      ENDDO
-                   ENDIF
-                   IF(GEQ0) EISCR(1,IA)=0.5_real_8*EISCR(1,IA)
-                ENDDO
-                IF(nkpt%ngwk.GT.0) THEN
-                   IF (ions0%na(IS).GT.1) THEN
-                      CALL DGEMM('T','N',ions0%na(IS),NSTATE,2*nkpt%ngwk,TFAC,&
-                           &               EISCR(1,1),2*nkpt%ngwk,C0(1,1),2*nkpt%ngwk,0.0_real_8,&
-                           &               DAI(1,1,1),mmdim%naxq)
-                   ELSE
-                      CALL DGEMV('T',2*nkpt%ngwk,NSTATE,TFAC,C0(1,1),2*nkpt%ngwk,&
-                           &               EISCR(1,1),1,0.0_real_8,DAI(1,1,1),mmdim%naxq)
-                   ENDIF
-                ENDIF
-             ENDIF
-             CALL mp_sum(DAI,IMAGP*mmdim%naxq*NSTATE,parai%allgrp)
-             DO I=parap%NST12(parai%mepos,1),parap%NST12(parai%mepos,2)
-                II=I-parap%NST12(parai%mepos,1)+1
-                CALL DCOPY(IMAGP*ions0%na(IS),DAI(1,1,I),1,&
-                     &                   DFNL(1,ISA0+1,IV,K,II,IKIND),1)
-             ENDDO
-          ENDDO
-          ISA0=ISA0+ions0%na(IS)
-       ENDDO
-    ENDDO
-
-    DEALLOCATE(eiscr,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-         __LINE__,__FILE__)
-    DEALLOCATE(dai,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-         __LINE__,__FILE__)
-
-    CALL TIHALT('    RNLSM2',ISUB)
-    ! ==--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE RNLSM2
-  ! ==================================================================
-  SUBROUTINE GIVE_SCR_RNLSM2(LRNLSM2,TAG,NSTATE)
-    ! ==--------------------------------------------------------------==
-    INTEGER                                  :: LRNLSM2
-    CHARACTER(LEN=30)                        :: TAG
-    INTEGER                                  :: NSTATE
-
-    IF(NLM.EQ.0) THEN
-       LRNLSM2=0
-    ELSE
-       LRNLSM2=2*nkpt%ngwk*mmdim%naxq+IMAGP*mmdim%naxq*NSTATE
-       TAG=   '2*NGWK*NAXq+IMAGP*NAXq*NSTATE'
-    ENDIF
-    ! ==--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE GIVE_SCR_RNLSM2
-  ! ==================================================================
-#endif 
 
 END MODULE rnlsm2_utils

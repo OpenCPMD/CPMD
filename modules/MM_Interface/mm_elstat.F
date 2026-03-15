@@ -7,8 +7,8 @@ C     ----------------------------------------------------------------==
 C     This routine adds an external potential due to the MM charges
 C     on the real space grid of the QM box. It also calculates the forces
 c     acting on MM atoms due to the (smoothed) electron distribution
-cmb - Revised on 28 February 2014
 C     ==--------------------------------------------------------------==
+cmb - Revised on 14 March 2024
       use system
       use parac
       use machine, only: m_walltime
@@ -196,9 +196,6 @@ C_FM]
       ytm=0.D0
       ztm=0.D0
 !$OMP parallel do private(is,ia) reduction(+:xtm,ytm,ztm)
-#ifdef __SR11000
-*poption parallel, tlocal(is,ia), psum(xtm,ytm,ztm)
-#endif 
       DO is=1,mmdim%NSPq
         DO ia=1,NAq(is)
           xtm=xtm+TAU_mi(1,ia,is)
@@ -271,9 +268,6 @@ C_FM]
         endif
 
 !$OMP parallel do private(iaa,ia,is)
-#ifdef __SR11000
-*poption parallel, tlocal(iaa,ia,is)
-#endif 
         DO iaa =1,nn_sr
           ia=nn_atom(iaa)
           is=nn_sp(iaa)
@@ -314,9 +308,6 @@ C_FM]
           WRITE(113,*)"QMNODE: mm_elstat_atdens ",(t2-t1)/1000.d0
         ENDIF
 !$OMP parallel do private(i)
-#ifdef __SR11000
-*poption parallel, tlocal(i)
-#endif
         DO i=1,nn_sr
           v_mm(i)=v_mm(i)+v_mm_atdens(i)
         ENDDO
@@ -326,9 +317,6 @@ C_FM]
 
         IF(paral%io_parent) THEN
 !$OMP parallel do private(iaa,ia,is)
-#ifdef __SR11000
-*poption parallel, tlocal(iaa,ia,is)
-#endif 
           DO iaa =1,nn_sr
             ia=nn_atom(iaa)
             is=nn_sp(iaa)

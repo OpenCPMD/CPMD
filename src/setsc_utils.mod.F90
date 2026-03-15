@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE setsc_utils
   USE bc,                              ONLY: bc_com
   USE cell,                            ONLY: cell_com,&
@@ -320,6 +322,9 @@ CONTAINS
     CALL mp_bcast_byte(parm, size_in_bytes_of(parm),parai%io_source,parai%cp_grp)
     ! ..PRCP
     CALL mp_bcast_byte(prcp_com, size_in_bytes_of(prcp_com),parai%io_source,parai%cp_grp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(prcp_com)
+#endif
     CALL mp_bcast_byte(prcpl, size_in_bytes_of(prcpl),parai%io_source,parai%cp_grp)
     ! ..METR
     CALL mp_bcast(metr_com%ht,SIZE(metr_com%ht),parai%io_source,parai%cp_grp)

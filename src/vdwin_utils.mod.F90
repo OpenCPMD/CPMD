@@ -1,6 +1,4 @@
-#ifdef __SR8000
-!option MP(P(0)), LANGLVL(SAVE(0))
-#endif
+#include "cpmd_global.h"
 
 MODULE vdwin_utils
   USE adat,                            ONLY: covrad,&
@@ -12,6 +10,12 @@ MODULE vdwin_utils
   USE dftd3_api,                       ONLY: dftd3_init,&
                                              dftd3_set_functional
   USE error_handling,                  ONLY: stopgm
+#ifdef _HAS_LIBGRIMMEVDW
+  USE func,                            ONLY: mgcx_is_pbex, &
+                                             mgcx_is_revpbex, &
+                                             func1
+  USE vdwcmod,                         ONLY: empvdwc
+#endif                                             
   USE inscan_utils,                    ONLY: inscan
   USE ions,                            ONLY: ions0,&
                                              ions1
@@ -81,6 +85,13 @@ CONTAINS
                                                 nbr_unknown_lines, z
     LOGICAL                                  :: erread, go_on_reading, &
                                                 something_went_wrong
+#ifdef _HAS_LIBGRIMMEVDW
+    CHARACTER(len=3)                         :: typenames(99)
+    CHARACTER(len=8)                         :: functional
+
+    ! initialize switch
+    vdwl%grimme = .false.
+#endif
 
     !
     ! Set routine tracking for proper call-trees in DCACP-init
@@ -99,6 +110,7 @@ CONTAINS
           CALL stopgm(procedureN,'Conflicting run options.',& 
                __LINE__,__FILE__)
        ENDIF
+       
        IF (paral%io_parent) THEN
           iunit = 5
           !
@@ -135,6 +147,30 @@ CONTAINS
                         keyword_contains(line,'WANNIER',and='CORRECTION') ) THEN
                    ! vdW corrections using Wannier functions
                    CALL wannvdwin(iunit)
+#ifdef _HAS_LIBGRIMMEVDW
+                !
+                ! VDW GRIMME
+                !
+                ELSEIF(vdwl%vdwc.AND. &
+                     keyword_contains(line,'GRIMME',and='CORRECTION') ) THEN
+                  vdwl%grimme=.true.   
+                  DO i = 1, ions1%nsp
+                    typenames(i) = adjustl(elem%el(ions0%iatyp(i)))  
+                  ENDDO
+                  IF(func1%mgcx.EQ.mgcx_is_pbex) THEN                         ! from 'func.inc'
+                    functional='PBE'
+                  ELSE IF(func1%mgcx.EQ.mgcx_is_revpbex) THEN
+                    functional='revPBE'
+                  ELSE
+!                    functional='else'
+                    functional = TRIM(ADJUSTL(empvdwc%dft_func))
+                  ENDIF
+
+                  CALL vdw_grimme_read_input(iunit, ions1%nsp, typenames, 1.d0, functional, ierr)
+                  IF (ierr /= 0) THEN
+                    CALL stopgm(procedureN,'Error while reading GRIMME CORRECTION', __LINE__,__FILE__)
+                  ENDIF
+#endif
                 !
                 ! DCACP
                 !
@@ -226,14 +262,26 @@ CONTAINS
              WRITE(output_unit,'(1X,64("="),/)')
           ENDIF
           !
-       ENDIF
+       ENDIF  ! io_parent
        IF (vdwl%dcacp) THEN
           CALL dcacp_init()
        ELSEIF (vdwl%vdwc) THEN
-          CALL empvdw_init()
+#ifdef _HAS_LIBGRIMMEVDW
+          call mp_bcast(vdwl%grimme,parai%io_source,parai%cp_grp)
+          if(vdwl%grimme) then
+            call vdw_grimme_init_data_mpi(parai%io_source, parai%cp_me, parai%cp_grp,ierr)
+            IF (ierr /= 0) THEN
+              CALL stopgm(procedureN,'Error while broadcasting GRIMME CORRECTION', __LINE__,__FILE__)
+            ENDIF
+          else
+#endif
+            CALL empvdw_init()
+#ifdef _HAS_LIBGRIMMEVDW
+          endif
+#endif
        ELSEIF (vdwl%vdwd) THEN
           CALL vdwwf_init()
-       ENDIF
+       ENDIF       
     ENDIF
 
     CALL tihalt(procedureN,isub)
@@ -858,6 +906,8 @@ CONTAINS
     ! ==      covrad2 ...                                             ==
     ! ==    DAMPING [DIPOLE]                                          ==
     ! ==      a6                                                      ==
+    ! ==    RS_SCALING_FACTOR                                         ==
+    ! ==      rs_scfac                                                ==
     ! ==    RESTART WANNIER                                           ==
     ! ==    ENERGY MONOMER                                            ==
     ! ==      enmonomer                                               ==
@@ -910,6 +960,7 @@ CONTAINS
     vdwwfi%icriteri=2       ! Bond
     vdwwfr%xmfacwf=1.35_real_8
     vdwwfr%a6=20.0_real_8
+    vdwwfr%rs_scfac=1.0_real_8
     vdwwfl%trwannc=.FALSE.
     vdwwfr%enmonomer=0.0_real_8
     vdwwfl%twannup=.TRUE.
@@ -1025,6 +1076,13 @@ CONTAINS
                      'ACCORDING TO: MOL. PHYS. 107, 999 (2009)'
                 vdwwfr%a6=20.0_real_8
              ENDIF
+          ENDIF
+       ELSEIF (keyword_contains(line,'RS_SCALING_FACTOR')) THEN
+          READ(iunit,*,iostat=ierr) vdwwfr%rs_scfac
+          IF (ierr /= 0) THEN
+             error_message        = 'ERROR WHILE READING LINE'
+             something_went_wrong = .TRUE.
+             go_on_reading        = .FALSE.
           ENDIF
        ELSEIF(keyword_contains(line,'RESTART') .AND.&
             keyword_contains(line,'WANN',alias='WANNIER')) THEN
@@ -1210,6 +1268,8 @@ CONTAINS
          WRITE(output_unit,'(A,T56,F10.3)')&
               '    USE SEMIEMPIRICAL DAMPING FUNCTION WITH A6 FACTOR:',vdwwfr%a6
       ENDIF
+      WRITE(output_unit,'(A,T56,F10.3)')&
+           '       SCALING FACTOR FOR RS:',vdwwfr%rs_scfac
       WRITE(output_unit,'(A,T56,F10.3)')&
            '    TOLERANCE FOR EXTRAPOLATION OF WF CENTERS(A.U.):',vdwwfr%tolwann
       WRITE(output_unit,'(A,T56,F10.3)')&

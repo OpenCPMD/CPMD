@@ -4,7 +4,7 @@ MODULE mm_extrap
   IMPLICIT NONE
 
   ! storage for wavefunction extrapolation in BOMD.
-  COMPLEX(real_8), ALLOCATABLE, SAVE :: cold(:,:,:,:)
+  COMPLEX(real_8), ALLOCATABLE, SAVE :: cold(:,:,:,:), scold(:,:,:,:)
   INTEGER, SAVE :: numcold, nnow
 
   ! MTS high level functional quantities

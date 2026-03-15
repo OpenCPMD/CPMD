@@ -30,7 +30,7 @@ MODULE cnst_dyn
   ! ==================================================================
   INTEGER, PARAMETER :: maxlcv=3 
   ! ==--------------------------------------------------------------==
-  INTEGER, SAVE :: ncolvar,inter_hill,inter_hill_max
+  INTEGER, SAVE :: ncolvar,inter_hill,inter_hill_max, ncolvar_mtd
   INTEGER, ALLOCATABLE, SAVE :: tycvar(:)
   INTEGER, ALLOCATABLE, SAVE :: atcvar(:,:)
   INTEGER, ALLOCATABLE, SAVE :: iangcv(:)
@@ -167,6 +167,7 @@ MODULE cnst_dyn
   INTEGER, ALLOCATABLE, SAVE :: natcngb(:)
 
   REAL(real_8), ALLOCATABLE, SAVE :: rccnga(:)
+  REAL(real_8), ALLOCATABLE, SAVE :: pfcnga(:)
 
   ! ==================================================================
   TYPE :: imeta_t
@@ -197,6 +198,9 @@ MODULE cnst_dyn
      REAL(real_8) :: hlow=0.0_real_8
      REAL(real_8) :: gausspot=0.0_real_8
      REAL(real_8) :: eham_hill=0.0_real_8
+     REAL(real_8) :: wtdt=0.0_real_8
+     REAL(real_8) :: wtfac=0.0_real_8
+     REAL(real_8) :: hllh_temp=0.0_real_8
      REAL(real_8) :: tolkin=0.0_real_8
      REAL(real_8) :: expup=0.0_real_8
      REAL(real_8) :: expdown=0.0_real_8
@@ -233,6 +237,8 @@ MODULE cnst_dyn
      LOGICAL :: qmmmorder
      LOGICAL :: skiphill_mw=.FALSE.
      LOGICAL :: randwalk
+     LOGICAL :: well
+     LOGICAL :: hills_only
   END TYPE lmeta_t
   TYPE(lmeta_t), SAVE :: lmeta
 

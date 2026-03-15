@@ -81,14 +81,16 @@ CONTAINS
     ! == We tested to refine the line minimization search if ALAM is  ==
     ! == too big but there is no real improvement.                    ==
     ! ==--------------------------------------------------------------==
-    COMPLEX(real_8)                          :: c0(:,:), c2(:,:)
-    REAL(real_8)                             :: vpp(:), rhoe(:,:)
-    COMPLEX(real_8)                          :: psi(:,:)
-    REAL(real_8)                             :: tau0(:,:,:)
-    INTEGER                                  :: nstate
-    COMPLEX(real_8)                          :: hnm1(ncpw%ngw,nstate), &
+    COMPLEX(real_8),INTENT(INOUT) &
+         __CONTIGUOUS                        :: c0(:,:), c2(:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: vpp(:), rhoe(:,:)
+    COMPLEX(real_8),INTENT(INOUT) &
+         __CONTIGUOUS                        :: psi(:,:)
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: tau0(:,:,:)
+    INTEGER,INTENT(IN)                       :: nstate
+    COMPLEX(real_8),INTENT(INOUT)            :: hnm1(ncpw%ngw,nstate), &
                                                 sc0(ncpw%ngw,nstate)
-    LOGICAL                                  :: dinit
+    LOGICAL,INTENT(IN)                       :: dinit
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'pcgrad'
     INTEGER, PARAMETER                       :: maxhist = 10 
@@ -160,7 +162,7 @@ CONTAINS
                rhoe,psi,&
                fhist(1),de,a,alam,ilsr)
           IF (paral%io_parent) THEN
-             WRITE(6,'(A,G8.3,A,T50,G20.13)')&
+             WRITE(6,'(A,G10.3,A,T50,G20.13)')&
                   ' LINE SEARCH : LAMBDA=',alam*fhist(1),&
                   ' PREDICTED ENERGY =',dE
           ENDIF
@@ -215,7 +217,7 @@ CONTAINS
                rhoe,psi,&
                fhist(ihist),de,a,alam,ilsr)
           IF (paral%io_parent) THEN
-             WRITE(6,'(A,G8.3,A,T50,G20.13)')&
+             WRITE(6,'(A,G10.3,A,T50,G20.13)')&
                   ' LINE SEARCH : LAMBDA=',alam*fhist(ihist),&
                   ' PREDICTED ENERGY =',dE
           ENDIF
@@ -372,7 +374,7 @@ CONTAINS
                eigv,nstate,1,.TRUE.,.FALSE.,.FALSE.)
        ELSE
           CALL forcedr(x,c2,sc0,rhoe,psi,tau0,tscr,eigv,&
-               nstate,1,.TRUE.,(cntl%tinter.EQV..TRUE.))
+               nstate,1,.TRUE.,(cntl%tinter.EQV..TRUE.),.TRUE.)
        ENDIF
 
        IF (cntl%prec.AND.ilsr.NE.-2) THEN

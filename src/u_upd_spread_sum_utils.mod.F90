@@ -159,13 +159,13 @@ CONTAINS
     IF (glocal%tg_antisymm .AND. icont .LE. 100 )  THEN
        icont = icont+1
        IF (paral%io_parent)&
-            WRITE(10,'(I10,3(2x,1PE12.6),I6,2x,1PE12.6)') nstep,gloc_re%gmax,gloc_re%ofun,&
+            WRITE(10,'(I10,3(2x,1PE13.6),I6,2x,1PE13.6)') nstep,gloc_re%gmax,gloc_re%ofun,&
             grmax,igrmax,gloc_re%omega_tot
        IF (paral%io_parent)&
             WRITE(12,'(I10,16f10.4)') nstep,(omega_n(i),i=1,16)
     ELSE
        IF (paral%io_parent)&
-            WRITE(10,'(I10,3(2x,1PE12.6),2x,1PE12.6,2x,1PE12.6,2x,1PE12.3)')&
+            WRITE(10,'(I10,3(2x,1PE13.6),2x,1PE13.6,2x,1PE13.6,2x,1PE12.3)')&
             nstep,gloc_re%gmax,gloc_re%ofun,grmax,gloc_re%dif_fun,gloc_re%ggnorm,LOG(step_fac)
     ENDIF
     ! ==--------------------------------------------------------------==

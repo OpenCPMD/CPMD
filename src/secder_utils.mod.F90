@@ -27,9 +27,7 @@ MODULE secder_utils
   USE parac,                           ONLY: paral
   USE prop,                            ONLY: prop1
   USE pslo,                            ONLY: pslo_com
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr
   USE rmas,                            ONLY: rmass
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm
   USE store_types,                     ONLY: restart1
   USE symm,                            ONLY: symmi
   USE symtrz_utils,                    ONLY: give_scr_symmat
@@ -478,14 +476,12 @@ CONTAINS
     INTEGER                                  :: lsecder
     CHARACTER(len=30)                        :: tag
 
-    INTEGER :: lcalc_alm, lcopot, lddipo, lforces, linitrun, lortho, lrhoofr, &
-      lrnlsm, lsymmat, ltddft, lupdate, nstate
+    INTEGER :: lcalc_alm, lcopot, lddipo, lforces, linitrun, lortho, &
+      lsymmat, ltddft, lupdate, nstate
 
     nstate=crge%n
     lcopot=0
     lortho=0
-    lrnlsm=0
-    lrhoofr=0
     lcalc_alm=0
     lforces=0
     lsymmat=0
@@ -497,8 +493,6 @@ CONTAINS
        CALL give_scr_ortho(lortho,tag,nstate)
     ENDIF
     IF (cntl%tdiag) THEN
-       IF (pslo_com%tivan) CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
-       CALL give_scr_rhoofr(lrhoofr,tag)
        IF (fint1%ttrot) CALL give_scr_calc_alm(lcalc_alm,tag)
        CALL give_scr_updrho(lupdate,tag,nstate,.TRUE.,cntl%tpres)
     ELSE
@@ -517,7 +511,7 @@ CONTAINS
        ENDIF
     ENDIF
     lsecder=MAX(9*ions1%nat*ions1%nat+9*ions1%nat,&
-         linitrun,lcopot,lortho,lrnlsm,lrhoofr,lcalc_alm,&
+         linitrun,lcopot,lortho,lcalc_alm,&
          lupdate,lforces,lsymmat,ltddft,lddipo)
     ! ==--------------------------------------------------------------==
     RETURN

@@ -351,7 +351,7 @@ SUBROUTINE rortho(c0,cm,gam,tnon,nstate)
   USE parac, ONLY : paral,parai
   USE spin , ONLY:spin_mod
   USE ovlap_utils, ONLY : ovlap
-  USE summat_utils, ONLY : summat_parent
+  USE summat_utils, ONLY : summat
   USE utils, ONLY : symma
   USE rotate_utils, ONLY: rotate
   IMPLICIT NONE
@@ -388,7 +388,7 @@ SUBROUTINE rortho(c0,cm,gam,tnon,nstate)
   ! ==--------------------------------------------------------------==
   CALL ovlap(nstate,rho,c0,cm)
   CALL symma(rho,nstate)
-  CALL summat_parent(rho,nstate)
+  CALL summat(rho,nstate,parent=.TRUE.)
   CALL dscal(nstate*nstate,-1.0_real_8,rho(1,1),1)
   !$omp parallel do private(I)
   DO i=1,nstate
@@ -398,7 +398,7 @@ SUBROUTINE rortho(c0,cm,gam,tnon,nstate)
   ! == INITIALIZE SIG                                               ==
   ! ==--------------------------------------------------------------==
   CALL ovlap(nstate,sig,cm,cm)
-  CALL summat_parent(sig,nstate)
+  CALL summat(sig,nstate,parent=.TRUE.)
   CALL dscal(nstate*nstate,-1.0_real_8,sig(1,1),1)
   !$omp parallel do private(I)
   DO i=1,nstate
@@ -409,7 +409,7 @@ SUBROUTINE rortho(c0,cm,gam,tnon,nstate)
   ! ==--------------------------------------------------------------==
   IF (tnon) THEN
      CALL ovlap(nstate,del,c0,c0)
-     CALL summat_parent(del,nstate)
+     CALL summat(del,nstate,parent=.TRUE.)
      !$omp parallel do private(I)
      DO i=1,nstate
         del(i,i)=del(i,i)-1.0_real_8

@@ -42,8 +42,7 @@ MODULE dist_prowfn_utils
                                              prop3
   USE prowfn_utils,                    ONLY: mklabel
   USE pslo,                            ONLY: pslo_com
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE setbasis_utils,                  ONLY: loadc
   USE sfac,                            ONLY: fnl,&
                                              fnl2
@@ -56,6 +55,9 @@ MODULE dist_prowfn_utils
   USE timer,                           ONLY: tihalt,&
                                              tiset
   USE zeroing_utils,                   ONLY: zeroing
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
 
   IMPLICIT NONE
 
@@ -81,6 +83,18 @@ CONTAINS
     CHARACTER(len=15)                        :: label(1000)
     CHARACTER(len=30)                        :: tag
     COMPLEX(real_8), ALLOCATABLE             :: cscr(:,:), psi(:,:)
+#ifdef __PARALLEL
+    INTEGER :: chunk_begin, chunk_begin_e, chunk_end, chunk_end_e, chunk_new, &
+      chunk_new_e, i, i1, i2, i3max, i4max, ia, ia1, ia2, iao, iao1, iao2, &
+      iaorb, iat, iat1, iat2, iat3, iat3m, iat4, iat4m, ib, ic, id, ierr, &
+      ifail(atwp%nattot), ii, ijk, il_psi_1d, il_psi_2d, il_rhoe_1d, &
+      il_rhoe_2d, index1, index2, index4, ip, is, is1, is2, isub, isw, &
+      iwork(5*atwp%nattot), ixx, j, k, ki, kl, l, lan_max, &
+      lanlist(parai%nproc), lscr, msglen, msweep, n3, n4, nao, nao1, nao2, &
+      natst, ndd(0:parai%nproc-1,2), nfound, nolan, nomax, norb, norbx, &
+      num_eig, numin, nx, old_send_cnt_e(parai%nproc)
+    type(MPI_COMM)                           :: langrp
+#else
     INTEGER :: chunk_begin, chunk_begin_e, chunk_end, chunk_end_e, chunk_new, &
       chunk_new_e, i, i1, i2, i3max, i4max, ia, ia1, ia2, iao, iao1, iao2, &
       iaorb, iat, iat1, iat2, iat3, iat3m, iat4, iat4m, ib, ic, id, ierr, &
@@ -90,6 +104,7 @@ CONTAINS
       lanlist(parai%nproc), lscr, msglen, msweep, n3, n4, nao, nao1, nao2, &
       natst, ndd(0:parai%nproc-1,2), nfound, nolan, nomax, norb, norbx, &
       num_eig, numin, nx, old_send_cnt_e(parai%nproc)
+#endif
     INTEGER :: send_cnt(parai%nproc), send_cnt_e(parai%nproc), &
       send_displ(parai%nproc), send_displ_e(parai%nproc), start, str, str1, &
       strc, sz
@@ -202,7 +217,7 @@ CONTAINS
     DO is=1,ions1%nsp
        DO ia=1,ions0%na(is)
           iat=iat+1
-          CALL loadc(catom(1,iaorb),foc,ncpw%ngw,ncpw%ngw,atwp%nattot,SIZE(foc),&
+          CALL loadc(catom(1:,iaorb:),foc,ncpw%ngw,ncpw%ngw,atwp%nattot,SIZE(foc),&
                is,iat,natst)
           DO ixx=iaorb,iaorb+natst-1
              sfc=dotp(ncpw%ngw,catom(:,ixx),catom(:,ixx))
@@ -747,10 +762,10 @@ CONTAINS
           IF (cntl%tlsd) THEN
              IF (paral%io_parent)&
                   WRITE(6,'(21X,A)') ' ****** ALPHA SPIN ****** '
-             CALL dist_prtmat(xxmat(1,1),atwp%nattot,spin_mod%nsup,label,comp,crge%f)
+             CALL dist_prtmat(xxmat(1:,1:),atwp%nattot,spin_mod%nsup,label,comp,crge%f)
              IF (paral%io_parent)&
                   WRITE(6,'(/,21X,A)') ' ****** BETA  SPIN ****** '
-             CALL dist_prtmat(xxmat(1,spin_mod%nsup+1),atwp%nattot,spin_mod%nsdown,label,&
+             CALL dist_prtmat(xxmat(1:,spin_mod%nsup+1:),atwp%nattot,spin_mod%nsdown,label,&
                   comp(spin_mod%nsup+1),crge%f(spin_mod%nsup+1,1))
           ELSE
              CALL dist_prtmat(xxmat,atwp%nattot,prop2%numorb,label,comp,crge%f)
@@ -1495,18 +1510,14 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
     INTEGER                                  :: norbx
 
-    INTEGER                                  :: is, lcmaos, lrnlsm, lsatch, &
-                                                lsummat, lwfnrho, nstate, &
+    INTEGER                                  :: is, lcmaos, lsatch, &
+                                                lwfnrho, nstate, &
                                                 numin
 
     nstate=crge%n
-    lrnlsm=0
     lcmaos=0
     lsatch=0
     lwfnrho=0
-    lsummat=0
-    ! CALL GIVE_SCR_SUMMAT(LSUMMAT,TAG,NATTOT)
-    IF (pslo_com%tivan) CALL give_scr_rnlsm(lrnlsm,tag,atwp%nattot,.FALSE.)
     IF (prop1%dpan) THEN
        CALL stopgm('DIST_PROWFN','DISTRIBUTED DAVIDSON NOT IMPLEMENTED',& 
             __LINE__,__FILE__)
@@ -1522,7 +1533,7 @@ CONTAINS
     lprowfn=MAX(2*atwp%nattot+4*atwp%nattot,&
          atwp%nattot*prop2%numorb,&
          atwp%nattot*norbx,&
-         lrnlsm,lsummat,lcmaos,lsatch,lwfnrho)
+         lcmaos,lsatch,lwfnrho)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE give_scr_dist_prowfn

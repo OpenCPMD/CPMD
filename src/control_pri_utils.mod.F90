@@ -55,6 +55,7 @@ MODULE control_pri_utils
                                              real_8,&
                                              rmixsd,&
                                              tolx_inr
+  USE ace_hfx,         ONLY: LANG_DYN,GAMMA,T_BATH !SAGAR HACK
 
   IMPLICIT NONE
 
@@ -208,7 +209,7 @@ CONTAINS
     IF (cntl%nonort) THEN
        WRITE(6,'(/,A,A)') ' USE NONORTHOGONAL ORBITALS WITH',&
             ' NORM CONSTRAINTS'
-       WRITE(6,'(A,1PE14.8,/)') ' OVERLAP MATRIX LIMIT: ',nort_com%slimit
+       WRITE(6,'(A,1PE15.8,/)') ' OVERLAP MATRIX LIMIT: ',nort_com%slimit
     ENDIF
     IF (cntl%tharm) THEN
        WRITE(6,'(A)') ' HARMONIC REFERENCE SYSTEM INTEGRATION'
@@ -397,7 +398,7 @@ CONTAINS
           WRITE(6,'(A,T57,A)') ' FICTITIOUS MD CELL MASS: ','AUTOMATIC'
        ELSE
        !  WRITE(6,'(A,T54,F12.4)') ' FICTITIOUS MD CELL MASS: ',cntr%cmass
-          WRITE(6,'(A,T54,E12.6)') ' FICTITIOUS MD CELL MASS: ',cntr%cmass
+          WRITE(6,'(A,T54,E13.6)') ' FICTITIOUS MD CELL MASS: ',cntr%cmass
        ENDIF
     ENDIF
     ! Time step for ions and electrons
@@ -541,7 +542,7 @@ CONTAINS
                ' SINGLE PRECISION IS USED IN SOME ALLTOALL COMMUNICATION '
        ENDIF
        IF (cntl%tc) THEN
-          WRITE(6,'(A,/,A,T54,1PE12.6,/,A,T54,1PE12.6)')&
+          WRITE(6,'(A,/,A,T54,1PE13.6,/,A,T54,1PE13.6)')&
                ' ELECTRON DYNAMICS WITH RESCALING OF VELOCITIES',&
                '    AVERAGE KINETIK ENERGY(A.U.)',cntr%ekinw,&
                '    TOLERANCE',cntr%toll
@@ -552,13 +553,13 @@ CONTAINS
                   '   ***** SPECIFIED TEMPERATURE: ',cntr%tempw,' KELVIN'
           ENDIF
           IF (cntl%tbere) THEN
-             WRITE(6,'(A,/,A,T54,1PE12.6,/,A,T54,1PE12.6)')&
+             WRITE(6,'(A,/,A,T54,1PE13.6,/,A,T54,1PE13.6)')&
                   ' ELECTRONS DYNAMICS WITH BERENDSEN-STYLE THERMOSTAT',&
                   '    AVERAGE KINETIK ENERGY(A.U.)',cntr%ekinw,&
                   '    CHARACTERISTIC TIME(A.U.):',cntr%taube
           ENDIF
           IF (cntl%tprcp.AND.cntl%tcc) THEN
-             WRITE(6,'(A,/,A,T54,1PE12.6,A,/,A,T54,1PE12.6)')&
+             WRITE(6,'(A,/,A,T54,1PE13.6,A,/,A,T54,1PE13.6)')&
                   ' CELL DYNAMICS WITH RESCALING OF VELOCITIES',&
                   '    EKINH =',cntr%ekinhr,' AU',&
                   '    TOLERANCE=',cntr%tolc
@@ -566,11 +567,11 @@ CONTAINS
        ELSEIF (cntl%tnosee) THEN
           WRITE(6,'(A,T21,A)') ' ELECTRON DYNAMICS:',&
                'TEMPERATURE CONTROL (NOSE-HOOVER THERMOSTATS)'
-          WRITE(6,'(A,T54,1PE12.6,/,A,T54,0PF12.2)')&
+          WRITE(6,'(A,T54,1PE13.6,/,A,T54,0PF12.2)')&
                '    TARGET KINETIK ENERGY(A.U.):',cntr%ekinw,&
                '    CHARACTERISTIC FREQUENCY(CM**-1):',cntr%wnose0
        ELSEIF (cntl%tbere) THEN
-          WRITE(6,'(A,/,A,T54,1PE12.6,/,A,T54,1PE12.6)')&
+          WRITE(6,'(A,/,A,T54,1PE13.6,/,A,T54,1PE13.6)')&
                ' ELECTRONS DYNAMICS WITH BERENDSEN-STYLE THERMOSTAT',&
                '    AVERAGE KINETIK ENERGY(A.U.)',cntr%ekinw,&
                '    CHARACTERISTIC TIME(A.U.):',cntr%taube
@@ -579,12 +580,12 @@ CONTAINS
                'THE TEMPERATURE IS NOT CONTROLLED'
        ENDIF
        IF (cntl%tcp) THEN
-          WRITE(6,'(A,/,A,T54,1PE12.6,/,A,T54,1PE12.6)')&
+          WRITE(6,'(A,/,A,T54,1PE13.6,/,A,T54,1PE13.6)')&
                ' ION DYNAMICS WITH RESCALING OF VELOCITIES',&
                '    TEMPERATURE(KELVIN):',cntr%tempw,&
                '    TOLERANCE:',cntr%tolp
           IF (cntl%tberp) THEN
-             WRITE(6,'(A,/,A,T54,1PE12.6,/,A,T54,1PE12.6)')&
+             WRITE(6,'(A,/,A,T54,1PE13.6,/,A,T54,1PE13.6)')&
                   ' ION DYNAMICS WITH BERENDSEN-STYLE THERMOSTAT',&
                   '    TEMPERATURE(KELVIN):',cntr%tempw,&
                   '    CHARACTERISTIC TIME(A.U.):',cntr%taubp
@@ -609,7 +610,7 @@ CONTAINS
           ELSEIF (loct%tloct) THEN
              WRITE(6,'(A)') ' THERMOSTAT FOR SUBGROUPS'
              DO i=1,loct%nloct
-                WRITE(6,'(1X,I5,'':  '',A,T54,1PE12.6,/,1X,I5,'':  '',A,T54,0PF12.2)')&
+                WRITE(6,'(1X,I5,'':  '',A,T54,1PE13.6,/,1X,I5,'':  '',A,T54,0PF12.2)')&
                      i,'    TARGET TEMPERATURE(KELVIN):',LOCTPIN(1,i),&
                      i,'    CHARACTERISTIC FREQUENCY(CM**-1):',LOCTPIN(2,i)
              ENDDO
@@ -617,15 +618,38 @@ CONTAINS
                   ' WARNING: INITIAL TEMPERATURE TAKEN AS ',cntr%tempw
 
           ELSE
-             WRITE(6,'(A,T54,1PE12.6,/,A,T54,0PF12.2)')&
+             WRITE(6,'(A,T54,1PE13.6,/,A,T54,0PF12.2)')&
                   '    TARGET TEMPERATURE(KELVIN):',cntr%tempw,&
                   '    CHARACTERISTIC FREQUENCY(CM**-1):',cntr%wnosp0
           ENDIF
        ELSEIF (cntl%tberp) THEN
-          WRITE(6,'(A,/,A,T54,1PE12.6,/,A,T54,1PE12.6)')&
+          WRITE(6,'(A,/,A,T54,1PE13.6,/,A,T54,1PE13.6)')&
                ' ION DYNAMICS WITH BERENDSEN-STYLE THERMOSTAT',&
                '    TEMPERATURE(KELVIN):',cntr%tempw,&
                '    CHARACTERISTIC TIME(A.U.):',cntr%taubp
+!----------------------------------------------------------------------------
+!      SAGAR HACK
+       ELSEIF (LANG_DYN) THEN
+             WRITE(6,'(A)') '!===============================================================!'
+             WRITE(6,'(A)') '!                  SAGARMOY, JAYASHRITA & NISANTH               !'
+             WRITE(6,'(A)') '!                     IIT KANPUR, INDIA (2018)                  !'
+             WRITE(6,'(A)') '!===============================================================!'
+             WRITE(6,'(A,T21,A)')' ION DYNAMICS:',&
+                  'TEMPERATURE CONTROL (LANGEVIN THERMOSTAT)'
+             WRITE(6,'(A,T54,1PE13.6,/,A,T54,1PE13.6)')&
+                  '    TARGET TEMPERATURE(KELVIN):',T_BATH,&
+                  '    FRICTION COEFFICIENT((A.U.)**-1):',GAMMA
+             WRITE(6,'(A)') '!===============================================================!'
+!----------------------------------------------------------------------------
+!-------------------------------------RITAMA----------------------------------------!
+       ELSEIF (cntl%tsinr) THEN
+          WRITE(6,'(A,T17,A)')' ION DYNAMICS:',&
+               "STOCHASTIC ISO-KINETIC NOSE-HOOVER(RESPA) IS USED"
+          WRITE(6,"(1X,A,17X,F16.6)")"TARGET TEMPERATUE IS (KELVIN) :",cntr%tempsinr
+          WRITE(6,"(1X,A,7X,F16.6)")"FRICTIONAL COEFFICIENT IS (ATOMIC UNIT) :",cntr%gammasinr
+          WRITE(6,"(1X,A,11X,F16.6)")"THERMOSTAT TIME SCALE (ATOMIC UNIT) :",cntr%tausinr
+          WRITE(6,"(1X,A,36X,I5)")"NUMBER OF THERMOSTATS :",cnti%lsinr
+!-------------------------------------RITAMA----------------------------------------!
        ELSE
           WRITE(6,'(A,T21,A)')' ION DYNAMICS:',&
                'THE TEMPERATURE IS NOT CONTROLLED'
@@ -633,16 +657,16 @@ CONTAINS
        IF (cntl%tnosec.AND.cntl%tprcp) THEN
           WRITE(6,'(A,T21,A)') ' CELL DYNAMICS:',&
                'TEMPERATURE CONTROL (NOSE-HOOVER THERMOSTATS)'
-          WRITE(6,'(A,T54,1PE12.6,/,A,T54,0PF12.2)')&
+          WRITE(6,'(A,T54,1PE13.6,/,A,T54,0PF12.2)')&
                '    TARGET CELL TEMPERATURE(KELVIN):',cntr%tempc,&
                '    CHARACTERISTIC FREQUENCY(CM**-1):',cntr%wnosc0
        ELSEIF (cntl%tberc.AND.cntl%tprcp) THEN
-          WRITE(6,'(A,/,A,T54,1PE12.6,/,A,T54,1PE12.6)')&
+          WRITE(6,'(A,/,A,T54,1PE13.6,/,A,T54,1PE13.6)')&
                ' CELL DYNAMICS WITH BERENDSEN-STYLE THERMOSTAT',&
                '    AVERAGE KINETIK ENERGY(A.U.)',cntr%ekinhr,&
                '    CHARACTERISTIC TIME(A.U.):',cntr%taubc
        ELSEIF (cntl%tcc.AND.cntl%tprcp) THEN
-          WRITE(6,'(A,/,A,T54,1PE12.6,A,/,A,T54,1PE12.6)')&
+          WRITE(6,'(A,/,A,T54,1PE13.6,A,/,A,T54,1PE13.6)')&
                ' CELL DYNAMICS WITH RESCALING OF VELOCITIES',&
                '    EKINH =',cntr%ekinhr,' AU',&
                '    TOLERANCE=',cntr%tolc
@@ -666,7 +690,7 @@ CONTAINS
                '    NUMBER OF INTEGRATION CYCLES (NIT):',cnti%nit0
        ENDIF
        IF ((cntl%tcp.OR.cntl%tnosep.OR.cntl%tberp).AND.(cntr%trampr.GT.0.0_real_8)) THEN
-          WRITE(6,'(A,/,A,T54,1PE12.6,/,A,T54,1PE12.6)')&
+          WRITE(6,'(A,/,A,T54,1PE13.6,/,A,T54,1PE13.6)')&
                ' USING LINEAR TEMPERATURE RAMP ',&
                '    TARGET REFERENCE TEMPERATURE (KELVIN)',cntr%trampt,&
                '    RAMPING RATE (KELVIN/A.U.):',cntr%trampr
@@ -693,11 +717,11 @@ CONTAINS
                   WRITE(6,'(A)') '         OPTIMISATION: STEEPEST DESCENT'
              IF (wanni%w_opt.EQ.2)&
                   WRITE(6,'(A)') '         OPTIMISATION: JACOBI ROTATION'
-             WRITE(6,'(A,T56,1PE10.4)')&
+             WRITE(6,'(A,T56,1PE11.4)')&
                   '         CONVERGENCE CRITERIA:',wannr%w_eps
              WRITE(6,'(A,T56,I10)')&
                   '         MAXIMUM # ITERATIONS:',wanni%w_maxs
-             WRITE(6,'(A,T56,1PE10.4)')&
+             WRITE(6,'(A,T56,1PE11.4)')&
                   '         OPTIMISATION STEP   :',wannr%w_step
              IF (wannr%w_ref(1).LT.-999999.9_real_8) THEN
                 WRITE(6,'(A)') '         REF POINT: AUTOMATIC'
@@ -932,7 +956,7 @@ CONTAINS
        ENDIF
     ENDIF
     IF (cntl%geopt) THEN
-       WRITE(6,'(A,T54,1PE12.6)')&
+       WRITE(6,'(A,T54,1PE13.6)')&
             ' CONVERGENCE CRITERIA FOR GEOMETRY OPTIMIZATION:',&
             cntr%tolng
        IF (cntl%tsdp) THEN
@@ -984,17 +1008,17 @@ CONTAINS
           ENDIF
           WRITE(6,'(a,35x,i4)') ' NUMBER OF GRADIENT ZONES ',inr_integer%nreg
           DO i=1,inr_integer%nreg
-             WRITE(6,'(A,E10.4,3X,A,E10.4)') ' FOR GNMAX BIGGER THAN ',&
+             WRITE(6,'(A,E11.4,3X,A,E11.4)') ' FOR GNMAX BIGGER THAN ',&
                   gnx_inr(i),' RESIDUAL CONV. AT ',tolx_inr(i)
           ENDDO
           IF (inr_logical%tmixsd) THEN
              WRITE(6,'(1X,A)')'INITIAL OPTIMIZATION WITH IONIC STEEPEST'&
                   //' DESCENT'
-             WRITE(6,'(A,T54,E12.6)')&
+             WRITE(6,'(A,T54,E13.6)')&
                   ' INR STARTING AFTER GNMAX = ',rmixsd
           ELSEIF (inr_logical%tmixgdiis) THEN
              WRITE(6,'(1X,A)') 'INITIAL OPTIMIZATION WITH GDIIS'
-             WRITE(6,'(A,T54,E12.6)')&
+             WRITE(6,'(A,T54,E13.6)')&
                   ' INR STARTING AFTER GNMAX = ',rmixsd
           ENDIF
        ENDIF

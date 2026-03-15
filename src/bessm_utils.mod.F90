@@ -1,7 +1,3 @@
-#ifdef __SR8000
-!option MP(P(0)), LANGLVL(SAVE(0))
-#endif
-
 MODULE bessm_utils
   USE error_handling,                  ONLY: stopgm
   USE kinds,                           ONLY: real_8

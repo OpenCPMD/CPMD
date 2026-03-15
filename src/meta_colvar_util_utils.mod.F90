@@ -3,7 +3,7 @@ MODULE meta_colvar_util_utils
                                              pi
   USE cnst_dyn,                        ONLY: &
        cscl_fac, cscl_val, cv_ist, cv_path, det_colvar, hllh_val, hllw_val, &
-       iangcv, imeta, inter_hill, inter_hill_max, ncolvar, rmeta
+       iangcv, imeta, inter_hill, inter_hill_max, ncolvar, rmeta, lmeta
   USE cotr,                            ONLY: cotc0,&
                                              duat
   USE ener,                            ONLY: ener_com
@@ -279,7 +279,14 @@ CONTAINS
        cscl_val(i_meta,icv)=  cscl_fac(1,icv)
     ENDDO
     hllw_val(i_meta,1)    =  rmeta%hllw
-    hllh_val(i_meta,1)    =  rmeta%hllh
+!SS-begin
+!    hllh_val(i_meta,1)    =  rmeta%hllh
+!SS-end
+    !WT-MTD
+    IF(.NOT.lmeta%well) THEN
+       rmeta%hllh_temp = rmeta%hllh
+       hllh_val(i_meta,1)    =  rmeta%hllh_temp
+    ENDIF
 
     ! ==--------------------------------------------------------------==
 

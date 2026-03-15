@@ -1,7 +1,3 @@
-#ifdef __SR8000
-!option MP(P(0)), LANGLVL(SAVE(0))
-#endif
-
 MODULE qvan1_utils
   USE aavan,                           ONLY: ap,&
                                              indv,&

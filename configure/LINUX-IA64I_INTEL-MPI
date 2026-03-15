@@ -1,33 +1,35 @@
 #INFO#
-#INFO# Configuration for LINUX_IA64_INTEL-MPI - QM/MM version
-#INFO# For Itanium-based HPC cluster with OMP
+#INFO# Configuration for Linux HPC cluster Equip@Meso / CPER AlsaCalcul
+##INFO# Intel Composer v.18 or oneAPI until 2023 version- OpenMPI/IntelMPI + OMP 5.0 (or later)
+#INFO# (IPCMS/Nagoya University, 12 March 2024)
 #INFO#
      IRAT=2
-     FC='mpif90'
-     CC='mpicc'
-     LD='mpif90'
-     CPP='/lib/cpp -P -C -traditional'
-     CPPFLAGS='   -D__HAS_FFT_DEFAULT -D__ALPHALINUX -D__HPC \
-         -D__PARALLEL  -D__HAS_EXTERNAL_IZAMAX  '
+     FC='mpiifort'
+     CC='mpiicc'
+     LD='mpiifort'
+     CPP='/lib/cpp -P -traditional'
+     CPPFLAGS='  -D__HAS_FFT_DEFAULT -D__ALPHALINUX -D__HPC -D__HASNT_OMP_SET_NESTED \
+         -D__PARALLEL -D__HAS_SIZEOF -D__HASNT_MULTITHREAD_MPI_SUPPORT -D__HAS_BF_STREAM_IO'
      CPPFLAGS_GROMOS='-DEWALD -DEWATCUT -DHAT_SHAPE -DUNPACKED_GRID \
-            -D__HAS_FFT_DEFAULT -D__ALPHALINUX -D__HPC  \
-         -D__PARALLEL  -D__HAS_EXTERNAL_IZAMAX'
+              -D__HAS_FFT_DEFAULT -D__ALPHALINUX -D__HPC -D__HASNT_OMP_SET_NESTED \
+             -D__PARALLEL -D__HAS_SIZEOF -D__HASNT_MULTITHREAD_MPI_SUPPORT -D__HAS_BF_STREAM_IO'
      FFLAGS_GROMOS='-fixed $(FFLAGS)'
      FFLAGS_GROMOS_MODULES=' $(FFLAGS)'
-     AR='/usr/bin/ar -r'
+     AR='xiar -r'
      RANLIB='/usr/bin/ranlib'
      if [ $debug ]; then
-       FFLAGS='-g -O0 -convert big_endian'
-       CFLAGS='-g'
+       FFLAGS='-g'
+       CFLAGS='-g -Wall -m64'
      else
-       FFLAGS='-O2 -convert big_endian'
-       CFLAGS='-O'
+       FFLAGS='-O2 -pc64 -funroll-loops -fpp -heap-arrays 64 -xHost'
+       CFLAGS='-O2 -Wall  '
      fi
      if [ $omp ]; then
-       FFLAGS=${FFLAGS}' -openmp'
-       OMP3_DISABLED=`{ ${FC} -v; } 2>&1 | ${AWK} '{ print ( $2 < "12.0.4" ) ? "true" : "false" }'`
-       LIBS='-mkl=parallel'
+       FFLAGS=${FFLAGS}' -qopenmp'
+       OMP3_DISABLED='false'
+       LIBS='-qmkl=parallel -lm'
      else
-       LIBS='-mkl=sequential'
+       LIBS='-static-intel -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core \
+             -lm -lpthread -liomp5 '
      fi
-     LFLAGS='-static-intel '${LIBS}
+     LFLAGS=${LIBS}

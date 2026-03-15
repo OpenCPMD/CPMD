@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE vofrhot_utils
   USE eextern_utils,                   ONLY: eextern
   USE efld,                            ONLY: textfld
@@ -43,10 +45,13 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! HER[
     ! EHR]
-    REAL(real_8)                             :: tau0(:,:,:), fion(:,:,:), &
-                                                rhoe(fpar%nnr1)
-    COMPLEX(real_8)                          :: v(:), vtemp(ncpw%nhg)
-    LOGICAL                                  :: tfor
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: tau0(:,:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:)
+    REAL(real_8),INTENT(INOUT)               :: rhoe(fpar%nnr1)
+    COMPLEX(real_8),INTENT(INOUT)&
+         __CONTIGUOUS                        :: v(:)
+    COMPLEX(real_8),INTENT(INOUT)            :: vtemp(ncpw%nhg)
+    LOGICAL,INTENT(IN)                       :: tfor
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'vofrhot'
 

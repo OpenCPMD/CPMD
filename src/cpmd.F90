@@ -1,3 +1,4 @@
+#include "cpmd_global.h"
 ! ==================================================================
 PROGRAM cpmd_stuttgart
 
@@ -20,6 +21,7 @@ END PROGRAM cpmd_stuttgart
 ! ==================================================================
 SUBROUTINE cpmd
   ! ==--------------------------------------------------------------==
+  USE benc, ONLY: ibench
   USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8
   USE error_handling, ONLY: stopgm
   USE timer, ONLY: tiset, tihalt, tilimex, tipri, tistart, ttimp
@@ -97,7 +99,9 @@ SUBROUTINE cpmd
   USE cp_cuda_utils, ONLY: cp_cuda_init, cp_cuda_finalize
   USE ortho_utils, ONLY: ortho_init, ortho_finalize
   USE mts_utils, ONLY: read_mts_input
-
+#ifdef _USE_SCRATCHLIBRARY
+  USE scratch_interface,               ONLY: init_memory_pool, finalize_memory_pool
+#endif
   IMPLICIT NONE
   CHARACTER(*), PARAMETER                    :: procedureN = 'cpmd'
 
@@ -106,7 +110,12 @@ SUBROUTINE cpmd
   LOGICAL                                    :: tinfo
   REAL(real_8)                               :: tcpu, time1, time2, twck, &
                                                 wclk1, wclk2
-
+#ifdef _USE_SCRATCHLIBRARY
+  INTEGER                                    :: ierr
+  INTEGER(int_8)                             :: len
+  len = INT(1, KIND = int_8 )
+  CALL init_memory_pool( len, ierr )
+#endif
   CALL m_signal(24,SOFTEX)
   CALL m_signal(30,SOFTEX)
   CALL m_signal(1,SOFTEX)      ! SIGHUP(1), SIGUSR1 (10) and SIGUSR(12) can also
@@ -411,7 +420,11 @@ SUBROUTINE cpmd
     call Delete(bicanonicalCpmdConfig)
     if (biCanonicalEnsembleDo) call Delete(bicanonicalCpmdInputConfig)
     
-  CALL finalize_cp_grp()
+#ifdef _USE_SCRATCHLIBRARY
+  CALL finalize_memory_pool( len, ierr )
+  IF(ibench(5).EQ.1)  write( 6, * ) 'rank',parai%me,'allocated memory pool:', len
+#endif
+  CALL finalize_cp_grp() 
   CALL mp_end()
   ! ==--------------------------------------------------------------==
 END SUBROUTINE cpmd

@@ -104,7 +104,7 @@ CONTAINS
     ! Stress tensor
     IF (.NOT.(ANY(alpha==0).OR.ANY(beta==0))) THEN
        DO i=1,6
-          devdw(i)=stress(alpha(i),beta(i))
+          devdw(i)=-stress(alpha(i),beta(i))*parm%omega
        ENDDO
     ENDIF
 

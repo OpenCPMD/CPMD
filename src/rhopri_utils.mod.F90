@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE rhopri_utils
   USE bsym,                            ONLY: bsclcs
   USE cdftmod,                         ONLY: cdfthda,&
@@ -12,6 +14,7 @@ MODULE rhopri_utils
   USE error_handling,                  ONLY: stopgm
   USE fftmain_utils,                   ONLY: fwfftn
   USE hip_utils,                       ONLY: give_qphi
+  USE ions,                            ONLY: ions1
   USE kinds,                           ONLY: real_8
   USE kpts,                            ONLY: tkpts
   USE lsd_elf_utils,                   ONLY: give_scr_lsd_elf,&
@@ -19,8 +22,6 @@ MODULE rhopri_utils
   USE meta_multiple_walkers_utils,     ONLY: mw_filename
   USE mw,                              ONLY: mwi,&
                                              tmw
-  USE noforce_utils,                   ONLY: give_scr_noforce
-  USE norhoe_utils,                    ONLY: norhoe
   USE parac,                           ONLY: parai,&
                                              paral
   USE phfac_utils,                     ONLY: phfac
@@ -28,16 +29,17 @@ MODULE rhopri_utils
   USE prden,                           ONLY: elfcb,&
                                              mwfn,&
                                              numpr
+  USE pslo,                            ONLY: pslo_com
   USE readsr_utils,                    ONLY: xstring
   USE response_pmod,                   ONLY: response1
+  USE rgsvan_utils,                    ONLY: rgsvan
   USE rhoofr_c_utils,                  ONLY: rhoofr_c
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr,&
-                                             rhoofr
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rhoofr_utils,                    ONLY: rhoofr
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE ropt,                            ONLY: iteropt
   USE spin,                            ONLY: clsd,&
-                                             spin_mod
+                                             spin_mod,&
+                                             lspin2
   USE store_types,                     ONLY: rout1
   USE system,                          ONLY: cntl,&
                                              fpar,&
@@ -65,10 +67,12 @@ CONTAINS
     ! ==  CALCULATE THE ELECTRONIC DENSITY IN G-SPACE AND DUMP        ==
     ! ==  ALL DATA TO FILE DENSITY                                    ==
     ! ==--------------------------------------------------------------==
-    COMPLEX(real_8), TARGET                  :: c0(:,:,:)
-    REAL(real_8)                             :: tau0(:,:,:), rhoe(:,:)
-    COMPLEX(real_8)                          :: psi(:)
-    INTEGER                                  :: nstate, nkpoint
+    COMPLEX(real_8), INTENT(IN), TARGET &
+                              __CONTIGUOUS   :: c0(:,:,:)
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: tau0(:,:,:)
+    REAL(real_8),INTENT(OUT) __CONTIGUOUS    :: rhoe(:,:)
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: psi(:)
+    INTEGER, INTENT(IN)                      :: nstate, nkpoint
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'rhopri'
 
@@ -76,52 +80,54 @@ CONTAINS
     CHARACTER(len=30)                        :: filen
     COMPLEX(real_8), ALLOCATABLE             :: eirop(:), eivps(:), qphi(:), &
                                                 vtemp(:)
-    COMPLEX(real_8), ALLOCATABLE, SAVE       :: sc0_scr(:,:)
+    COMPLEX(real_8), ALLOCATABLE, TARGET     :: c0_ort(:,:,:)
     INTEGER                                  :: i, i1, i2, ierr, ig, ii, ik, &
                                                 ikind, il_qphi, is, ispst, &
                                                 isub, n1, n2, nlsdbk, space
-    INTEGER, SAVE                            :: icall = 0, icon = 0
+    INTEGER, SAVE                            :: icall = 0
     LOGICAL                                  :: ldowrt, tlsdbk
     REAL(real_8)                             :: ekin_bak, eta, svsumg, svsumr
-    REAL(real_8), ALLOCATABLE, SAVE          :: eigv_scr(:), xmat_1(:,:), &
-                                                xmat_2(:,:)
-
+    REAL(real_8), ALLOCATABLE                :: smat(:,:)
+    COMPLEX(real_8), POINTER __CONTIGUOUS    :: c0_ptr(:,:,:)
 !c0(nkpt%ngwk,nstate,nkpoint)
 
     CALL tiset(procedureN,isub)
     ! ==--------------------------------------------------------------==
     CALL phfac(tau0)
-    DO ikind=1,nkpoint
-       CALL rnlsm(c0(:,:,ikind),nstate,1,ikind,.FALSE.)
-    ENDDO
+    IF(cntl%nonort)THEN
+       !TK norhoe goes here...
+       IF (lspin2%tlse) CALL stopgm('NORHOE','NO LSE ALLOWED HERE',& 
+            __LINE__,__FILE__)
+       IF (tkpts%tkpnt) CALL stopgm('NORHOE','K-POINTS NOT IMPLEMENTED',& 
+            __LINE__,__FILE__)
+       ALLOCATE(c0_ort(ncpw%ngw,nstate,1),stat=ierr)
+       IF (ierr.NE.0) CALL stopgm(procedureN,'Allocation problem',& 
+            __LINE__,__FILE__)
+       ALLOCATE(smat(nstate,nstate),stat=ierr)
+       IF (ierr.NE.0) CALL stopgm(procedureN,'Allocation problem',& 
+            __LINE__,__FILE__)
+       !in case of nonorthogonal orbitals
+       CALL dcopy(2*ncpw%ngw*nstate,c0,1,c0_ort,1)
+       c0_ptr=> c0_ort
+       IF(pslo_com%tivan) CALL rnlsm(c0(:,:,1),nstate,1,1,.FALSE.)
+       CALL rgsvan(c0_ptr(:,:,1),nstate,smat,store_nonort=.FALSE.)
+       IF (.NOT.pslo_com%tivan) CALL rnlsm(c0_ptr(:,:,1),nstate,1,1,.FALSE.)
+       DEALLOCATE(smat,stat=ierr)
+       IF (ierr.NE.0) CALL stopgm(procedureN,'Deallocation problem',& 
+            __LINE__,__FILE__)
+    ELSE
+       c0_ptr=> c0       
+       DO ikind=1,nkpoint
+          CALL rnlsm(c0_ptr(:,:,ikind),nstate,1,ikind,.FALSE.)
+       ENDDO
+    END IF
     ! calling RHOOFR will overwrite EKIN so we need to make
     ! a backup. the rest of COMMON /ENER/ is untouched. AK+NN.
     ekin_bak=ener_com%ekin
     IF (tkpts%tkpnt) THEN
-       CALL rhoofr_c(c0,rhoe,psi,nstate)
+       CALL rhoofr_c(c0_ptr,rhoe,psi,nstate)
     ELSE
-       IF (cntl%nonort)THEN
-          IF (icon.EQ.0)THEN
-             ALLOCATE(sc0_scr(ncpw%ngw,nstate),STAT=ierr)
-             IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-                  __LINE__,__FILE__)
-             ALLOCATE(eigv_scr(nstate),STAT=ierr)
-             IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-                  __LINE__,__FILE__)
-             ALLOCATE(xmat_1(nstate,nstate),STAT=ierr)
-             IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-                  __LINE__,__FILE__)
-             ALLOCATE(xmat_2(nstate,nstate),STAT=ierr)
-             IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-                  __LINE__,__FILE__)
-             CALL unitmx(xmat_1,nstate)
-          ENDIF
-          icon=1
-          CALL norhoe(c0,sc0_scr,eigv_scr,rhoe,psi,xmat_1,xmat_2,&
-               nstate)
-       ELSE
-          CALL rhoofr(c0(:,:,1),rhoe,psi,nstate)
-       ENDIF
+       CALL rhoofr(c0_ptr(:,:,1),rhoe,psi,nstate)
     ENDIF
     ! 
     ener_com%ekin=ekin_bak
@@ -300,9 +306,9 @@ CONTAINS
                    clsd%nlsd=1
                    cntl%tlsd=.FALSE.
                    IF (tkpts%tkpnt) THEN
-                      CALL rhoofr_c(c0(:,ispst,ik),rhoe,psi,1)
+                      CALL rhoofr_c(c0_ptr(:,ispst,ik),rhoe,psi,1)
                    ELSE
-                      CALL rhoofr(c0(:,ispst:ispst,1),rhoe,psi,1)
+                      CALL rhoofr(c0_ptr(:,ispst:ispst,1),rhoe,psi,1)
                    ENDIF
                    clsd%nlsd=nlsdbk
                    cntl%tlsd=tlsdbk
@@ -328,7 +334,7 @@ CONTAINS
                    ELSE
                       !$omp parallel do private(IG)
                       DO ig=1,nkpt%ngwk
-                         vtemp(ig) = c0(ig,ABS(ispst),1)
+                         vtemp(ig) = c0_ptr(ig,ABS(ispst),1)
                       ENDDO
                       !$omp end parallel do
                    ENDIF
@@ -502,10 +508,15 @@ CONTAINS
             __LINE__,__FILE__)
     ENDIF
     ! ..ELF
-    IF (elfcb%telf) CALL elf(c0,tau0,rhoe,psi,nstate,nkpoint)
+    IF (elfcb%telf) CALL elf(c0_ptr,tau0,rhoe,psi,nstate,nkpoint)
     ! ..ELF for the unrestricted case
     IF (elfcb%telf.AND.cntl%tlsd)&
-         CALL lsd_elf(C0,TAU0,RHOE,PSI,NSTATE,NKPOINT)
+         CALL lsd_elf(C0_PTR,TAU0,RHOE,PSI,NSTATE,NKPOINT)
+    IF (cntl%nonort)THEN
+       DEALLOCATE(c0_ort,stat=ierr)
+       IF (ierr.NE.0) CALL stopgm(procedureN,'Deallocation problem',& 
+            __LINE__,__FILE__)
+    END IF
 
     DEALLOCATE(vtemp,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
@@ -521,11 +532,8 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
     INTEGER                                  :: nstate
 
-    INTEGER :: il_auxc, il_ddia, il_gam, il_qphi = 0, il_smat, lelf = 0, &
-      lnorho = 0, lrhoofr = 0, lrnlsm = 0
+    INTEGER :: il_qphi = 0, il_smat, lelf = 0
 
-    CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
-    CALL give_scr_rhoofr(lrhoofr,tag)
     IF (cntl%tepot) THEN
        ! VTEMP(2*NHG),EIVPS(2*NHG),EIROP(2*NHG)
        lrhopri=6*ncpw%nhg
@@ -536,12 +544,10 @@ CONTAINS
     ! QPHI
     CALL give_qphi(il_qphi)
     lrhopri=lrhopri+il_qphi
-    IF (cntl%nonort) CALL give_scr_noforce(lnorho,il_gam,il_auxc,&
-         il_smat,il_ddia,tag,nstate,.FALSE.)
     IF (elfcb%telf) CALL give_scr_elf(lelf,tag,nstate)
     IF (elfcb%telf.AND.cntl%tlsd) CALL give_scr_lsd_elf(lelf,tag,nstate)
-    lrhopri=MAX(lrnlsm,lrhoofr,lrhopri,lelf,lnorho)
-    tag='MAX(LRNLSM,LRHOOFR,LRHOPRI...)'
+    lrhopri=MAX(lrhopri,lelf)
+    tag='MAX(LRHOPRI...)'
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE give_scr_rhopri

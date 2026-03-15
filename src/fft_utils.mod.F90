@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE fft_utils
 
   USE error_handling,                  ONLY: stopgm
@@ -36,6 +38,9 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
 
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map (alloc:lrxpl,sp5,sp8,sp9)
+#endif
     lrxpl   = HUGE(0)
     sp5     = HUGE(0)
     sp8     = HUGE(0)

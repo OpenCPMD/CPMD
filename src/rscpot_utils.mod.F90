@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE rscpot_utils
   USE cdft_utils,                      ONLY: cdft_forces
   USE cnst_dyn,                        ONLY: en_harm_locs,&
@@ -7,6 +9,7 @@ MODULE rscpot_utils
                                              ener_com,&
                                              ener_d
   USE epr_efg_utils,                   ONLY: save_rho
+  USE fft,                             ONLY: batch_fft
   USE hubbardu,                        ONLY: c2u0,hubbu
   USE hubbardu_utils,                  ONLY: hubbardUcorrection
   USE kinds,                           ONLY: real_8
@@ -19,8 +22,8 @@ MODULE rscpot_utils
                                              paral
   USE prop,                            ONLY: prop5
   USE rhoofr_c_utils,                  ONLY: rhoofr_c
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr,&
-                                             rhoofr
+  USE rhoofr_utils,                    ONLY: rhoofr,&
+                                             rhoofr_batchfft
   USE rnlfor_utils,                    ONLY: rnlfor
   USE rnlrh_utils,                     ONLY: rnlrh
   USE ropt,                            ONLY: iteropt
@@ -72,12 +75,13 @@ CONTAINS
     ! ==   RHOE      ELECTRONIC POTENTIAL                             ==
     ! ==   PSI       USED FOR FFT                                     ==
     ! ==--------------------------------------------------------------==
-    COMPLEX(real_8)                          :: c0(:,:)
-    REAL(real_8)                             :: tau0(:,:,:), fion(:,:,:), &
+    COMPLEX(real_8),INTENT(IN)  __CONTIGUOUS :: c0(:,:)
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: tau0(:,:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:), &
                                                 rhoe(:,:)
-    COMPLEX(real_8)                          :: psi(:,:)
-    LOGICAL                                  :: tfor, tstress
-    INTEGER                                  :: nstate, nkpoint
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: psi(:,:)
+    LOGICAL,INTENT(IN)                       :: tfor, tstress
+    INTEGER,INTENT(IN)                       :: nstate, nkpoint
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'rscpot'
 
@@ -111,7 +115,11 @@ CONTAINS
        dorho=.NOT.lqmmm%qmmm .OR. (lqmmm%qmmm.AND.cntl%bsymm)&
             .OR.(lqmmm%qmmm .AND. iqmmm%coupl_model.EQ.0)
        IF (dorho) THEN
-          CALL rhoofr(c0,rhoe,psi(:,1),nstate)
+          IF(batch_fft)THEN
+             CALL rhoofr_batchfft(c0,rhoe,psi(:,1),nstate)
+          ELSE
+             CALL rhoofr(c0,rhoe,psi(:,1),nstate)
+          END IF
        ENDIF
     ENDIF
 
@@ -291,18 +299,17 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
     LOGICAL                                  :: tstress
 
-    INTEGER                                  :: lrhoofr, lstress, lvofrho
+    INTEGER                                  :: lstress, lvofrho
 
 ! ==--------------------------------------------------------------==
 
-    CALL give_scr_rhoofr(lrhoofr,tag)
     IF (tstress) THEN
        CALL give_scr_stress(lstress,tag)
     ELSE
        lstress=0
     ENDIF
     CALL give_scr_vofrho(lvofrho,tag)
-    lrscpot=MAX(lrhoofr,lstress,lvofrho)
+    lrscpot=MAX(lstress,lvofrho)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE give_scr_rscpot

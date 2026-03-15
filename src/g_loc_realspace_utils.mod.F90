@@ -396,7 +396,7 @@ CONTAINS
           rrr = SQRT(rrx*rrx+rry*rry+rrz*rrz)
 
           IF (paral%io_parent)&
-               WRITE(1215,'(2(1PE12.6))')&
+               WRITE(1215,'(2(1PE13.6))')&
                rrr,array(i1+(i2-1)*spar%nr1s+(i3-1)*spar%nr1s*spar%nr2s)
        ENDDO
        IF (paral%io_parent)&

@@ -22,7 +22,6 @@ MODULE rhoofr_p_utils
                                              type_cast
   USE response_pmod,                   ONLY: dmbi,&
                                              response1
-  USE rhov_utils,                      ONLY: give_scr_rhov
   USE ropt,                            ONLY: ropt_mod
   USE spin,                            ONLY: clsd,&
                                              spin_mod
@@ -291,14 +290,13 @@ CONTAINS
     INTEGER                                  :: lrhoofr
     CHARACTER(len=30)                        :: tag
 
-    INTEGER                                  :: lrhov, lsymrho_f
+    INTEGER                                  :: lsymrho_f
 
 ! variables
 ! ==--------------------------------------------------------------==
 
     IF (pslo_com%tivan.AND.paral%parent) THEN ! rhoofr and rhoofr_c
-       CALL give_scr_rhov(lrhov,tag)
-       lrhoofr=MAX(ions1%nat,lrhov)! augchg
+       lrhoofr=ions1%nat! augchg
     ELSE
        lrhoofr=0
     ENDIF

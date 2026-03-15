@@ -113,10 +113,12 @@ CONTAINS
   ! ==================================================================
   SUBROUTINE rwfopt(c0,c2,sc0,pme,gde,vpp,eigv)
     ! ==--------------------------------------------------------------==
-    COMPLEX(real_8), INTENT(inout)           :: c0(:,:,:), c2(:,:), sc0(:,:,:)
-    COMPLEX(real_8)                          :: pme(:), gde(:)
-    REAL(real_8)                             :: vpp(:), &
-                                                eigv(crge%n,nkpt%nkpts)
+    COMPLEX(real_8), INTENT(INOUT)&
+        __CONTIGUOUS                         :: c0(:,:,:), c2(:,:), sc0(:,:,:)
+    COMPLEX(real_8),INTENT(INOUT)&
+        __CONTIGUOUS                         :: pme(:), gde(:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: vpp(:)
+    REAL(real_8),INTENT(INOUT)               :: eigv(crge%n,nkpt%nkpts)
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'rwfopt'
     CHARACTER(len=11), PARAMETER             :: filename = 'LOCPOT.cube'
@@ -158,6 +160,9 @@ CONTAINS
     ALLOCATE(rhoe(fpar%nnr1,il_rhoe_2d),STAT=ierr) !vw doenst work in parallel with il_rhoe_1d
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:rhoe)
+#endif
     CALL zeroing(rhoe)
     ! EHR[
     IF (cntl%tpspec.OR.cntl%tpdist) THEN
@@ -174,11 +179,17 @@ CONTAINS
     ALLOCATE(psi(il_psi_1d,il_psi_2d),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', __LINE__,__FILE__)
     !#endif
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:psi)
+#endif
     CALL zeroing(psi)
     CALL give_scr_rwfopt(lscr,tag)
     ALLOCATE(scr(lscr),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:scr)
+#endif
     ! ==--------------------------------------------------------------==
     tfor = (cprint%iprint(iprint_force).EQ.1)
     IF (lqmmm%qmmm) THEN
@@ -306,6 +317,9 @@ CONTAINS
        GOTO 150
     ENDIF
     CALL initrun(irec,c0,c2,sc0,rhoe,psi,eigv)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(c0)
+#endif
     IF (cntl%tksham)THEN
        CALL write_ksham(c0,c2,sc0,rhoe,psi,eigv)
        GOTO 150
@@ -551,6 +565,9 @@ CONTAINS
                 IF (.NOT.cntl%bsymm.AND.&
                      (MOD(infi,store1%istore).EQ.0.OR.infi.EQ.cnti%nomore_iter.OR.ropt_mod%convwf))THEN
                    CALL mm_dim(mm_go_mm,statusdummy)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+                   !$omp target update from(C0,C2)
+#endif
                    CALL zhwwf(2,irec,c0,c2,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
                    CALL mm_dim(mm_revert,statusdummy)
                 ENDIF
@@ -942,16 +959,25 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
             __LINE__,__FILE__)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:rhoe)
+#endif
     DEALLOCATE(rhoe,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
     !#if defined(_HAS_CUDA)
     !    CALL cuda_dealloc_host(psi)
     !#else
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:psi)
+#endif
     DEALLOCATE(psi,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
     !#endif
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:scr)
+#endif
     DEALLOCATE(scr,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)

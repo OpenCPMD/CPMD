@@ -67,10 +67,8 @@ MODULE ohlr_utils
   USE rho1ofr_utils,                   ONLY: rho1ofr,&
                                              rhoabofr,&
                                              rhosofr
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr,&
-                                             rhoofr
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rhoofr_utils,                    ONLY: rhoofr
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE ropt,                            ONLY: iteropt,&
                                              ropt_mod
   USE setbasis_utils,                  ONLY: loadc,&
@@ -362,7 +360,7 @@ CONTAINS
     IF (lrhd%local_orb) CALL localize(tau0,c0,c2,sc0,crge%n)
     ! ..calculate KS-Matrix 
     CALL forcedr(c0(:,:,1),c2,sc0,rhoe,psi,tau0,fion,eigv,&
-         crge%n,1,.FALSE.,.FALSE.)
+         crge%n,1,.FALSE.,.FALSE.,.TRUE.)
     time2=m_walltime()
     tcpu=(time2-time1)*0.001_real_8
     IF (paral%parent) THEN
@@ -854,17 +852,15 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
 
     INTEGER                                  :: lcanon, lddipo, lforces, &
-                                                linitrun, lopt_lr, lrhoofr, &
-                                                lrnlsm, lupdwf, lv1ofrho1, &
+                                                linitrun, lopt_lr, &
+                                                lupdwf, lv1ofrho1, &
                                                 lvhk, nstate
 
     nstate=crge%n
     CALL give_scr_initrun(linitrun,tag)
     CALL give_scr_updwf(lupdwf,tag,nstate,.FALSE.)
-    CALL give_scr_rhoofr(lrhoofr,tag)
     CALL give_scr_forcedr(lforces,tag,nstate,.FALSE.,.FALSE.)
     CALL give_scr_canon(lcanon,tag,nstate)
-    CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
     CALL give_scr_v1ofrho1(lv1ofrho1,tag)
     CALL give_scr_opt_lr(lopt_lr,"ORBHARD",tag)
     CALL give_scr_vhk(lvhk,tag)
@@ -875,7 +871,7 @@ CONTAINS
        lddipo=0
     ENDIF
     ! 
-    lohlr=MAX(linitrun,lupdwf,lrhoofr,lforces,lcanon,lrnlsm,&
+    lohlr=MAX(linitrun,lupdwf,lforces,lcanon,&
          lv1ofrho1,lopt_lr,lddipo,lvhk)
     ! ==--------------------------------------------------------------==
     RETURN
@@ -925,7 +921,7 @@ CONTAINS
        DO is=1,ions1%nsp
           DO ia=1,ions0%na(is)
              iat=iat+1
-             CALL loadc(catom(1,iaorb),foc,ncpw%nhg,ncpw%nhg,atwp%nattot,SIZE(foc),&
+             CALL loadc(catom(1:,iaorb:),foc,ncpw%nhg,ncpw%nhg,atwp%nattot,SIZE(foc),&
                   is,iat,natst)
              iaorb=iaorb+natst
           ENDDO

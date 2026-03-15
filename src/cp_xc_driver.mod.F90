@@ -122,6 +122,10 @@ CONTAINS
 
          ! Get xc energies and potentials
          !
+         !$omp parallel do &
+         !$omp             default(none) &
+         !$omp             shared(n,rhoe,cntr,sxs,scs,grad,tau,get_scratch,cp_xc,functional,v1,v2,vt) &
+         !$omp             private(ir,rho,g_2,t,K_sigma,scratch,i_func,K_tmp,v1s,v2s,v1t) 
          DO ir = 1, n
             !
             ! Perform checks here already instead of overwriting the values with zeros
@@ -183,6 +187,7 @@ CONTAINS
             vt( ir, a:b )  = vt( ir, a:b )  + v1t( a:b )
             !
          END DO
+         !$omp end parallel do
          !
          sgcx = sgcx + SUM(sxs(:))
          sgcc = sgcc + SUM(scs(:))
@@ -203,6 +208,10 @@ CONTAINS
 
          ! Get xc energies and potentials
          !
+         !$omp parallel do &
+         !$omp             default(none) &
+         !$omp             shared(n,rhoe,cntr,sxs,scs,grad,tau,get_scratch,cp_xc,functional,v1,v2,vt) &
+         !$omp             private(ir,rho,g_2,t,K_sigma,scratch,i_func,K_tmp,v1s,v2s,v1t)
          DO ir = 1, n
             !
             ! Perform checks here already instead of overwriting the values with zeros
@@ -250,6 +259,7 @@ CONTAINS
             vt( ir, s ) = vt( ir,s ) + v1t( s )
             !
          END DO
+         !$omp end parallel do
          !
          sgcx = sgcx + SUM(sxs(:))
          sgcc = sgcc + SUM(scs(:))

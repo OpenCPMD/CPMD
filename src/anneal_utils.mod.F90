@@ -1,6 +1,9 @@
+#include "cpmd_global.h"
+
 MODULE anneal_utils
   USE bsym,                            ONLY: bsclcs
   USE cnst,                            ONLY: factem
+  USE cp_grp_utils,                    ONLY: cp_grp_get_sizes
   USE ekinpp_utils,                    ONLY: ekinpp,&
                                              s_ekinpp
   USE ions,                            ONLY: ions1
@@ -28,22 +31,33 @@ MODULE anneal_utils
 CONTAINS
 
   ! ==================================================================
-  SUBROUTINE anneal(velp,cm,nstate,htvel)
+  SUBROUTINE anneal(velp,cm,nstate,htvel,use_cp_grps)
     ! ==--------------------------------------------------------------==
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: velp(:,:,:)
+    COMPLEX(real_8),INTENT(INOUT)            :: cm(ncpw%ngw,*)
+    INTEGER,INTENT(IN)                       :: nstate
+    REAL(real_8),INTENT(INOUT)               :: htvel(*)
+    LOGICAL,INTENT(IN),OPTIONAL              :: use_cp_grps
 
-    REAL(real_8)                             :: velp(:,:,:)
-    COMPLEX(real_8)                          :: cm(ncpw%ngw,*)
-    INTEGER                                  :: nstate
-    REAL(real_8)                             :: htvel(*)
-
-    INTEGER                                  :: i, ia, is
+    LOGICAL                                  :: cp_grps_active
+    INTEGER                                  :: i, ia, is, ibeg, iend, ig
     LOGICAL                                  :: skipanic
     REAL(real_8)                             :: alfap
 
 ! Variables
 ! 
 ! NN: IF BS AND HS-WF SKIP SCALING OF IONIC AND CELL VELOCITIES 
-
+    IF(PRESENT(use_cp_grps))THEN
+       cp_grps_active=use_cp_grps
+    ELSE
+       cp_grps_active=.FALSE.
+    END IF
+    IF(cp_grps_active)THEN
+       CALL cp_grp_get_sizes(firstk_g=ibeg,lastk_g=iend)
+    ELSE
+       ibeg=1
+       iend=ncpw%ngw
+    END IF
     skipanic=.FALSE.
     IF (cntl%bsymm.AND.(bsclcs.EQ.2))skipanic=.TRUE.
     ! 
@@ -52,11 +66,7 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     IF (cntl%annei.AND.(.NOT.skipanic)) THEN
        alfap=cntr%anneri**(0.25_real_8)
-#if defined(__VECTOR)
-       !$omp parallel do private(I,IS,IA)
-#else
        !$omp parallel do private(I,IS,IA) schedule(static)
-#endif
        DO i=1,ions1%nat
           ia=iatpt(1,i)
           is=iatpt(2,i)
@@ -70,7 +80,12 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     IF (cntl%annee) THEN
        alfap=cntr%annere**(0.25_real_8)
-       CALL dscal(2*ncpw%ngw*nstate,alfap,cm,1)
+       !$omp parallel do private(i,ig)
+       DO i=1,nstate
+          DO ig=ibeg,iend
+             cm(ig,i)=cm(ig,i)*alfap
+          END DO
+       END DO
     ENDIF
     ! ==--------------------------------------------------------------==
     ! ==  ANNEALING (CELL)  Fixed rescaling factor (anner)            ==
@@ -87,22 +102,36 @@ CONTAINS
   ! ==================================================================
 
   ! ==================================================================
-  SUBROUTINE dampdyn(velp,fion,cm,c2,nstate,htvel,htfor)
+  SUBROUTINE dampdyn(velp,fion,cm,c2,nstate,htvel,htfor,use_cp_grps)
     ! ==--------------------------------------------------------------==
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:)
+    REAL(real_8),INTENT(IN)                  :: velp(3,maxsys%nax,*)
+    COMPLEX(real_8),INTENT(IN)               :: cm(ncpw%ngw,*)
+    COMPLEX(real_8),INTENT(OUT)              :: c2(ncpw%ngw,*)
+    INTEGER,INTENT(IN)                       :: nstate
+    REAL(real_8),INTENT(IN)                  :: htvel(*)
+    REAL(real_8),INTENT(OUT)                  :: htfor(*)
+    LOGICAL,INTENT(IN),OPTIONAL              :: use_cp_grps
 
-    REAL(real_8)                             :: velp(3,maxsys%nax,*), &
-                                                fion(:,:,:)
-    COMPLEX(real_8)                          :: cm(ncpw%ngw,*), c2(ncpw%ngw,*)
-    INTEGER                                  :: nstate
-    REAL(real_8)                             :: htvel(*), htfor(*)
-
-    INTEGER                                  :: i, ia, is
+    LOGICAL                                  :: cp_grps_active
+    INTEGER                                  :: i, ia, is, ibeg, iend, ig
     LOGICAL                                  :: skipanic
     REAL(real_8)                             :: alfap
 
 ! Variables
 ! 
 ! NN: IF BS AND HS-WF SKIP SCALING OF IONIC AND CELL VELOCITIES 
+    IF(PRESENT(use_cp_grps))THEN
+       cp_grps_active=use_cp_grps
+    ELSE
+       cp_grps_active=.FALSE.
+    END IF
+    IF(cp_grps_active)THEN
+       CALL cp_grp_get_sizes(firstk_g=ibeg,lastk_g=iend)
+    ELSE
+       ibeg=1
+       iend=ncpw%ngw
+    END IF
 
     skipanic=.FALSE.
     IF (cntl%bsymm.AND.(bsclcs.EQ.2))skipanic=.TRUE.
@@ -112,11 +141,7 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     IF (cntl%dampi.AND.(.NOT.skipanic)) THEN
        alfap=cntr%dampgi
-#if defined(__VECTOR)
-       !$omp parallel do private(I,IS,IA)
-#else
        !$omp parallel do private(I,IS,IA) schedule(static)
-#endif
        DO i=1,ions1%nat
           ia=iatpt(1,i)
           is=iatpt(2,i)
@@ -130,7 +155,12 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     IF (cntl%dampe) THEN
        alfap=-cntr%dampge
-       CALL daxpy(2*ncpw%ngw*nstate,alfap,cm,1,c2,1)
+       !$omp parallel do private(i,ig)
+       DO i=1,nstate
+          DO ig=ibeg,iend
+             c2(ig,i)=c2(ig,i)+cm(ig,i)*alfap
+          END DO
+       END DO
     ENDIF
     ! ==--------------------------------------------------------------==
     ! ==  DAMPING (CELL)  Fixed friction factor                       ==
@@ -147,17 +177,19 @@ CONTAINS
   ! ==================================================================
 
   ! ==================================================================
-  SUBROUTINE berendsen(velp,cm,nstate,htvel,ekinc,ekinh)
+  SUBROUTINE berendsen(velp,cm,nstate,htvel,ekinc,ekinh,use_cp_grps)
     ! NOTE: we get called twice for each half step of the velocity 
     ! verlet so the the scaling is only considering half a timestep.
     ! ==--------------------------------------------------------------==
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: velp(:,:,:)
+    COMPLEX(real_8),INTENT(INOUT)            :: cm(ncpw%ngw,*)
+    INTEGER,INTENT(IN)                       :: nstate
+    REAL(real_8),INTENT(INOUT)               :: htvel(*)
+    REAL(real_8),INTENT(IN)                  :: ekinc, ekinh
+    LOGICAL,INTENT(IN),OPTIONAL              :: use_cp_grps
 
-    REAL(real_8)                             :: velp(:,:,:)
-    COMPLEX(real_8)                          :: cm(ncpw%ngw,*)
-    INTEGER                                  :: nstate
-    REAL(real_8)                             :: htvel(*), ekinc, ekinh
-
-    INTEGER                                  :: i, ia, is
+    LOGICAL                                  :: cp_grps_active
+    INTEGER                                  :: i, ia, is, ibeg, iend, ig
     LOGICAL                                  :: skipanic
     REAL(real_8)                             :: ekintmp, lambda, tempcur, &
                                                 thresh
@@ -165,6 +197,17 @@ CONTAINS
     PARAMETER(thresh=1.0e-6_real_8)  ! don't scale if we are too "cold".
     ! 
     ! NN: IF BS AND HS-WF SKIP SCALING OF IONIC AND CELL VELOCITIES 
+    IF(PRESENT(use_cp_grps))THEN
+       cp_grps_active=use_cp_grps
+    ELSE
+       cp_grps_active=.FALSE.
+    END IF
+    IF(cp_grps_active)THEN
+       CALL cp_grp_get_sizes(firstk_g=ibeg,lastk_g=iend)
+    ELSE
+       ibeg=1
+       iend=ncpw%ngw
+    END IF
     skipanic=.FALSE.
     IF (cntl%bsymm.AND.(bsclcs.EQ.2))skipanic=.TRUE.
     ! ==--------------------------------------------------------------==
@@ -183,11 +226,7 @@ CONTAINS
        tempcur=ekintmp*factem*2.0_real_8/glib
        IF (tempcur/cntr%tempw.GT.thresh) THEN
           lambda=SQRT(1.0_real_8+0.5_real_8*dt_ions/cntr%taubp*(cntr%tempw/tempcur-1.0_real_8))
-#if defined(__VECTOR)
-          !$omp parallel do private(I,IS,IA)
-#else
           !$omp parallel do private(I,IS,IA) schedule(static)
-#endif
           DO i=1,ions1%nat
              ia=iatpt(1,i)
              is=iatpt(2,i)
@@ -203,7 +242,12 @@ CONTAINS
     IF (cntl%tbere) THEN
        IF (ekinc/cntr%ekinw.GT.thresh)THEN
           lambda=SQRT(1.0_real_8+0.5_real_8*dt_ions/cntr%taube*(cntr%ekinw/ekinc-1.0_real_8))
-          CALL dscal(2*ncpw%ngw*nstate,lambda,cm,1)
+          !$omp parallel do private(i,ig)
+          DO i=1,nstate
+             DO ig=ibeg,iend
+                cm(ig,i)=cm(ig,i)*lambda
+             END DO
+          END DO
        ENDIF
     ENDIF
     ! ==--------------------------------------------------------------==

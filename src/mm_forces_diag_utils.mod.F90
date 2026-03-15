@@ -32,6 +32,8 @@ MODULE mm_forces_diag_utils
   USE wrener_utils,                    ONLY: wrprint_wfopt
   USE wv30_utils,                      ONLY: zhwwf
   USE zeroing_utils,                   ONLY: zeroing
+  !
+  USE ace_hfx,                         ONLY: use_ace,switch_ace,status_ace !SM
 
   IMPLICIT NONE
 
@@ -124,6 +126,17 @@ CONTAINS
     ! ==================================================================
     DO infr=1,cnti%nomore_iter
        time1=m_walltime()
+!==========================================================================!
+!SM          
+          IF(USE_ACE.and.status_ace)THEN
+            !
+            switch_ace=.true.
+            if(infr.eq.1)switch_ace=.false.  !SM
+            !
+          ENDIF
+!SM          
+!==========================================================================!
+       !
        ! calculate the electrostatic potential in the first loop only
        IF (lqmmm%qmmm .AND.infr.GT.1 ) update_pot = .FALSE.
        ifcalc=ifcalc+1

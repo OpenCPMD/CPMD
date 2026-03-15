@@ -46,9 +46,7 @@ MODULE debfor_utils
   USE poin,                            ONLY: potr,&
                                              rhoo
   USE pslo,                            ONLY: pslo_com
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE ropt,                            ONLY: infi,&
                                              infw,&
                                              iteropt,&
@@ -241,7 +239,7 @@ CONTAINS
     ! NUCLEAR GRADIENT
     IF (cntl%tddft) THEN
        CALL forcedr(c0(:,:,1),c2,sc0,rhoe,psi,tau0,fion,eigv,&
-            nstate,1,.TRUE.,.TRUE.)
+            nstate,1,.TRUE.,.TRUE.,.TRUE.)
        CALL lr_tddft(c0(:,:,1),c1,c2,sc0,rhoe,psi,tau0,fion,eigv,&
             nstate,.TRUE.,td01%ioutput)
     ELSEIF (cntl%tdiag) THEN
@@ -251,7 +249,7 @@ CONTAINS
             nstate,.TRUE.,.TRUE.,cntl%tpres,infi,thl,nhpsi)
     ELSE
        CALL forcedr(c0(:,:,1),c2,sc0,rhoe,psi,tau0,fion,eigv,&
-            nstate,1,.TRUE.,.TRUE.)
+            nstate,1,.TRUE.,.TRUE.,.TRUE.)
     ENDIF
     CALL dscal(3*maxsys%nax*maxsys%nsx,-1.0_real_8,fion(1,1,1),1)
     time2=m_walltime()
@@ -456,15 +454,13 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
 
     INTEGER                                  :: lcalc_alm, lcopot, lforces, &
-                                                linitrun, lortho, lrhoofr, &
-                                                lrnlsm, lsymmat, ltddft, &
+                                                linitrun, lortho, &
+                                                lsymmat, ltddft, &
                                                 lupdate, nstate
 
     nstate=crge%n
     lcopot=0
     lortho=0
-    lrnlsm=0
-    lrhoofr=0
     lcalc_alm=0
     lforces=0
     lsymmat=0
@@ -475,8 +471,6 @@ CONTAINS
     ENDIF
     IF (cntl%tddft) CALL give_scr_lr_tddft(ltddft,.TRUE.,tag)
     IF (cntl%tdiag) THEN
-       IF (pslo_com%tivan) CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
-       CALL give_scr_rhoofr(lrhoofr,tag)
        IF (fint1%ttrot) CALL give_scr_calc_alm(lcalc_alm,tag)
        CALL give_scr_updrho(lupdate,tag,nstate,.TRUE.,cntl%tpres)
     ELSE
@@ -487,7 +481,7 @@ CONTAINS
     IF (.NOT.(symmi%indpg.EQ.0.OR.symmi%nrot.EQ.1))&
          CALL give_scr_symmat(lsymmat,tag)
     ldebfor=MAX(9*ions1%nat*ions1%nat+9*ions1%nat,&
-         linitrun,lcopot,lortho,lrnlsm,lrhoofr,lcalc_alm,&
+         linitrun,lcopot,lortho,lcalc_alm,&
          lupdate,lforces,lsymmat,ltddft)
     ! ==--------------------------------------------------------------==
     RETURN

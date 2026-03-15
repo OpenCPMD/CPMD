@@ -1341,10 +1341,6 @@ CONTAINS
 #else
     CALL zeroing(eivps)!,nhg)
     IF (cntl%bigmem) THEN
-#ifdef __SR8000
-       !poption parallel
-       !voption indep(RHOPS,EIGRB,TOTCLBPOT,EIVPS)
-#endif
        DO ig=1,ncpw%nhg
           isa=0
           DO is=1,ions1%nsp
@@ -1355,10 +1351,6 @@ CONTAINS
           ENDDO
        ENDDO
     ELSE
-#ifdef __SR8000
-       !poption parallel
-       !voption indep(EI3,EI2,EI1,INYH,RHOPS,TOTCLBPOT,EIVPS)
-#endif
        DO ig=1,ncpw%nhg
           isa=0
           DO is=1,ions1%nsp

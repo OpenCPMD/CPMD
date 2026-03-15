@@ -72,9 +72,6 @@ CONTAINS
           cp1=(0.0_real_8,-1.0_real_8)**nghtol(iv1,is1)
           cp2=(0.0_real_8,-1.0_real_8)**nghtol(iv2,is2)
           !CDIR NODEP
-#ifdef __SR8000
-          !poption parallel
-#endif
 #if defined(__VECTOR)
           !$omp parallel do private(IG,FP,FM)
 #else
@@ -96,9 +93,6 @@ CONTAINS
           cp1=(0.0_real_8,-1.0_real_8)**nghtol(iv1,is1)
           IF (tkpts%tkpnt) THEN
              !CDIR NODEP
-#ifdef __SR8000
-             !poption parallel
-#endif
 #if defined(__VECTOR)
              !$omp parallel do private(IG)
 #else
@@ -114,9 +108,6 @@ CONTAINS
                   =cp1*twnl(1,iv1,is1,ikind)*eigkr(1,isa1,ikind)
           ELSE
              !CDIR NODEP
-#ifdef __SR8000
-             !poption parallel
-#endif
 #if defined(__VECTOR)
              !$omp parallel do private(IG,FP)
 #else
@@ -150,9 +141,6 @@ CONTAINS
        CALL  fwfftn(psi,.TRUE.,parai%allgrp)
        IF ((i2.LE.nlm).AND.(.NOT.tkpts%tkpnt)) THEN
           !CDIR NODEP
-#ifdef __SR8000
-          !poption parallel
-#endif
 #if defined(__VECTOR)
           !$omp parallel do private(IG,FP,FM)
 #else

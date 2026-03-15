@@ -4,7 +4,7 @@ C     ==================================================================
       use error_handling, only: stopgm
 C     ==--------------------------------------------------------------==
 ! GROMOSDIP
-cmb - Revised on 21 June 2006
+cmb - Revised on 14 March 2024
       use system
       use mm_input
       use store_types
@@ -37,9 +37,6 @@ cmb - Revised on 21 June 2006
       ALLOCATE(to_solute(NSM))
       IF(solqmmm%all_water)THEN
 !$OMP parallel do private(ns)
-#ifdef __SR11000
-*poption parallel, tlocal(ns)
-#endif
         DO ns=1,NSM 
           to_solute(ns)=.true.
         ENDDO

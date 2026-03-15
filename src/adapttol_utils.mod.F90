@@ -54,11 +54,11 @@ CONTAINS
        IF (adtolr%delast.EQ.0.0_real_8) THEN
           adtolr%delast = 1.0e3_real_8 * adtolr%demin
           IF (paral%io_parent)&
-               WRITE (6,'(1X,A,1PE10.4)')&
+               WRITE (6,'(1X,A,1PE11.4)')&
                'DEFAULT WAVEFUNCTION ENERGY TOLERANCE:   ', adtolr%delast
        ELSE
           IF (paral%io_parent)&
-               WRITE (6,'(1X,A,1PE10.4)')&
+               WRITE (6,'(1X,A,1PE11.4)')&
                'WAVEFUNCTION ENERGY TOLERANCE:   ', adtolr%delast
        ENDIF
     ENDIF
@@ -199,7 +199,7 @@ CONTAINS
           ENDIF
           cntr%tolog = MAX(cntr%tolad*adtolr%gnmin,adtolr%tolmin)
           IF (paral%io_parent)&
-               WRITE(6,'(1X,A,1PE10.4)')&
+               WRITE(6,'(1X,A,1PE11.4)')&
                'WAVEFUNCTION GRADIENT TOLERANCE: ', cntr%tolog
           IF (adtolr%tolmin.GE.cntr%tolog) THEN
              cntr%tolad = 0.0_real_8
@@ -249,7 +249,7 @@ CONTAINS
           IF (adtolr%delast.NE.0.0_real_8) THEN
              adtolr%delast = MAX(ABS(adtolr%delast),adtolr%demin)
              IF (paral%io_parent)&
-                  WRITE (6,'(1X,A,1PE10.4)')&
+                  WRITE (6,'(1X,A,1PE11.4)')&
                   'WAVEFUNCTION ENERGY TOLERANCE:   ', adtolr%delast
           ENDIF
        ENDIF

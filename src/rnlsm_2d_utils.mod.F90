@@ -24,7 +24,6 @@ MODULE rnlsm_2d_utils
   PRIVATE
 
   PUBLIC :: rnlsm_2d
-  PUBLIC :: give_scr_rnlsm_2d
 
 CONTAINS
 
@@ -138,24 +137,6 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE rnlsm_2d
-  ! ==================================================================
-  SUBROUTINE give_scr_rnlsm_2d(lrnlsm,tag,nstate)
-    ! ==--------------------------------------------------------------==
-    INTEGER                                  :: lrnlsm
-    CHARACTER(len=30)                        :: tag
-    INTEGER                                  :: nstate
-
-! ==--------------------------------------------------------------==
-
-    IF (nlm.EQ.0) THEN
-       lrnlsm=0
-    ELSE
-       lrnlsm=2*ncpw%ngw*6+6*nstate+100
-       tag=   '2*NGW*6+6*NSTATE'
-    ENDIF
-    ! ==--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE give_scr_rnlsm_2d
   ! ==================================================================
 
 END MODULE rnlsm_2d_utils

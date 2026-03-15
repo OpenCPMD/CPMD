@@ -23,8 +23,7 @@ MODULE mm_mdshop_cp_utils
   USE csize_utils,                     ONLY: csize
   USE ddipo_utils,                     ONLY: ddipo,&
                                              give_scr_ddipo
-  USE deort_utils,                     ONLY: deort,&
-                                             give_scr_deort
+  USE deort_utils,                     ONLY: deort
   USE detdof_utils,                    ONLY: detdof
   USE dispp_utils,                     ONLY: dispp
   USE dynit_utils,                     ONLY: dynit
@@ -418,8 +417,8 @@ CONTAINS
              ! *               SCR,LSCR)
              ! McB  ................................?!?
           ELSE
-             CALL deort(ncpw%ngw,sh02%nst_s0,eigm,eigv,c0(1,1,1)  ,sc0)
-             CALL deort(ncpw%ngw,sh02%nst_s1,eigm,eigv,c0(1,ns1,1),sc0)
+             CALL deort(sh02%nst_s0,c0(:,1:sh02%nst_s0,1))
+             CALL deort(sh02%nst_s1,c0(:,ns1:sh02%nst_s1,1))
           ENDIF
        ENDIF
        ! INITIALIZE VELOCITIES
@@ -1162,14 +1161,14 @@ CONTAINS
           CALL ddipo(taup,c0(:,:,1),cm,c2,sc0,sh02%nst_s0,center)
           CALL forcedr(c0(:,:,1),c2,sc0,rhoe,psi,&
                TAUP,FION0,EIGV,&
-               sh02%nst_s0,1,.FALSE.,.TRUE.)
+               sh02%nst_s0,1,.FALSE.,.TRUE.,.TRUE.)
           CALL wc_dos(c0,c2,sh02%nst_s0,center)
           CALL state_select("S1")
           CALL ddipo(taup,c0(:,ns1:,1),cm(:,ns1:),c2(:,ns1:),&
                SC0,sh02%nst_s1,CENTER)
           CALL forcedr(c0(:,ns1:ns1+sh02%nst_s1-1,1),c2(:,ns1:ns1+sh02%nst_s1-1),sc0,rhoe,psi,&
                TAUP,FION1,EIGV,&
-               sh02%nst_s1,1,.FALSE.,.TRUE.)
+               sh02%nst_s1,1,.FALSE.,.TRUE.,.TRUE.)
           CALL wc_dos(c0,c2,sh02%nst_s1,center)
           ! .................................
           CALL mm_dim(mm_go_mm,statusdummy)
@@ -1241,7 +1240,7 @@ CONTAINS
     INTEGER                                  :: lmdshop
     CHARACTER(len=30)                        :: tag
 
-    INTEGER                                  :: lcopot, lddipo, ldeort, &
+    INTEGER                                  :: lcopot, lddipo, &
                                                 lforcedr, linitrun, lortho, &
                                                 lposupa, lquenbo, lrhopri, &
                                                 lrortv, nstate
@@ -1251,20 +1250,18 @@ CONTAINS
     lcopot=0
     lortho=0
     lquenbo=0
-    ldeort=0
     lrhopri=0
     lddipo=0
     CALL give_scr_initrun(linitrun,tag)
     IF (corel%tinlc) CALL give_scr_copot(lcopot,tag)
     IF (cntl%trane) CALL give_scr_ortho(lortho,tag,nstate)
     IF (cntl%quenchb) CALL give_scr_quenbo(lquenbo,tag)
-    IF (pslo_com%tivan) CALL give_scr_deort(ldeort,tag,nstate)
     IF (cntl%tdipd) CALL give_scr_ddipo(lddipo,tag)
     CALL give_scr_forcedr(lforcedr,tag,nstate,.FALSE.,.TRUE.)
     CALL give_scr_rortv(lrortv,tag,nstate)
     CALL give_scr_posupa(lposupa,tag,nstate)
     IF (rout1%rhoout) CALL give_scr_rhopri(lrhopri,tag,nstate)
-    lmdshop=MAX(lcopot,lortho,lquenbo,ldeort,lforcedr,&
+    lmdshop=MAX(lcopot,lortho,lquenbo,lforcedr,&
          lrortv,lposupa,lrhopri,lddipo,linitrun)
     IF (cntl%tqmmm)lmdshop=MAX(lmdshop,fpar%kr1*fpar%kr2s*fpar%kr3s)
     IF (cntl%tqmmm)lmdshop=MAX(lmdshop,maxsys%nax*maxsys%nsx*3)

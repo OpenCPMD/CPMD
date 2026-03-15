@@ -1,10 +1,11 @@
 subroutine mp_max_${NAME}(data,comm)
-#ifdef __PARALLEL
-  use mpi
-#endif
   implicit none
   ! Arguments
+#ifdef __PARALLEL
+  type(MPI_COMM), intent(in) :: comm
+#else
   integer, intent(in) :: comm
+#endif
   ${TYPE}${KIND}, intent(inout) :: data
   ! Variables
   character(*),parameter :: procedureN='mp_max_${NAME}'

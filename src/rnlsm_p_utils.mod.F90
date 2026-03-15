@@ -28,7 +28,6 @@ MODULE rnlsm_p_utils
   PRIVATE
 
   PUBLIC :: rnlsm3
-  PUBLIC :: give_scr_rnlsm3
 
 CONTAINS
 
@@ -128,20 +127,6 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE rnlsm3
-  ! ==================================================================
-  SUBROUTINE give_scr_rnlsm3(lrnlsm3,tag,nstate)
-    ! ==--------------------------------------------------------------==
-    INTEGER                                  :: lrnlsm3
-    CHARACTER(len=30)                        :: tag
-    INTEGER                                  :: nstate
-
-! ==--------------------------------------------------------------==
-
-    lrnlsm3=2*nkpt%ngwk*maxsys%nax+imagp*maxsys%nax*nstate
-    tag=   '2*NGWK*maxsys%nax+IMAGP*maxsys%nax*NSTATE'
-    ! ==--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE give_scr_rnlsm3
   ! ==================================================================
 
 END MODULE rnlsm_p_utils

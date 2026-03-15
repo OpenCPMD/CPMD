@@ -1517,7 +1517,7 @@ CONTAINS
     CALL phfac(tau0)
     ! The forces routine calculates the energy
     CALL forces(c0,cs,tau0,fion,dens,psi,&
-         NSTATE,1,.FALSE.,.FALSE.)
+         NSTATE,1,.FALSE.,.FALSE.,.TRUE.)
     IF (paral%io_parent)&
          WRITE(6,*) 'WANNIER ENERGY'
     IF (paral%io_parent)&

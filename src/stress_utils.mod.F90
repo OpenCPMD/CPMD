@@ -38,8 +38,7 @@ MODULE stress_utils
   USE pslo,                            ONLY: pslo_com
   USE putbet_utils,                    ONLY: putbet
   USE ragg,                            ONLY: raggio
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE ropt,                            ONLY: iteropt
   USE sfac,                            ONLY: fnl
   USE sgpp,                            ONLY: sgpp1,&
@@ -210,9 +209,6 @@ CONTAINS
     ! Compute GAGK = G_A * G_K
 #if defined(__VECTOR)
     !OCL NOALIAS
-#ifdef __SR8000
-    !poption parallel, tlocal(IG)
-#endif 
     !$omp parallel do private(IG)
     DO ig=1,ncpw%nhg
        gagk(ig,1) = gk(alpha(1),ig)*gk(beta(1),ig)*parm%tpiba2
@@ -259,9 +255,6 @@ CONTAINS
           DO ikind=1,nkpoint
              ikk=kpbeg(ikpt)+ikind
              !OCL NOALIAS
-#ifdef __SR8000
-             !poption parallel, tlocal(KK,IG)
-#endif 
              !$omp parallel do private(KK,IG) __COLLAPSE2
              DO kk=1,6
                 DO ig=1,ncpw%ngw
@@ -337,9 +330,6 @@ CONTAINS
              IF (f(i,ikk).NE.0._real_8) THEN
                 CALL zeroing(sgc)!,6)
                 !OCL NOALIAS
-#ifdef __SR8000
-                !poption parallel, tlocal(IG)
-#endif
 #if defined(__VECTOR)
                 !$omp parallel do private(IG)
 #else
@@ -354,9 +344,6 @@ CONTAINS
                    topia=2._real_8*prcp_com%gakin/SQRT(pi)
                    IF (tkpts%tkpnt) THEN
                       !OCL NOALIAS
-#ifdef __SR8000
-                      !poption parallel, tlocal(IG,ARG)
-#endif
 #if defined(__VECTOR)
                       !$omp parallel do private(IG,ARG) shared(TOPIA,XSKIN)
                       DO ig=1,ncpw%ngw
@@ -366,9 +353,6 @@ CONTAINS
                       ENDDO
                       !OCL NOALIAS
                       !OCL NOVREC
-#ifdef __SR8000
-                      !poption parallel, tlocal(IG,ARG)
-#endif
                       !$omp parallel do private(IG,ARG) shared(TOPIA,XSKIN)
                       DO ig=1,ncpw%ngw
                          arg=(hgkm(ig,ikind)-prcp_com%gckin)*xskin
@@ -390,9 +374,6 @@ CONTAINS
 #endif
                    ELSE
                       !OCL NOALIAS
-#ifdef __SR8000
-                      !poption parallel, tlocal(IG,ARG)
-#endif 
 #if defined(__VECTOR)
                       !$omp parallel do private(IG,ARG) shared(TOPIA,XSKIN)
 #else
@@ -406,9 +387,6 @@ CONTAINS
                    ENDIF
                 ENDIF
                 IF (tkpts%tkpnt) THEN
-#ifdef __SR8000
-                   !poption parallel, tlocal(KK,IG)
-#endif 
 #if defined(__VECTOR)
                    !$omp parallel do private(KK,IG)
                    DO kk=1,6
@@ -630,7 +608,6 @@ CONTAINS
     INTEGER                                  :: lstress
     CHARACTER(len=30)                        :: tag
 
-    INTEGER                                  :: lrnlsm
 
 ! Variables
 ! ==--------------------------------------------------------------==
@@ -640,10 +617,6 @@ CONTAINS
          maxsys%nax*(parap%nst12(parai%mepos,2)-parap%nst12(parai%mepos,2)+1)
     ! DRHOV
     IF (pslo_com%tivan) lstress=MAX(lstress,4*ncpw%nhg)
-    IF (tkpts%tkblock) THEN
-       CALL give_scr_rnlsm(lrnlsm,tag,crge%n,.FALSE.)
-       lstress=MAX(lstress,lrnlsm)
-    ENDIF
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE give_scr_stress

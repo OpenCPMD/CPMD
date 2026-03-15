@@ -240,16 +240,16 @@ CONTAINS
        ! ENDIF
 
        IF (paral%io_parent)&
-            WRITE(6,'(A,T56,1PE10.4)')&
+            WRITE(6,'(A,T56,1PE11.4)')&
             '         CONVERGENCE CRITERIA:',glocr%gloc_eps
        IF (paral%io_parent)&
             WRITE(6,'(A,T56,I10)')&
             '         MAXIMUM # OF STEPS:',gloci%gloc_maxs
        IF (paral%io_parent)&
-            WRITE(6,'(A,T56,1PE10.4)')&
+            WRITE(6,'(A,T56,1PE11.4)')&
             '         RANDOMIZATION AMPLITUDE:',glocr%gloc_ran
        IF (paral%io_parent)&
-            WRITE(6,'(A,T56,1PE10.4)')&
+            WRITE(6,'(A,T56,1PE11.4)')&
             '         STEP SIZE:',glocr%gloc_step
        IF (paral%io_parent)&
             WRITE(6,'(A,T56,I10)')&
@@ -673,16 +673,16 @@ CONTAINS
        ! ENDIF
 
        IF (paral%io_parent)&
-            WRITE(6,'(A,T56,1PE10.4)')&
+            WRITE(6,'(A,T56,1PE11.4)')&
             '         CONVERGENCE CRITERIA:',glocr%gloc_eps
        IF (paral%io_parent)&
             WRITE(6,'(A,T56,I10)')&
             '         MAXIMUM # OF STEPS:',gloci%gloc_maxs
        IF (paral%io_parent)&
-            WRITE(6,'(A,T56,1PE10.4)')&
+            WRITE(6,'(A,T56,1PE11.4)')&
             '         RANDOMIZATION AMPLITUDE:',glocr%gloc_ran
        IF (paral%io_parent)&
-            WRITE(6,'(A,T56,1PE10.4)')&
+            WRITE(6,'(A,T56,1PE11.4)')&
             '         STEP SIZE:',glocr%gloc_step
        IF (paral%io_parent)&
             WRITE(6,'(A,T56,I10)')&

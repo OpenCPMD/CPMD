@@ -33,7 +33,7 @@ CONTAINS
           IF (paral%io_parent)&
                WRITE(6,10) tabx%rmaxxc,tabx%narray
 10        FORMAT(' TABLE FOR EXCHANGE-CORRELATION ENERGY',/,&
-               '    RMAX:  ',t56,1pe10.4,/,&
+               '    RMAX:  ',t56,1pe11.4,/,&
                '    NARRAY:',t61,i5,/)
           ! ..Allocate memory for XC-tables
 

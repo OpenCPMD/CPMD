@@ -126,9 +126,6 @@ SUBROUTINE drhov(nstate,qg,ctmp)
                  DO ia=1,ions0%na(is)
                     isa=isa0+ia
                     !$omp parallel do private(IG)
-#ifdef __SR8000
-                    !poption parallel
-#endif
                     DO ig=1,ncpw%nhg
                        ctmp(ig)=ei1(isa,inyh(1,ig))*ei2(isa,inyh(2,ig))*&
                             ei3(isa,inyh(3,ig))
@@ -224,9 +221,6 @@ SUBROUTINE drhov(nstate,qg,ctmp)
                  DO ia=1,ions0%na(is)
                     isa=isa0+ia
                     !$omp parallel do private(IG)
-#ifdef __SR8000
-                    !poption parallel
-#endif
                     DO ig=1,ncpw%nhg
                        ctmp(ig)=ei1(isa,inyh(1,ig))*ei2(isa,inyh(2,ig))*&
                             ei3(isa,inyh(3,ig))

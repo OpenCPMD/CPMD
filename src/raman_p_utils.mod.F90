@@ -506,7 +506,7 @@ CONTAINS
             WRITE (6,'(3F15.5)') (pol2(2,i),i=1,3)
        IF (paral%io_parent)&
             WRITE (6,'(3F15.5)') (pol2(3,i),i=1,3)
-       WRITE (6,'(A,E11.5)') ' ChkSum(POLARI) = ',SUM(ABS(pol2))
+       WRITE (6,'(A,E12.5)') ' ChkSum(POLARI) = ',SUM(ABS(pol2))
        convchem=(1.0_real_8/fbohr)**3
        IF (paral%io_parent)&
             WRITE (6,*) 'POLARIZABILITY TENSOR: (Angstrom^3)'

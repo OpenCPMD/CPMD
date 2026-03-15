@@ -62,13 +62,10 @@ MODULE cplngs_utils
   USE pslo,                            ONLY: pslo_com
   USE rho1ofr_utils,                   ONLY: rho1ofr,&
                                              rhoabofr
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr,&
-                                             rhoofr
+  USE rhoofr_utils,                    ONLY: rhoofr
   USE rnlsm1_utils,                    ONLY: rnlsm1
   USE rnlsm2_utils,                    ONLY: rnlsm2
-  USE rnlsm_2d_utils,                  ONLY: give_scr_rnlsm_2d,&
-                                             rnlsm_2d
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm
+  USE rnlsm_2d_utils,                  ONLY: rnlsm_2d
   USE ropt,                            ONLY: iteropt,&
                                              ropt_mod
   USE sfac,                            ONLY: ddfnl,&
@@ -83,8 +80,7 @@ MODULE cplngs_utils
   USE spin,                            ONLY: clsd,&
                                              lspin2,&
                                              spin_mod
-  USE summat_utils,                    ONLY: give_scr_summat,&
-                                             summat
+  USE summat_utils,                    ONLY: summat
   USE symtrz_utils,                    ONLY: give_scr_symvec,&
                                              symvec
   USE system,                          ONLY: &
@@ -307,13 +303,13 @@ CONTAINS
           CALL switch_st ('SET', crge%f, nstate, lspin2%tlse, lspin2%tlsets)
           CALL switch_st ('GND', crge%f, nstate, lspin2%tlse, lspin2%tlsets)
           CALL forcedr (c0, c2, sc0, rhoe, psi, tau0, fion, eigv,&
-               NSTATE, 1, .FALSE., .FALSE.)
+               NSTATE, 1, .FALSE., .FALSE., .TRUE.)
           egnd = ener_com%etot
           IF ((lprint).AND.paral%io_parent)&
                WRITE(6,110) 'ENERGY OF STATE S0:', egnd
           CALL switch_st ('EXC', crge%f, nstate, lspin2%tlse, lspin2%tlsets)
           CALL forcedr (c0, c2, sc0, rhoe, psi, tau0, fion, eigv,&
-               NSTATE, 1, .FALSE., .FALSE.)
+               NSTATE, 1, .FALSE., .FALSE., .TRUE.)
           eexc = ener_com%etot
           IF ((lprint).AND.paral%io_parent)&
                WRITE(6,110) 'ENERGY OF STATE S1:', eexc
@@ -329,7 +325,7 @@ CONTAINS
        CALL dcopy (ncpw%ngw, c0(1,nstate-1), 1, c1(1,nstate), 1)
        CALL dcopy (ncpw%ngw, c0(1,nstate), 1, c1(1,nstate-1), 1)
        CALL forcedr (c1, c2, sc0, rhoe, psi, tau0, fion, eigv,&
-            NSTATE, 1, .FALSE., .FALSE.)
+            NSTATE, 1, .FALSE., .FALSE., .TRUE.)
        IF (lprint.AND.paral%io_parent) WRITE (6,110)&
             'ENERGY OF STATE TS (SWAPPED ORBITALS):', ener_com%etot
        CALL hpsi (c1, c2, sc0, rhoe, psi(:,1), nstate,&
@@ -355,7 +351,7 @@ CONTAINS
        ENDDO
        ! Diagonal KS matrix elements, right order
        CALL forcedr (c0, c2, sc0, rhoe, psi, tau0, fion, eigv,&
-            NSTATE, 1, .FALSE., .FALSE.)
+            NSTATE, 1, .FALSE., .FALSE., .TRUE.)
        IF (lprint.AND.paral%io_parent)&
             WRITE (6,110) 'ENERGY OF STATE TS:', ener_com%etot
 
@@ -384,7 +380,7 @@ CONTAINS
     ELSE
        ! Other excitations
        CALL forcedr (c0, c2, sc0, rhoe, psi, tau0, fion, eigv,&
-            NSTATE, 1, .FALSE., .FALSE.)
+            NSTATE, 1, .FALSE., .FALSE. ,.TRUE.)
        CALL canon (c0, c2, crge%f, crge%n, eigv)
        orbtyp="CANON"
     ENDIF
@@ -775,7 +771,7 @@ CONTAINS
                   ' OVERLAP WITH VECTOR ', IVV, ': ', RLEN
              IF (paral%parent .AND. ABS(rlen).GT.1.0e-6_real_8) THEN
                 IF (paral%io_parent)&
-                     WRITE(6,'(A,I3,A,I3,A,E10.4)')&
+                     WRITE(6,'(A,I3,A,I3,A,E11.4)')&
                      ' WARNING: OVERLAP BETWEEN VECTOR ', IVV, ' AND ',&
                      IV, ': ', RLEN
              ENDIF
@@ -1222,7 +1218,7 @@ CONTAINS
              IF (paral%io_parent)&
                   WRITE(6,'(A)') ' CALCULATE NON-ADIABATIC COUPLINGS'
              IF (paral%io_parent)&
-                  WRITE(6,'(A,T56,1PE10.4)')&
+                  WRITE(6,'(A,T56,1PE11.4)')&
                   ' FINITE-DIFFERENCE DISPLACEMENT', ABS(EPS_C)
              IF ((eps_c.LT.0.0_real_8).AND.paral%io_parent)&
                   WRITE(6,'(A)')&
@@ -1486,8 +1482,8 @@ CONTAINS
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'give_scr_cplsub'
 
-    INTEGER :: lforcedr, lget_eind, LNL_RES, LOPT_LR, lrhoofr, lrnlsm, &
-      LRNLSM_2D, LSUMMAT, lsymvec, LV1OFRHO1, NSTATE
+    INTEGER :: lforcedr, lget_eind, LNL_RES, LOPT_LR, &
+      lsymvec, LV1OFRHO1, NSTATE
 
 ! ==--------------------------------------------------------------==
 
@@ -1499,12 +1495,9 @@ CONTAINS
             __LINE__,__FILE__)
        !vw this is buggus     call give_scr_forcedr (lforcedr,tag,nstate,.false.)
        lforcedr = 0!vw need to set that to something
-       CALL give_scr_rnlsm (lrnlsm, tag, nstate, .TRUE.)
        CALL give_scr_symvec (lsymvec, tag)
-       lcplsub = MAX (lforcedr, lrnlsm, lsymvec)
-       CALL give_scr_rhoofr (lrhoofr, tag)
+       lcplsub = MAX (lforcedr, lsymvec)
        CALL give_scr_v1ofrho1 (lv1ofrho1,tag)
-       CALL give_scr_rnlsm_2d (lrnlsm_2d, tag, nstate)
        CALL give_scr_nl_res (lnl_res, nstate, tag)
        CALL give_scr_opt_lr (lopt_lr, "PHONON", tag)
        IF (talldof) THEN
@@ -1512,13 +1505,8 @@ CONTAINS
        ELSE
           CALL give_scr_get_eind (lget_eind, tag)
        ENDIF
-       IF (lspin2%tlse) THEN
-          CALL give_scr_summat (lsummat, tag, nstate)
-       ELSE
-          lsummat = 0
-       ENDIF
-       lcplsub = MAX (lcplsub, lrhoofr, lrnlsm_2d, lnl_res, lopt_lr,&
-            LGET_EIND, LSUMMAT, LV1OFRHO1)
+       lcplsub = MAX (lcplsub, lnl_res, lopt_lr,&
+            LGET_EIND, LV1OFRHO1)
     ENDIF
     ! ==--------------------------------------------------------------==
     RETURN

@@ -230,7 +230,7 @@ CONTAINS
             WRITE(6,'(2x,a,16x,i6)')'NUMBER OF REQUESTED ITERATIONS ',&
             lancphon%nlan_st
        IF (paral%io_parent)&
-            WRITE(6,'(2x,a,12x,e10.4)') 'CONVERGENCE THRESHOLD ON'//&
+            WRITE(6,'(2x,a,12x,e11.4)') 'CONVERGENCE THRESHOLD ON'//&
             ' EIGENVECTORS ',eig2%conv_threshold
        IF (eig1%lanczos_dim-1.LT.lancphon%nlan_st) THEN
           IF (paral%io_parent)&

@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE fftchk_utils
   USE cp_cuda_types,                   ONLY: cp_cuda_env
   USE error_handling,                  ONLY: stopgm
@@ -36,7 +38,7 @@ CONTAINS
     fftchk = fftchk_essl(m,n)
 #elif defined(__HAS_FFT_HP)
     fftchk = fftchk_def(m,n)
-#elif defined(__HAS_FFT_FFTW3)
+#elif defined(_HAS_FFT_FFTW3)
     fftchk = fftchk_fftw(m,n)
 #else
     CALL stopgm("FFTCHK","TABLE OF ROOTS NOT AVAILABLE",&

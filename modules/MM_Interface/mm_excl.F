@@ -17,7 +17,7 @@
 !     ==  The MM atoms involved in exclusions are coupled to the QM   ==
 !     ==  system via the ESP COUPLING!!!!!                            ==
 !     ==--------------------------------------------------------------==
-!cmb - Revised on 25 October 2013
+!cmb - Revised on 14 March 2024
       use kinds, only: real_4, real_8, int_1, int_2, int_4, int_8
       use error_handling, only: stopgm
       use timer, only: tiset, tihalt
@@ -86,9 +86,6 @@ C local variables.
       ALLOCATE(q_partition_l(maxsys%nax,mmdim%NSPq))
 
 !$OMP parallel do private(i,j) __COLLAPSE2
-#ifdef __SR11000
-*poption parallel, tlocal(i,j)
-#endif
       DO j=1,nn_esp
         DO i=1,mmdim%NATq
           excl_esp(i,j)=.false.
@@ -356,16 +353,10 @@ cmb              vv_l=vv_l+qj/Rij_l
               vv_l=vv_l+mm_charge(ia,is)/DSQRT(Rijsq)
             ENDDO
 !$OMP parallel do private(it)
-#ifdef __SR11000
-*poption parallel, tlocal(it)
-#endif
             DO it=1,n_target
               q_mm_eff_loc(it)=q_mm_eff_loc(it)-vv_l*AAm1(it,iq)
             ENDDO
 !$OMP parallel do private(iq1)
-#ifdef __SR11000
-*poption parallel, tlocal(iq1)
-#endif
             DO iq1=1,mmdim%Natq
               phi(iq1)=phi(iq1)-vv_l*P(iq,iq1)
             ENDDO
@@ -450,9 +441,6 @@ cmb              vv_l=vv_l+qj/Rij_l
       if(long_range_esp .and. paral%io_parent)then
         e_lr_esp=0.d0
 !$OMP parallel do private(im) reduction(+:e_lr_esp)
-#ifdef __SR11000
-*poption parallel, tlocal(im), psum(e_lr_esp)
-#endif
         DO im=1,n_target
           e_lr_esp=e_lr_esp-target(im)*q_mm_eff_loc(im)
         ENDDO
@@ -498,9 +486,6 @@ cmb              vv_l=vv_l+qj/Rij_l
 ! exclusion
       if(NCe_l.gt.0)then
 !$OMP parallel do private(ie,iqe,ime,ft_x,ft_y,ft_z)
-#ifdef __SR11000
-*poption parallel, tlocal(ie,iqe,ime,ft_x,ft_y,ft_z)
-#endif
         DO ie=1,NCe_l
           iqe=atom_qm_Excl_l(ie)
           ime=atom_mm_excl_l(ie)
@@ -517,9 +502,6 @@ cmb              vv_l=vv_l+qj/Rij_l
 
         e_excl=0.d0
 !$OMP parallel do private(im) reduction(+:e_excl)
-#ifdef __SR11000
-*poption parallel, tlocal(im), psum(e_excl)
-#endif
         DO im=1,n_target
           e_excl=e_excl-target(im)*q_mm_eff_loc(im)
         ENDDO
@@ -570,9 +552,6 @@ cmb              vv_l=vv_l+qj/Rij_l
             ENDDO
           ENDDO
 !$OMP parallel do private(iaa,ia,is)
-#ifdef __SR11000
-*poption parallel, tlocal(iaa,ia,is)
-#endif
           DO iaa =1,nn_sr
             ia=nn_atom(iaa)
             is=nn_sp(iaa)
@@ -614,9 +593,6 @@ cmb              vv_l=vv_l+qj/Rij_l
         CALL azzero(F_QM,3*mmdim%NATq)
         CALL azzero(F_MM,3*nn_sr)
 !$OMP parallel do private(iq,im,ft,ft_x,ft_y,ft_z) __COLLAPSE2
-#ifdef __SR11000
-*poption parallel, tlocal(iq,im,ft,ft_x,ft_y,ft_z)
-#endif
         DO iq=1,mmdim%NATq
           DO im=1,nn_sr
             ft=res(im)*phi(iq)+q_esp(iq)*q_mm_eff(im)
@@ -652,9 +628,6 @@ cmb              vv_l=vv_l+qj/Rij_l
             ENDDO
           ENDDO 
 !$OMP parallel do private(iaa,ia,is)
-#ifdef __SR11000
-*poption parallel, tlocal(iaa,ia,is)
-#endif 
           DO iaa =1,nn_sr
             ia=nn_atom(iaa)
             is=nn_sp(iaa)

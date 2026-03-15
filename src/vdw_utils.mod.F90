@@ -3,12 +3,15 @@
 MODULE vdw_utils
   USE adat,                            ONLY: covrad
   USE cnst,                            ONLY: fbohr
+  USE distribution_utils,              ONLY: dist_entity2
   USE dftd3_driver,                    ONLY: dftd3
   USE error_handling,                  ONLY: stopgm
   USE fileopen_utils,                  ONLY: fileclose,&
                                              fileopen
   USE fileopenmod,                     ONLY: fo_def,&
                                              fo_old
+  USE gpu
+  USE gvec,                            ONLY: gvec_com
   USE ions,                            ONLY: ions0,&
                                              ions1
   USE kinds,                           ONLY: real_8
@@ -25,6 +28,7 @@ MODULE vdw_utils
                                              np_local,&
                                              np_low
   USE sort_utils,                      ONLY: sort2
+  USE spin,                            ONLY: spin_mod
   USE strs,                            ONLY: alpha,&
                                              beta
   USE system,                          ONLY: cntl,&
@@ -33,10 +37,11 @@ MODULE vdw_utils
                                              parm
   USE timer,                           ONLY: tihalt,&
                                              tiset
+  USE utils,                           ONLY: print_debug_ions
   USE vdwcmod,                         ONLY: &
        boadwf, icontfragw, icontfragwi, ifragdata, ifragw, iwfcref, natwfcx, &
        nfrags, nfragx, npt12, nwfcx, radfrag, rwann, rwfc, spr, swann, &
-       taufrag, tauref, twannupx, vdwi, vdwr, vdwwfi, vdwwfl, vdwwfr, wwfcref, &
+       taufrag, tauref, twannupx, vdwi,vdwl, vdwr, vdwwfi, vdwwfl, vdwwfr, wwfcref, &
        tdftd3
   USE wrgeo_utils,                     ONLY: wrgeof
   USE zeroing_utils,                   ONLY: zeroing
@@ -51,16 +56,147 @@ MODULE vdw_utils
   PUBLIC :: rwannier
 
 CONTAINS
-
+#ifdef _HAS_LIBGRIMMEVDW
   SUBROUTINE vdw(tau0,nvdw,idvdw,ivdw,jvdw,vdwst,vdwrm,vdwbe,&
        VDWEPS,S6GRIM,NXVDW,NYVDW,NZVDW,EVDW,FION,DEVDW)
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: tau0(:,:,:)
+    INTEGER                                  :: nvdw
+    INTEGER, ALLOCATABLE                     :: idvdw(:), ivdw(:), jvdw(:)
+    REAL(real_8), ALLOCATABLE                :: vdwst(:), vdwrm(:), vdwbe(:)
+    REAL(real_8)                             :: VDWEPS, S6GRIM
+    INTEGER                                  :: nxvdw, nyvdw, nzvdw
+    REAL(real_8), INTENT(OUT)                :: evdw
+    REAL(real_8), INTENT(INOUT) __CONTIGUOUS :: fion(:,:,:)
+    REAL(real_8), INTENT(OUT) __CONTIGUOUS   :: devdw(:)
+
+
+! ==--------------------------------------------------------------==
+     ! switch between the GRIMME lib and the old cpmd implementation
+    IF(vdwl%grimme) THEN
+       CALL vdw_grimme(tau0,evdw,fion,devdw)
+    ELSE
+         CALL vdw_cpmd(tau0,nvdw,idvdw,ivdw,jvdw,vdwst,vdwrm,vdwbe,&
+                       VDWEPS,S6GRIM,NXVDW,NYVDW,NZVDW,EVDW,FION,DEVDW)
+      ENDIF
+
+  END SUBROUTINE
+
+  SUBROUTINE vdw_grimme(tau0,evdw,fion,devdw)
+    REAL(real_8), INTENT(IN) __CONTIGUOUS    :: tau0(:,:,:)
+    REAL(real_8), INTENT(OUT)                :: evdw
+    REAL(real_8), INTENT(INOUT) __CONTIGUOUS :: fion(:,:,:)
+    REAL(real_8), INTENT(OUT) __CONTIGUOUS   :: devdw(:)
+! Local variables
+    INTEGER                                  :: ia,is,isa,iat2is(ions1%nat),isub,ierr,new_atom_positions
+    REAL(real_8)                             :: alat_dummy,avec(3,3),bvec(3,3)                                
+    REAL(real_8), ALLOCATABLE, SAVE          :: coorat(:,:),forces_d3(:,:)
+    REAL(real_8), SAVE                       :: stress_d3(3,3), evdw_save
+    CHARACTER(*),PARAMETER                   :: procedureN='VDW_GRIMME'
+!     ==--------------------------------------------------------------==
+    CALL tiset(procedureN,ISUB)
+!    ==--------------------------------------------------------------==
+    IF(.NOT.ALLOCATED(coorat))THEN
+       ALLOCATE(coorat(3,ions1%nat),STAT=ierr)
+       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate coorat',& 
+            __LINE__,__FILE__)
+       ALLOCATE(forces_d3(3,ions1%nat),STAT=ierr)
+       IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate forces_d3',& 
+            __LINE__,__FILE__)
+       coorat=0._real_8
+       forces_d3=0._real_8
+    END IF
+    ALAT_DUMMY=1.d0
+    AVEC(1:3,1)=parm%A1(1:3)
+    AVEC(1:3,2)=parm%A2(1:3)
+    AVEC(1:3,3)=parm%A3(1:3)
+    BVEC(1:3,1)=gvec_com%B1(1:3)/parm%ALAT
+    BVEC(1:3,2)=gvec_com%B2(1:3)/parm%ALAT
+    BVEC(1:3,3)=gvec_com%B3(1:3)/parm%ALAT
+!
+    IF(.NOT.ANY(COORAT(1:3,1).EQ.TAU0(1:3,IATPT(1,1),IATPT(2,1))))THEN
+       new_atom_positions=1
+    ELSE
+       new_atom_positions=0
+       !$omp parallel do private(ISA,IA,IS) reduction(+:new_atom_positions)
+       DO ISA=1, ions1%NAT
+          IA=IATPT(1,ISA)
+          IS=IATPT(2,ISA)
+          IF(.NOT.ANY(COORAT(1:3,ISA).EQ.TAU0(1:3,IA,IS)))THEN
+             new_atom_positions=1
+          END IF
+       END DO
+    END IF
+    IF(new_atom_positions.GT.0)THEN
+
+       !$omp parallel do private(ISA,IA,IS) 
+       DO ISA=1, ions1%NAT
+          IA=IATPT(1,ISA)
+          IS=IATPT(2,ISA)
+          COORAT(1:3,ISA)=TAU0(1:3,IA,IS)
+          IAT2IS(ISA) = IS
+       END DO
+       
+       CALL vdw_grimme_calc_energy_forces_stress(ALAT_DUMMY,AVEC,BVEC,1.0D0,ions1%nat,&
+            iat2is,coorat,evdw,forces_d3,stress_d3,parai%cp_me,parai%cp_nproc,&
+            parai%cp_grp,ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'error from vdw_grimme_calc_energy_forces_stress',&
+            __LINE__,__FILE__)
+       ! sum partial energies from workers
+       CALL mp_sum(evdw,parai%cp_grp)
+       IF(parai%cp_nogrp.GT.1) THEN
+          CALL mp_sum(forces_d3,3*ions1%nat,parai%cp_inter_grp)
+          CALL mp_sum(stress_d3,3*3,parai%cp_inter_grp)
+       ENDIF
+       EVDW_save=EVDW
+    ELSE
+       EVDW=EVDW_save
+    END IF
+    !
+!  Convert Rydberg to Hartree units:
+!
+    IF (paral%parent) THEN
+       EVDW=0.5D0*EVDW
+    ELSE
+       EVDW=0.0D0
+    END IF
+
+    !  Add FORCES_D3 to FION
+    !$OMP parallel do private(isa,ia,is)
+    DO ISA=1, ions1%NAT
+       IA=IATPT(1,ISA)
+       IS=IATPT(2,ISA)
+       FION(1,IA,IS)=FION(1,IA,IS)+0.5D0*FORCES_D3(1,ISA)
+       FION(2,IA,IS)=FION(2,IA,IS)+0.5D0*FORCES_D3(2,ISA)
+       FION(3,IA,IS)=FION(3,IA,IS)+0.5D0*FORCES_D3(3,ISA)
+    ENDDO
+!  Add STRESS_D3 to DEVDW
+    DEVDW(1)=-0.5D0*STRESS_D3(1,1)
+    DEVDW(2)=-0.5D0*STRESS_D3(1,2)
+    DEVDW(3)=-0.5D0*STRESS_D3(1,3)
+    DEVDW(4)=-0.5D0*STRESS_D3(2,2)
+    DEVDW(5)=-0.5D0*STRESS_D3(2,3)
+    DEVDW(6)=-0.5D0*STRESS_D3(3,3)
+         
+    IF(cntl%tverbosefor)THEN
+       CALL print_debug_ions('DEBUG FORCES '//procedureN, fion)
+    END IF
+    CALL tihalt(procedureN,isub)
+    RETURN
+  END SUBROUTINE
+
+  SUBROUTINE vdw_cpmd(tau0,nvdw,idvdw,ivdw,jvdw,vdwst,vdwrm,vdwbe,&
+       VDWEPS,S6GRIM,NXVDW,NYVDW,NZVDW,EVDW,FION,DEVDW)
+#else
+  SUBROUTINE vdw(tau0,nvdw,idvdw,ivdw,jvdw,vdwst,vdwrm,vdwbe,&
+       VDWEPS,S6GRIM,NXVDW,NYVDW,NZVDW,EVDW,FION,DEVDW)
+#endif
     ! ==--------------------------------------------------------------==
     ! ==                        COMPUTES                              ==
-    ! == THE EMPIRICAL VAN DER WAALS CORRECTION TO THE TOTAL ENERGY,  == 
+    ! == THE EMPIRICAL VAN DER WAALS CORRECTION TO THE TOTAL ENERGY,  ==
     ! == IONIC FORCE, AND STRESS TENSOR ACCORDING TO THE FORMUALTION  ==
     ! == OF R. LE SAR, J. PHYS. CHEM. 88, p. 4272 (1984)              ==
     ! ==               J. CHEM. PHYS. 86, p. 1485 (1987)              ==
-    ! == Modified as in:                                              == 
+    ! == Modified as in:                                              ==
     ! ==   M. Elstner et al. J. Chem. Phys. 114, p. 5149 (2001)       ==
     ! ==   or Grimme, J. Comput. Chem. 27, 1787, 2006 (IDVDW=3)       ==
     ! == Present release: Munich/Philadelphia/Tsukuba, 11 May 2010    ==
@@ -74,14 +210,15 @@ CONTAINS
     REAL(real_8)                             :: EVDW, fion(:,:,:), devdw(:)
 
     INTEGER                                  :: iv, jv, l, l_upper, m, &
-                                                m_upper, n, nx, ny, nz
+                                                m_upper, n, nx, ny, nz,isub
     REAL(real_8)                             :: aexp, ffac, &
                                                 reps = 1.0e-2_real_8, rexp, &
                                                 rfac, rlm1, rlm2, rlm6, &
                                                 rlp(3), rphi, rpow, xlm, ylm, &
                                                 zlm, xlm_, ylm_, zlm_
-
-! ==--------------------------------------------------------------==
+    CHARACTER(*),PARAMETER                   :: procedureN='VDW'
+!     ==--------------------------------------------------------------==
+    CALL tiset(procedureN,ISUB)
 
     evdw=0.0_real_8
     CALL zeroing(devdw)!,6)
@@ -189,9 +326,10 @@ CONTAINS
           ENDDO
        ENDIF
     ENDIF
+    CALL tihalt(procedureN,isub)
     ! ==================================================================
     RETURN
-  END SUBROUTINE vdw
+  END SUBROUTINE
   ! ==================================================================
   ! ==     Next part = Wannier Functions/Centers Stuff for vdW      ==
   ! ==================================================================
@@ -220,7 +358,7 @@ CONTAINS
       dxmax, dxnorm, efac, ffac, reps = 1.0_real_8, rlp(3), seffi, seffi3, &
       seffi32, seffj, seffj3, seffj32, si3, si3d2, sj3, temp1, temp2, temp3, &
       veff1, vol1, voleffwan, vtot1, xlm, ylm, zlm, xlm_, ylm_, zlm_
-    REAL(real_8), ALLOCATABLE                :: fionwf(:,:,:), fove(:)
+    REAL(real_8), ALLOCATABLE                :: fionwf(:,:,:), fove(:), fove_lsd(:,:)
     REAL(real_8), ALLOCATABLE, SAVE          :: c6all(:,:,:)
 
 ! ==--------------------------------------------------------------==
@@ -350,20 +488,47 @@ CONTAINS
     ELSE IF (vdwwfi%iswitchvdw.EQ.1) THEN
        ! vdw-WF
        IF (vdwwfl%twannup) THEN
+          ! Compute intrafragment overlap for lsd
+          ALLOCATE(fove_lsd(nwfcx,nfragx),STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
+               __LINE__,__FILE__)
+          fove_lsd(:,:)=1._real_8
+          IF(cntl%tlsd) THEN
+             DO icfr=1,nfrags(ipx)      ! scan all fragments
+                i1=icontfragw(icfr,ipx) ! fragment centers
+             !  veff1=0.0_real_8
+             !  vtot1=0.0_real_8
+                DO ib=1,i1
+                   CALL volwan_lsd(rwfc(1,1,icfr,ipx),spr(1,icfr,ipx),i1,ib,ifragw(1,icfr,ipx), &
+                        voleffwan,vol1)
+                !  veff1=veff1+voleffwan
+                !  vtot1=vtot1+vol1
+                   fove_lsd(ib,icfr)=(voleffwan/vol1)**(1._real_8/3._real_8)
+                ENDDO
+             !  fove(icfr)=(veff1/vtot1)**(1._real_8/3._real_8)
+             ENDDO
+          ENDIF
           c6fac=0.5_real_8*SQRT(REAL(vdwwfi%nelpwf,kind=real_8))/(3._real_8**1.25_real_8)
           DO icfr=1,nfrags(ipx)
              DO jcfr=icfr,nfrags(ipx)
                 DO l=1,icontfragw(icfr,ipx)
                    DO m=1,icontfragw(jcfr,ipx)
-                      si3=spr(l,icfr,ipx)*spr(l,icfr,ipx)*spr(l,icfr,ipx)
-                      sj3=spr(m,jcfr,ipx)*spr(m,jcfr,ipx)*spr(m,jcfr,ipx)
+                   !  si3=spr(l,icfr,ipx)*spr(l,icfr,ipx)*spr(l,icfr,ipx)
+                   !  sj3=spr(m,jcfr,ipx)*spr(m,jcfr,ipx)*spr(m,jcfr,ipx)
+                      seffi=spr(l,icfr,ipx)*fove_lsd(l,icfr)
+                      seffj=spr(m,jcfr,ipx)*fove_lsd(m,jcfr)
+                      si3=seffi*seffi*seffi
+                      sj3=seffj*seffj*seffj
                       si3d2=SQRT(si3)
-                      c6=c6fac*si3d2*sj3*doubles(spr(l,icfr,ipx),spr(m,jcfr,ipx))
+                      c6=c6fac*si3d2*sj3*doubles(spr(l,icfr,ipx),spr(m,jcfr,ipx),fove_lsd(l,icfr),fove_lsd(m,jcfr))
                       c6all(ifragw(m,jcfr,ipx),ifragw(l,icfr,ipx),ipx)=c6
                    ENDDO
                 ENDDO
              ENDDO
           ENDDO
+          DEALLOCATE(fove_lsd,STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+               __LINE__,__FILE__)
        ELSE
           ! Keep using already computed C6ALL
        ENDIF
@@ -521,11 +686,11 @@ CONTAINS
     IF (dxmax.GT.vdwwfr%tolwann) vdwwfl%twannup=.TRUE.
     IF (paral%io_parent.AND.vdwwfl%tpinfo) THEN
        IF (vdwwfl%twannup) THEN
-          WRITE(6,'(/,T3,A,E9.3,A,E9.3,A,/)')&
+          WRITE(6,'(/,T3,A,E10.3,A,E10.3,A,/)')&
                'DXMAX= ',dxmax,' DXNORM= ',dxnorm,&
                '; RECOMPUTE WANNIER FUNCTIONS'
        ELSE
-          WRITE(6,'(/,T3,A,E9.3,A,E9.3,A,/)')&
+          WRITE(6,'(/,T3,A,E10.3,A,E10.3,A,/)')&
                'DXMAX= ',dxmax,' DXNORM= ',dxnorm,&
                '; EXTRAPOLATE WANNIER CENTERS'
        ENDIF
@@ -596,6 +761,7 @@ CONTAINS
        ELSEIF (iswitchvdw.EQ.2) THEN
           rS=1.309_real_8*(s1+s2)
        ENDIF
+       rS=rS*vdwwfr%rs_scfac
        es=EXP(-a*(r/rS-1._real_8))
        fdamp=1._real_8/(1._real_8+es)
        facpar=-6._real_8+a*r/rS*fdamp*es
@@ -665,6 +831,7 @@ CONTAINS
        ELSE IF (iswitchvdw.EQ.2) THEN
           rS=1.309_real_8*(s1+s2)
        ENDIF
+       rS=rS*vdwwfr%rs_scfac
        es=EXP(-a*(r/rS-1._real_8))
        pot59=1._real_8/(1._real_8+es)
     ELSE
@@ -697,7 +864,7 @@ CONTAINS
     RETURN
   END FUNCTION pot59
   ! ==================================================================
-  FUNCTION doubles(si,sj)
+  FUNCTION doubles(si,sj,swi,swj)
     ! ==--------------------------------------------------------------==
     ! == This routine gives an estimate of the C6 Van der Waals
     ! == coefficient using the information relative to the
@@ -707,7 +874,7 @@ CONTAINS
     ! == by using spherical coordinates and thus reducing to a
     ! == 2-D integral, which is evaluated by Simpson method.
     ! ==--------------------------------------------------------------==
-    REAL(real_8)                             :: si, sj, doubles
+    REAL(real_8)                             :: si, sj, swi, swj, doubles
 
     INTEGER, PARAMETER                       :: npoints = 51
 
@@ -726,7 +893,8 @@ CONTAINS
     ! 
     frac43=4._real_8/3._real_8
     frac23=2._real_8/3._real_8
-    beta=(si/sj)**1.5_real_8
+  ! beta=(si/sj)**1.5_real_8
+    beta=((si*swi)/(sj*swj))**1.5_real_8
     a=1._real_8/beta
     hi=xc/REAL(npoints-1,kind=real_8)
     hj=yc/REAL(npoints-1,kind=real_8)
@@ -893,6 +1061,107 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE volwan
+  ! ==================================================================
+  SUBROUTINE volwan_lsd(rw,sw,i1,iin,iw,volume,volume_s)
+    ! ==--------------------------------------------------------------==
+    ! == I1  = number of centers in the fragment with rw and sw       ==
+    ! == IIN = center number for overlap calculation                  ==
+    ! ==--------------------------------------------------------------==
+    REAL(real_8)                             :: rw(3,*), sw(*)
+    INTEGER                                  :: i1, iin, iw(*)
+    REAL(real_8)                             :: volume, volume_s
+
+    INTEGER, PARAMETER                       :: npoints = 51
+
+    INTEGER                                  :: imax, inters, la, nx, ny, nz, &
+                                                inters_s
+    REAL(real_8)                             :: dens, difac, distn, distp, &
+                                                dmax, dmez, dv, dx, dxmez, &
+                                                ff, r(3), rwr(3,i1), s12, &
+                                                swr(i1), wt1, &
+                                                rwr_s(3,i1), swr_s(i1)
+
+
+! ==--------------------------------------------------------------==
+! Inters contains information on intersections
+
+    inters=0; inters_s=0
+    ! Scan fragments to find overlap with iin and copy in reduced vectors
+    DO la=1,i1
+       IF (iin.NE.la) THEN
+          s12=sw(iin)+sw(la)     ! sum the spreads
+          distn=dist_pbc(rw(:,iin),rw(:,la),.TRUE.)! iin-la distance
+          IF (distn.LT.s12) THEN  ! intersection -> save neighbors
+             ! charge
+             inters=inters+1    ! intersection number
+             rwr(1,inters)=rw(1,la)! spread & coord of intersecting guys
+             rwr(2,inters)=rw(2,la)
+             rwr(3,inters)=rw(3,la)
+             swr(inters)=sw(la)
+             ! spin
+             IF ((iw(iin)<=spin_mod%nsup.AND.iw(la)<=spin_mod%nsup).OR.&
+                 (iw(iin)>=spin_mod%nsup+1.AND.iw(la)>=spin_mod%nsup+1)) THEN
+                inters_s=inters_s+1
+                rwr_s(1,inters_s)=rw(1,la)! spread & coord of intersecting guys
+                rwr_s(2,inters_s)=rw(2,la)
+                rwr_s(3,inters_s)=rw(3,la)
+                swr_s(inters_s)=sw(la)
+             ENDIF
+          ENDIF
+       ENDIF
+    ENDDO
+    ! Integral
+    dmez=sw(iin)      ! cube having side=2*spread centered in rwfc1
+    dmax=dmez*2.0_real_8
+    dx=dmax/REAL(npoints,kind=real_8)
+    dxmez=dx*0.5_real_8    ! half lattice size
+    dv=dx*dx*dx
+    !
+    volume=0.0_real_8
+    volume_s=0.0_real_8
+    CALL set_ptdist(npoints,1,parai%nproc,imax)
+    !$omp parallel do private(NX,NY,NZ,LA,R,DISTN,DENS,DIFAC,DISTP &
+    !$omp  ,WT1,FF) reduction(+:VOLUME,VOLUME_S)
+    !   DO nx=1,npoints
+    DO nx=npt12(parai%mepos,1),npt12(parai%mepos,2)
+       r(1)=REAL(nx-1,kind=real_8)*dx-dmez+dxmez+rw(1,iin)
+       DO ny=1,npoints
+          r(2)=REAL(ny-1,kind=real_8)*dx-dmez+dxmez+rw(2,iin)
+          DO nz=1,npoints
+             r(3)=REAL(nz-1,kind=real_8)*dx-dmez+dxmez+rw(3,iin)
+             distn=dist_pbc(rw(:,iin),r(:),.TRUE.)! distance iin-r
+             dens=EXP(-2.0_real_8*SQRT(3._real_8)*distn/dmez)
+             IF (distn.LE.vdwwfr%tolref*dmez) THEN! inside the volume wan-iin
+                ! charge
+                difac=1.0_real_8       ! weight=1 if no overlap
+                ! Account only of centers having intersection with the center under consideration
+                DO la=1,inters    ! overlap re-weighting
+                   distp=dist_pbc(rwr(:,la),r(:),.TRUE.)! distance from r
+                   IF (distp.LE.vdwwfr%tolref*swr(la)) difac=difac+1.0_real_8
+                ENDDO
+                wt1=1.0_real_8/REAL(difac,kind=real_8)! weight the volume divided among fragments
+                ! c              FF=DENS*DISTN*DISTN*DISTN !additional weight tkatchenko-overlap
+                ff=1.0_real_8
+                volume=volume+wt1*dv*ff
+                ! spin
+                difac=1.0_real_8       ! weight=1 if no overlap
+                DO la=1,inters_s
+                   distp=dist_pbc(rwr_s(:,la),r(:),.TRUE.)! distance from r
+                   IF (distp.LE.vdwwfr%tolref*swr_s(la)) difac=difac+1.0_real_8
+                ENDDO
+                wt1=1.0_real_8/REAL(difac,kind=real_8)! weight the volume divided among fragments
+                ! c              FF=DENS*DISTN*DISTN*DISTN !additional weight tkatchenko-overlap
+                ff=1.0_real_8
+                volume_s=volume_s+wt1*dv*ff
+             ENDIF
+          ENDDO
+       ENDDO
+    ENDDO
+    CALL mp_sum(volume,parai%allgrp)
+    CALL mp_sum(volume_s,parai%allgrp)
+    ! ==--------------------------------------------------------------==
+    RETURN
+  END SUBROUTINE volwan_lsd
   ! ==================================================================
   SUBROUTINE fragment_zlevel(nstate,rwann,swann,tauref,icontfragw,&
        icontfragwi,iwfcref,ifragw,wwfcref,rwfc,spr,taufrag)
@@ -1510,34 +1779,8 @@ CONTAINS
     INTEGER                                  :: nstate, nblock, my_nproc, &
                                                 nbmax
 
-    INTEGER                                  :: ip, nx
-    REAL(real_8)                             :: xsaim, xsnow, xstates
-
 ! ==--------------------------------------------------------------==
-
-    nbmax=0
-    xstates=REAL(nblock,kind=real_8)
-    IF ((xstates*my_nproc).LT.nstate) THEN
-       xstates=REAL(nstate,kind=real_8)/REAL(my_nproc,kind=real_8)
-    ENDIF
-    xsnow=0.0_real_8
-    xsaim=0.0_real_8
-    DO ip=1,my_nproc
-       xsaim = xsnow + xstates
-       npt12(ip-1,1)=NINT(xsnow)+1
-       npt12(ip-1,2)=NINT(xsaim)
-       IF (NINT(xsaim).GT.nstate) THEN
-          npt12(ip-1,2)=nstate
-       ENDIF
-       IF (NINT(xsnow).GT.nstate) THEN
-          npt12(ip-1,1)=nstate+1
-       ENDIF
-       xsnow = xsaim
-    ENDDO
-    DO ip=0,my_nproc-1
-       nx=npt12(ip,2)-npt12(ip,1)+1
-       nbmax=MAX(nbmax,nx)
-    ENDDO
+    CALL dist_entity2(nstate,my_nproc,npt12,nblock=nblock,nbmax=nbmax,fw=.TRUE.)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE set_ptdist

@@ -135,9 +135,6 @@ CONTAINS
                 ENDDO
              ELSE
                 ! Gamma point
-#ifdef __SR8000
-                !poption parallel, tlocal(IG,KK,TW,DW,AUX1,AUX2)
-#endif 
                 !$omp parallel do private(IG,KK,TW,DW,AUX1,AUX2)
                 DO ig=ig1,ncpw%ngw
                    tw=curv2(hg(ig),nsplpo,ggng(1),twns(1,1,iv,is),&

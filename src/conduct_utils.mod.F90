@@ -150,9 +150,6 @@ CONTAINS
                    csumy=zzero
                    csumz=zzero
                    ! mb-> first G > 0 with the k-points
-#ifdef __SR8000
-                   !poption parallel
-#endif
                    !$omp parallel do private(IG,CAUX) reduction(+:CSUMX,CSUMY,CSUMZ)
                    DO ig=1,ncpw%ngw
                       caux=CONJG(c0(ig,i,ik))*c0(ig,j,ik)
@@ -161,9 +158,6 @@ CONTAINS
                       csumz=csumz+(rk(3,ik)+gk(3,ig))*caux
                    ENDDO
                    ! mb-> then G < 0 with the k-points
-#ifdef __SR8000
-                   !poption parallel
-#endif
                    !$omp parallel do private(IG,CAUX) reduction(+:CSUMX,CSUMY,CSUMZ)
                    DO ig=1,ncpw%ngw
                       caux=CONJG(c0(ig+ncpw%ngw,i,ik))*c0(ig+ncpw%ngw,j,ik)
@@ -192,9 +186,6 @@ CONTAINS
                    sumy=0._real_8
                    sumz=0._real_8
                    ! mb->  Sum_{G} <c(j)|G|c(i)> = 2 * Sum_{G>0} G Im{<c(j)|c(i)>} at Gamma
-#ifdef __SR8000
-                   !poption parallel
-#endif
                    !$omp parallel do private(IG,AIAUX) reduction(+:SUMX,SUMY,SUMZ)
                    DO ig=1,ncpw%ngw
                       aiaux=AIMAG(CONJG(c0(ig,i,ik))*c0(ig,j,ik))

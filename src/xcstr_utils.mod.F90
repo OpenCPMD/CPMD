@@ -80,9 +80,6 @@ SUBROUTINE xcstr(drhovg,rhoe,v,vgc)
   DO kk=1,6,2
      CALL zeroing(v)!,nnr1*nlsd)
      !CDIR NODEP
-#ifdef __SR8000
-     !poption parallel, tlocal(IG)
-#endif 
      DO ig=1,ncpw%nhg
         v(nzh(ig),1)  = drhovg(ig,kk) + uimag*drhovg(ig,kk+1)
         v(indz(ig),1) = CONJG(drhovg(ig,kk)) + uimag*CONJG(drhovg(ig,kk+1))

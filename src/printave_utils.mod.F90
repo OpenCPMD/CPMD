@@ -108,7 +108,7 @@ CONTAINS
             WRITE(6,'(A,2X,F12.6,9X,G16.6)') ' RESTRAINTS ENERGY        ',&
             acc(21)*anor,SQRT(ac10)
        IF (paral%io_parent)&
-            WRITE(6,'(A,2X,G12.6,9X,G16.6)') ' ION DISPLACEMENT         ',&
+            WRITE(6,'(A,2X,G13.6,9X,G16.6)') ' ION DISPLACEMENT         ',&
             acc(9)*anor,SQRT(ac9)
        IF (paral%io_parent)&
             WRITE(6,'(A,2X,F12.4,9X,G16.6)') ' CPU TIME                 ',&
@@ -179,7 +179,7 @@ CONTAINS
        IF (paral%io_parent)&
             WRITE(6,'(24X,A,A)') '   MEAN VALUE <x>   DEVIATION <x^2>-<x>^2'
        IF (paral%io_parent)&
-            WRITE(6,'(A,2X,G12.6,9X,G16.6)') ' ELECTRON KINETIC ENERGY  ',&
+            WRITE(6,'(A,2X,G13.6,9X,G16.6)') ' ELECTRON KINETIC ENERGY  ',&
             acc(1)*anor,SQRT(ac1)
        IF (paral%io_parent)&
             WRITE(6,'(A,2X,F12.2,9X,G16.6)') ' IONIC TEMPERATURE        ',&
@@ -203,10 +203,10 @@ CONTAINS
             WRITE(6,'(A,2X,F12.6,9X,G16.6)') ' NOSE ENERGY IONS         ',&
             acc(11)*anor,SQRT(ac11)
        IF (paral%io_parent)&
-            WRITE(6,'(A,2X,G12.6,9X,G16.6)') ' ION DISPLACEMENT         ',&
+            WRITE(6,'(A,2X,G13.6,9X,G16.6)') ' ION DISPLACEMENT         ',&
             acc(6)*anor,SQRT(ac6)
        IF (paral%io_parent)&
-            WRITE(6,'(A,2X,G12.6,9X,G16.6)') ' CELL VOLUME              ',&
+            WRITE(6,'(A,2X,G13.6,9X,G16.6)') ' CELL VOLUME              ',&
             acc(9)*anor,SQRT(ac9)
        IF (paral%io_parent)&
             WRITE(6,'(A,2X,F12.4,9X,G16.6)') ' CPU TIME                 ',&
@@ -298,7 +298,7 @@ CONTAINS
             WRITE(6,'(A,2X,F12.6,9X,G16.6)') ' BOGOLIUBOV CORRECTION    ',&
             acc(7)*anor,SQRT(ac7)
        IF (paral%io_parent)&
-            WRITE(6,'(A,2X,G12.6,9X,G16.6)') ' ION DISPLACEMENT         ',&
+            WRITE(6,'(A,2X,G13.6,9X,G16.6)') ' ION DISPLACEMENT         ',&
             acc(8)*anor,SQRT(ac8)
        IF (paral%io_parent)&
             WRITE(6,'(A,2X,F12.4,9X,G16.6)') ' CPU TIME                 ',&
@@ -379,7 +379,7 @@ CONTAINS
             WRITE(6,'(24X,A,A)')&
             '             <x>     [<x^2>-<x>^2]**(1/2)'
        IF (paral%io_parent)&
-            WRITE(6,'(A,2X,G12.6,9X,G16.6)') ' ELECTRON KINETIC ENERGY  ',&
+            WRITE(6,'(A,2X,G13.6,9X,G16.6)') ' ELECTRON KINETIC ENERGY  ',&
             accus(13)*anor,SQRT(ABS(ac3))
        IF (paral%io_parent)&
             WRITE(6,'(A,2X,F12.2,9X,F16.2)') ' IONIC TEMPERATURE        ',&
@@ -403,7 +403,7 @@ CONTAINS
             WRITE(6,'(A,2X,F12.6,9X,G16.6)') ' CONSERVED ENERGY         ',&
             accus(16)*anor,SQRT(ABS(ac6))
        IF (paral%io_parent)&
-            WRITE(6,'(A,2X,G12.6,9X,G16.6)') ' ION DISPLACEMENT         ',&
+            WRITE(6,'(A,2X,G13.6,9X,G16.6)') ' ION DISPLACEMENT         ',&
             accus(9)*anor,SQRT(ABS(ac9))
        IF (paral%io_parent)&
             WRITE(6,'(A,2X,F12.4,9X,G16.6)') ' CPU TIME                 ',&
@@ -490,7 +490,7 @@ CONTAINS
             WRITE(6,'(24X,A,A)')&
             '             <x>     [<x^2>-<x>^2]**(1/2)'
        IF (paral%io_parent)&
-            WRITE(6,'(A,2X,G12.6,9X,G16.6)') ' ELECTRON KINETIC ENERGY  ',&
+            WRITE(6,'(A,2X,G13.6,9X,G16.6)') ' ELECTRON KINETIC ENERGY  ',&
             accus(13)*anor,SQRT(ABS(ac3))
        IF (paral%io_parent)&
             WRITE(6,'(A,2X,F12.2,9X,F16.2)') ' IONIC TEMPERATURE        ',&
@@ -517,10 +517,10 @@ CONTAINS
             WRITE(6,'(A,2X,F12.6,9X,G16.6)') ' CONSERVED ENERGY         ',&
             accus(16)*anor,SQRT(ABS(ac6))
        IF (paral%io_parent)&
-            WRITE(6,'(A,2X,G12.6,9X,G16.6)') ' ION DISPLACEMENT         ',&
+            WRITE(6,'(A,2X,G13.6,9X,G16.6)') ' ION DISPLACEMENT         ',&
             accus(9)*anor,SQRT(ABS(ac9))
        IF (paral%io_parent)&
-            WRITE(6,'(A,2X,G12.6,9X,G16.6)') ' CELL VOLUME              ',&
+            WRITE(6,'(A,2X,G13.6,9X,G16.6)') ' CELL VOLUME              ',&
             accus(20)*anor,SQRT(ABS(ac11))
        IF (paral%io_parent)&
             WRITE(6,'(A,2X,F12.4,9X,G16.6)') ' CPU TIME                 ',&

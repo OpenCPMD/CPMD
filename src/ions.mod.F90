@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE ions
   USE kinds,                           ONLY: real_8
   USE system,                          ONLY: maxsp
@@ -36,6 +38,9 @@ MODULE ions
      INTEGER :: nsanl
   END TYPE ions1_t
   TYPE(ions1_t) :: ions1
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  !$omp declare target(ions0,ions1)
+#endif
   ! ==================================================================
   ! == For finite difference: option only for some atoms            ==
   ! == IF TREF_FDIFF == TRUE.:                                      ==

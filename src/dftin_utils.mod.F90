@@ -1,8 +1,3 @@
-#ifdef __SR8000
-!option MP(P(0)), LANGLVL(SAVE(0))
-#endif
-! ==================================================================
-
 MODULE dftin_utils
   USE cp_gga_correlation_utils,        ONLY: cp_gga_c_param
   USE cp_gga_exchange_utils,           ONLY: cp_gga_x_param
@@ -61,6 +56,9 @@ MODULE dftin_utils
   USE wann,                            ONLY: wannl
   USE zeroing_utils,                   ONLY: zeroing
   USE mts_utils,                       ONLY: mts
+  !
+  USE ace_hfx,                         ONLY: HFX_SCDM_STATUS, NEW_SCDM, &
+                                             SCDM_CUTOFF, de_cutoff, n_loop  !SM
 
 #include "sizeof.h"
 
@@ -283,6 +281,14 @@ CONTAINS
        tabx%narray=0
        tabx%rmaxxc=2.0_real_8
        tabx%rmaxbx=100.0_real_8
+       !
+!----------------------------------------------------------
+       HFX_SCDM_STATUS=.FALSE. !SM
+       NEW_SCDM=.FALSE. !SM
+       SCDM_CUTOFF=1.0e-8_real_8
+       de_cutoff=1.0e-8_real_8
+       n_loop = 1
+!----------------------------------------------------------
        !
        need_dft = .true.
        ! dft section is not always needed with the MTS scheme
@@ -662,6 +668,20 @@ CONTAINS
                    hfxc5%hfx_distribution=hfx_dist_dynamic
                 ENDIF
                 !
+!------------------------------------------------------------------------
+!            SM
+             ELSEIF (keyword_contains(line,'HFX_SCDM')) THEN
+                READ(iunit,*,iostat=ierr) SCDM_CUTOFF !, de_cutoff, n_loop
+                IF (ierr /= 0) THEN
+                   error_message        = 'COULD NOT READ SCDM_CUTOFF / DE_CUTOFF/ n_loop'
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+                HFX_SCDM_STATUS=.true.
+!------------------------------------------------------------------------
+             ELSEIF (keyword_contains(line,'HFX_NEW_SCDM')) THEN
+                NEW_SCDM = .true.
+!------------------------------------------------------------------------
                 ! Combined range separation GGA & HFX
              ELSEIF(keyword_contains(line,'RANGE',and='SEPARATION') .OR. &
                     keyword_contains(line,'CAM',alias='ATTENUATION',but_not='SCREENED')) THEN
@@ -830,6 +850,7 @@ CONTAINS
                 ENDIF
              ELSEIF (keyword_contains(line,'PHFX')) THEN
                 ! ..For controlling only the amount of Hartree exchange
+                ! WARNING: PHFX is incompatible with XC_DRIVER. Use NEWCODE instead.
                 cp_xc_functional_env%overwrite_hfx = .TRUE.
                 cp_xc_functional_env%get_hfx       = .TRUE.
                 READ(iunit,*, iostat=ierr) cp_xc_functional_env%hfx_constant
@@ -2204,6 +2225,20 @@ __LINE__,__FILE__)
              WRITE(output_unit,'(1X,A)') '                J. Phys. Chem. Lett., 2018, 9 (14), pp 3886–3890'
              WRITE(output_unit,'(1X,A)') '                                DOI: 10.1021/acs.jpclett.8b01620'
           ENDIF
+          !
+!-------------------------------------------------------------------------------
+!         SM
+          IF(HFX_SCDM_STATUS)THEN
+            WRITE(output_unit,'(A)')'!===============================================================!'
+            WRITE(output_unit,'(A)') '!                     HFX WITH SCDM APPROACH                    !'
+            WRITE(output_unit,'(A)') '!                        SAGARMOY MANDAL                        !'
+            WRITE(output_unit,'(A)') '!                     IIT KANPUR, INDIA(2019)                   !'
+            WRITE(output_unit,'(A)')'!===============================================================!'
+            WRITE(output_unit,'(A,T65,L1)') ' USE NEW HFX SCDM ', NEW_SCDM
+            WRITE(output_unit,'(A)')'!===============================================================!'
+          ENDIF
+!-------------------------------------------------------------------------------
+          !
        ENDIF
 
     END SUBROUTINE hfx_report
@@ -2604,7 +2639,14 @@ __LINE__,__FILE__)
             parai%io_source,parai%cp_grp)
        CALL mp_bcast_byte(cp_gga_x_param, size_in_bytes_of(cp_gga_x_param),parai%io_source,parai%cp_grp)
        CALL mp_bcast_byte(cp_gga_c_param, size_in_bytes_of(cp_gga_c_param),parai%io_source,parai%cp_grp)
-
+       !
+       ! SM
+       CALL mp_bcast(HFX_SCDM_STATUS,parai%io_source,parai%cp_grp)
+       CALL mp_bcast(NEW_SCDM,parai%io_source,parai%cp_grp)
+       CALL mp_bcast_byte(SCDM_CUTOFF,size_in_bytes_of(SCDM_CUTOFF),parai%io_source,parai%cp_grp)
+       CALL mp_bcast_byte(DE_CUTOFF,size_in_bytes_of(DE_CUTOFF),parai%io_source,parai%cp_grp)
+       CALL mp_bcast_byte(n_loop,size_in_bytes_of(n_loop),parai%io_source,parai%cp_grp)
+       !
     END SUBROUTINE broadcast_dftin
     ! ==--------------------------------------------------------------==
   END SUBROUTINE dftin

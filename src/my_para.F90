@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 SUBROUTINE mp_bcast_byte(DATA,n,root,comm)
   ! ==--------------------------------------------------------------==
   ! == Wrapper to mpi_bcast                                         ==
@@ -6,20 +8,39 @@ SUBROUTINE mp_bcast_byte(DATA,n,root,comm)
   USE error_handling, ONLY: stopgm
   USE timer, ONLY: tiset, tihalt
   USE mp_interface, ONLY: mp_mpi_error_assert
+  USE pstat
+  USE machine, ONLY: m_walltime
 #ifdef __PARALLEL
-  USE mpi
+  USE mpi_f08
 #endif
   IMPLICIT NONE
   ! Arguments
   INTEGER :: DATA(*)
-  INTEGER :: n,root,comm
+  INTEGER :: n,root
+#ifdef __PARALLEL
+  type(MPI_COMM) :: comm
+#else
+  INTEGER :: comm
+#endif
   ! Variables
   INTEGER :: ierr
   CHARACTER(*),PARAMETER :: procedureN='mp_bcast_byte'
 #ifdef __PARALLEL
+  INTEGER,SAVE :: size
+  LOGICAL :: first=.true.
+  REAL(real_8) :: tim1,tim2
   ! ==--------------------------------------------------------------==
+  IF(first)THEN
+    CALL mpi_type_size(mpi_byte,size,ierr)
+    first=.FALSE.
+  END IF
+  cmcal(ipar_cast)=cmcal(ipar_cast)+1.0d0
+  cmlen(ipar_cast)=cmlen(ipar_cast)+n*size
+  tim1=m_walltime()
   CALL mpi_bcast(DATA,n,mpi_byte,root,comm,ierr)
   CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+  tim2=m_walltime()
+  cmtim(ipar_cast)=cmtim(ipar_cast)+tim2-tim1
 #endif
   ! ==--------------------------------------------------------------==
   RETURN
@@ -32,7 +53,7 @@ SUBROUTINE my_stopall(code)
   ! ==--------------------------------------------------------------==
   USE mp_interface, ONLY: mp_comm_world
 #ifdef __PARALLEL
-  USE mpi
+  USE mpi_f08
 #endif
   IMPLICIT NONE
   ! Arguments
@@ -64,19 +85,40 @@ SUBROUTINE my_concat(outmsg,inmsg,blklen,gid)
   USE mp_interface, ONLY: mp_mpi_error_assert
   USE utils, ONLY : icopy
 #ifdef __PARALLEL
-  USE mpi
+  USE mpi_f08
+  USE pstat
+  USE machine, ONLY: m_walltime
 #endif
   IMPLICIT NONE
   ! Arguments
-  INTEGER :: outmsg(*),inmsg(*),blklen,gid
+  INTEGER :: outmsg(*),inmsg(*),blklen
+#ifdef __PARALLEL
+  type(MPI_COMM) :: gid
+#else
+  INTEGER :: gid
+#endif
   CHARACTER(*),PARAMETER::procedureN='my_concat'
 #ifdef __PARALLEL
   ! Variables
-  INTEGER :: ierr
+  INTEGER,SAVE :: size
+  LOGICAL :: first=.true.
+  INTEGER :: ierr,nnodes
+  REAL(real_8) :: tim1,tim2
+  ! ==--------------------------------------------------------------==
+  IF(first)THEN
+    CALL mpi_type_size(mpi_double_precision,size,ierr)
+    first=.FALSE.
+  END IF
+  CALL mpi_comm_size ( gid, nnodes, ierr )
+  cmcal(ipar_agav)=cmcal(ipar_agav)+1.0d0
+  cmlen(ipar_agav)=cmlen(ipar_agav)+nnodes*size*blklen
+  tim1=m_walltime()
   ! ==--------------------------------------------------------------==
   CALL mpi_allgather(outmsg,blklen,mpi_byte,inmsg,blklen,&
        mpi_byte,gid,ierr)
   CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+  tim2=m_walltime()
+  cmtim(ipar_agav)=cmtim(ipar_agav)+tim2-tim1
 #else
   ! Variables
   INTEGER :: len
@@ -88,7 +130,146 @@ SUBROUTINE my_concat(outmsg,inmsg,blklen,gid)
   RETURN
 END SUBROUTINE my_concat
 ! ==================================================================
+SUBROUTINE my_concat_inplace(inmsg,blklen,gid)
+  ! ==--------------------------------------------------------------==
+  ! == Concat all OUTMSG from GID group_ processor into INMSG        ==
+  ! ==--------------------------------------------------------------==
+  USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8
+  USE error_handling, ONLY: stopgm
+  USE gpu
+  USE timer, ONLY: tiset, tihalt
+  USE mp_interface, ONLY: mp_mpi_error_assert
+  USE utils, ONLY : icopy
+#ifdef __PARALLEL
+  USE mpi_f08
+  USE pstat
+  USE machine, ONLY: m_walltime
+#endif
+  IMPLICIT NONE
+  ! Arguments
+  REAL(real_8) :: inmsg(*)
+#ifdef __PARALLEL
+  integer :: blklen
+  type(MPI_COMM) :: gid
+#else
+  integer :: blklen,gid
+#endif
+  CHARACTER(*),PARAMETER::procedureN='my_concat'
+#ifdef __PARALLEL
+  ! Variables
+  INTEGER :: ierr,nnodes
+  INTEGER,SAVE :: size
+  LOGICAL :: first=.true.
+  REAL(real_8) :: tim1,tim2
+  ! ==--------------------------------------------------------------==
+  IF(first)THEN
+    CALL mpi_type_size(mpi_double_precision,size,ierr)
+    first=.FALSE.
+  END IF
+  CALL mpi_comm_size ( gid, nnodes, ierr )
+  cmcal(ipar_agav)=cmcal(ipar_agav)+1.0d0
+  cmlen(ipar_agav)=cmlen(ipar_agav)+nnodes*size*blklen
+  tim1=m_walltime()
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(inmsg) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(inmsg(1:nnodes*blklen)) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  CALL mpi_allgather(mpi_in_place,0,MPI_DATATYPE_NULL,inmsg,blklen,&
+       mpi_double_precision,gid,ierr)
+  CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp end target data
+#else
+  !$omp target update to(inmsg(1:nnodes*blklen)) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  tim2=m_walltime()
+  cmtim(ipar_agav)=cmtim(ipar_agav)+tim2-tim1
+#else
+  ! Nothing to do, in=out
+#endif
+  ! ==--------------------------------------------------------------==
+  RETURN
+END SUBROUTINE my_concat_inplace
+! ==----------------------------------------------------------------==
 SUBROUTINE my_concatv(outmsg,inmsg,blklen,recvcnt,recvdispl,gid)
+  ! ==--------------------------------------------------------------==
+  ! == Concat all OUTMSG of different lengths from GID group_       ==
+  ! == processor into INMSG. NOTE DOUBLE PRECISION ARRAYS USED      ==
+  ! ==--------------------------------------------------------------==
+  USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8
+  USE error_handling, ONLY: stopgm
+  USE timer, ONLY: tiset, tihalt
+  USE mp_interface, ONLY: mp_mpi_error_assert
+  USE gpu
+#ifdef __PARALLEL
+  USE mpi_f08
+  USE pstat
+  USE machine, ONLY: m_walltime
+#endif
+  IMPLICIT NONE
+  ! Arguments
+  REAL(real_8) :: outmsg(*),inmsg(*)
+  INTEGER :: blklen,recvcnt(*),recvdispl(*)
+#ifdef __PARALLEL
+  type(MPI_COMM) :: gid
+#else
+  INTEGER :: gid
+#endif
+  CHARACTER(*),PARAMETER::procedureN='my_concatv'
+#ifdef __PARALLEL
+  ! Variables
+  INTEGER :: ierr,nnodes,sum,i
+  INTEGER,SAVE :: size
+  LOGICAL :: first=.true.
+  REAL(real_8) :: tim1,tim2
+  ! ==--------------------------------------------------------------==
+  IF(first)THEN
+    CALL mpi_type_size(mpi_double_precision,size,ierr)
+    first=.FALSE.
+  END IF
+  CALL mpi_comm_size ( gid, nnodes, ierr )
+  cmcal(ipar_agav)=cmcal(ipar_agav)+1.0d0
+  sum=0
+  DO i=1,nnodes
+     sum=sum+recvcnt(i)
+  END DO
+  cmlen(ipar_agav)=cmlen(ipar_agav)+sum*size
+  tim1=m_walltime()
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(outmsg,inmsg) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(inmsg(1:sum)) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  CALL mpi_allgatherv(outmsg,blklen,mpi_double_precision,inmsg,&
+       recvcnt,recvdispl,mpi_double_precision&
+       ,gid,ierr)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp end target data
+#else
+  !$omp target update to(inmsg(1:sum)) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+  tim2=m_walltime()
+  cmtim(ipar_agav)=cmtim(ipar_agav)+tim2-tim1
+#else
+  ! ==--------------------------------------------------------------==
+  CALL dcopy(blklen,outmsg,1,inmsg(1+recvdispl(1)),1)
+#endif
+  ! ==--------------------------------------------------------------==
+  RETURN
+END SUBROUTINE my_concatv
+  ! ==--------------------------------------------------------------==
+  ! ==--------------------------------------------------------------==
+SUBROUTINE my_concatv_inplace(inmsg,recvcnt,recvdispl,gid)
   ! ==--------------------------------------------------------------==
   ! == Concat all OUTMSG of different lengths from GID group_        ==
   ! == processor into INMSG. NOTE DOUBLE PRECISION ARRAYS USED      ==
@@ -97,29 +278,67 @@ SUBROUTINE my_concatv(outmsg,inmsg,blklen,recvcnt,recvdispl,gid)
   USE error_handling, ONLY: stopgm
   USE timer, ONLY: tiset, tihalt
   USE mp_interface, ONLY: mp_mpi_error_assert
+  USE gpu
 #ifdef __PARALLEL
-  USE mpi
+  USE mpi_f08
+  USE pstat
+  USE machine, ONLY: m_walltime
 #endif
   IMPLICIT NONE
   ! Arguments
-  REAL(real_8) :: outmsg(*),inmsg(*)
-  INTEGER :: blklen,gid,recvcnt(*),recvdispl(*)
+  REAL(real_8) :: inmsg(*)
+  INTEGER :: blklen,recvcnt(*),recvdispl(*)
+#ifdef __PARALLEL
+  type(MPI_COMM) :: gid
+#else
+  INTEGER :: gid
+#endif
   CHARACTER(*),PARAMETER::procedureN='my_concatv'
 #ifdef __PARALLEL
   ! Variables
-  INTEGER :: ierr
+  INTEGER :: ierr,nnodes,sum,i
+  INTEGER,SAVE :: size
+  LOGICAL :: first=.true.
+  REAL(real_8) :: tim1,tim2
   ! ==--------------------------------------------------------------==
-  CALL mpi_allgatherv(outmsg,blklen,mpi_double_precision,inmsg,&
+  IF(first)THEN
+    CALL mpi_type_size(mpi_double_precision,size,ierr)
+    first=.FALSE.
+  END IF
+  CALL mpi_comm_size ( gid, nnodes, ierr )
+  cmcal(ipar_agav)=cmcal(ipar_agav)+1.0d0
+  sum=0
+  DO i=1,nnodes
+     sum=sum+recvcnt(i)
+  END DO
+  cmlen(ipar_agav)=cmlen(ipar_agav)+sum*size
+  tim1=m_walltime()
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(inmsg) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(inmsg(1:sum)) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  CALL mpi_allgatherv(mpi_in_place,0,MPI_DATATYPE_NULL,inmsg,&
        recvcnt,recvdispl,mpi_double_precision&
        ,gid,ierr)
   CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp end target data
 #else
-  ! ==--------------------------------------------------------------==
-  CALL dcopy(blklen,outmsg,1,inmsg(1+recvdispl(1)),1)
+  !$omp target update to(inmsg(1:sum)) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  tim2=m_walltime()
+  cmtim(ipar_agav)=cmtim(ipar_agav)+tim2-tim1
+#else
+  !nothing to do, in=out
 #endif
   ! ==--------------------------------------------------------------==
   RETURN
-END SUBROUTINE my_concatv
+END SUBROUTINE my_concatv_inplace
 ! ==================================================================
 ! ==================================================================
 SUBROUTINE my_source_concatv(outmsg,inmsg,blklen,recvcnt,&
@@ -133,12 +352,17 @@ SUBROUTINE my_source_concatv(outmsg,inmsg,blklen,recvcnt,&
   USE timer, ONLY: tiset, tihalt
   USE mp_interface, ONLY: mp_mpi_error_assert
 #ifdef __PARALLEL
-  USE mpi
+  USE mpi_f08
 #endif
   IMPLICIT NONE
   ! Arguments
   REAL(real_8) :: outmsg(*),inmsg(*)
-  INTEGER :: blklen,gid,recvcnt(*),recvdispl(*),root
+  INTEGER :: blklen,recvcnt(*),recvdispl(*),root
+#ifdef __PARALLEL
+  type(MPI_COMM) :: gid
+#else
+  INTEGER :: gid
+#endif
   CHARACTER(*),PARAMETER::procedureN='my_source_concatv'
 #ifdef __PARALLEL
   ! Variables
@@ -173,11 +397,16 @@ SUBROUTINE my_trans(outmsg,inmsg,blklen,group_)
   USE pstat , ONLY:cmcal,cmlen,cmtim,ipar_aall
   USE utils, ONLY : icopy
 #ifdef __PARALLEL
-  USE mpi
+  USE mpi_f08
 #endif
   IMPLICIT NONE
   ! Arguments
-  INTEGER :: outmsg(*),inmsg(*),blklen,gid,group_
+  INTEGER :: outmsg(*),inmsg(*),blklen,group_
+#ifdef __PARALLEL
+  type(MPI_COMM) :: gid
+#else
+  INTEGER :: gid
+#endif
   ! Variables
   INTEGER :: nn
   REAL(real_8) :: tim1,tim2
@@ -224,12 +453,17 @@ SUBROUTINE my_allgather_i(DATA,n,comm)
   USE timer, ONLY: tiset, tihalt
   USE mp_interface, ONLY: mp_mpi_error_assert
 #ifdef __PARALLEL
-  USE mpi
+  USE mpi_f08
 #endif
   IMPLICIT NONE
   ! Arguments
   INTEGER :: DATA(*)
-  INTEGER :: n,comm
+  INTEGER :: n
+#ifdef __PARALLEL
+  type(MPI_COMM) :: comm
+#else
+  INTEGER :: comm
+#endif
   ! Variables
   CHARACTER(*),PARAMETER :: procedureN='MY_ALLGATHER_I'
 #ifdef __PARALLEL
@@ -252,18 +486,25 @@ SUBROUTINE my_shift(msend,mrecv,msglen,mep,ip,gid)
   USE parac, ONLY : paral,parai
   USE pstat , ONLY:cmcal,cmlen,cmtim,ipar_aall, ipar_send
 #ifdef __PARALLEL
-  USE mpi
+  USE mpi_f08
 #endif
   IMPLICIT NONE
   ! Arguments
-  INTEGER :: msglen,mep,ip,gid
+  INTEGER :: msglen,mep,ip
+#ifdef __PARALLEL
+  type(MPI_COMM) :: gid
+#else
+  INTEGER :: gid
+#endif
   REAL(real_8) :: msend(*),mrecv(*)
   CHARACTER(*),PARAMETER::procedureN='my_shift'
 #ifdef __PARALLEL
   ! Variables
-  INTEGER :: status(mpi_status_size),ipsend,iprecv,&
+  INTEGER :: ipsend,iprecv,&
        whoami,howmany,&
-       itype,irequest,ierr
+       itype,ierr
+  type(MPI_Request) :: irequest
+  type(MPI_Status) :: status
   ! ==--------------------------------------------------------------==
   CALL mpi_comm_rank(gid,whoami,ierr)
   CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
@@ -275,7 +516,6 @@ SUBROUTINE my_shift(msend,mrecv,msglen,mep,ip,gid)
   cmcal(ipar_send)=cmcal(ipar_send)+1.0_real_8
   cmlen(ipar_send)=cmlen(ipar_send)+msglen
   itype=1
-  irequest=1
   CALL mpi_isend(msend,msglen,mpi_byte,ipsend,itype,&
        gid,irequest,ierr)
   CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)

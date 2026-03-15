@@ -1,6 +1,10 @@
+#include "cpmd_global.h"
+
 MODULE system
   USE kinds,                           ONLY: real_8
-
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
   IMPLICIT NONE
 
   PRIVATE
@@ -54,6 +58,9 @@ MODULE system
      INTEGER :: mmaxx = HUGE(0)
   END TYPE maxsys_t
   TYPE(maxsys_t), SAVE, PUBLIC :: maxsys
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  !$omp declare target(maxsys)
+#endif
   ! ==================================================================
   ! == SPAR   : Global array dimensions (parallel work)             ==
   ! ==          NHGS = sum of NHG for all processors                ==
@@ -231,8 +238,13 @@ MODULE system
   TYPE, PUBLIC :: group_t
      INTEGER :: nogrp = HUGE(0)
      INTEGER :: npgrp = HUGE(0)
+#ifdef __PARALLEL
+     type(MPI_COMM) :: meogrp
+     type(MPI_COMM) :: mepgrp
+#else
      INTEGER :: meogrp = HUGE(0)
      INTEGER :: mepgrp = HUGE(0)
+#endif
      INTEGER :: mpen = HUGE(0)
      INTEGER :: mpenm = HUGE(0)
      INTEGER :: nolist(maxgrp) = HUGE(0)
@@ -251,10 +263,10 @@ MODULE system
   ! == IATPT(2,NAT)                                                 ==
   ! == IATPE(NAT)                                                   ==
   ! ==--------------------------------------------------------------==
-  INTEGER, SAVE, PUBLIC :: natpe = HUGE(0),norbpe = HUGE(0)
-  INTEGER, ALLOCATABLE, DIMENSION(:,:), SAVE, PUBLIC :: ipept !(2,0:maxcpu)
+  INTEGER, SAVE, PUBLIC :: natpe = HUGE(0),norbpe = HUGE(0),natpe_cp = HUGE(0)
+  INTEGER, ALLOCATABLE, SAVE, PUBLIC :: ipept(:,:),ipept_cp(:,:,:) !(2,0:maxcpu)
   INTEGER, ALLOCATABLE, SAVE, PUBLIC :: iatpt(:,:)
-  INTEGER, ALLOCATABLE, SAVE, PUBLIC :: iatpe(:)
+  INTEGER, ALLOCATABLE, SAVE, PUBLIC :: iatpe(:), iatpe_cp(:,:)
   ! ==================================================================
   ! == A LOT OF ITEMS IN THE COMMON BLOCKS IS NEEDED FOR PARALLEL   ==
   ! ==================================================================
@@ -359,6 +371,7 @@ MODULE system
   ! == TQMMM  : Use the QM/MM code (full Bio code)                  ==
   ! == TQMMECH: Use the QM/MM code (simple coupling only)           ==
   ! == TDEBFOR: Run option for force debugging                      ==
+  ! == TVERBOSEFORCE: Run option for verbose force printing         ==
   ! == TDDFT  : Use TDDFT                                           ==
   ! == TNOGEOCHECK : Dont check geometry for close atoms            ==
   ! == TSSEL  : Print structure only for selected atoms             ==
@@ -399,6 +412,7 @@ MODULE system
   ! ==--------------------------------------------------------------==
   TYPE, PUBLIC :: cntl_t
      LOGICAL :: md = .FALSE.
+     LOGICAL :: tmdcp = .FALSE.
      LOGICAL :: tmdbo = .FALSE.
      LOGICAL :: tmdfile = .FALSE.
      LOGICAL :: geopt = .FALSE.
@@ -445,6 +459,7 @@ MODULE system
      LOGICAL :: tnosee = .FALSE.
      LOGICAL :: tnosep = .FALSE.
      LOGICAL :: tnoses  = .FALSE.
+     LOGICAL :: tsinr  = .FALSE. !ritama
      LOGICAL :: timing = .FALSE.
      LOGICAL :: ksener = .FALSE.
      LOGICAL :: orbrot = .FALSE.
@@ -507,6 +522,9 @@ MODULE system
      LOGICAL :: tinr = .FALSE.
      LOGICAL :: thybrid  = .FALSE.
      LOGICAL :: tdebfor = .FALSE.
+     LOGICAL :: tverbosefor = .FALSE.
+     LOGICAL :: tverbosepos = .FALSE.
+     LOGICAL :: tverbosevel = .FALSE.
      LOGICAL :: tddft = .FALSE.
      LOGICAL :: lbfgs = .FALSE.
      LOGICAL :: prfo = .FALSE.
@@ -563,6 +581,12 @@ MODULE system
      LOGICAL :: thubb  = .FALSE.
      LOGICAL :: use_mts = .FALSE.
      LOGICAL :: use_scaled_hfx = .FALSE.
+     LOGICAL :: overlapp_comm_comp = .FALSE.
+     LOGICAL :: distribute_fnl_rot = .FALSE.
+     LOGICAL :: use_elpa = .FALSE.
+     LOGICAL :: use_elpa_autotune = .FALSE.
+     LOGICAL :: rnlsm_autotune
+     LOGICAL :: fft_tune_batchsize
   END TYPE cntl_t
   TYPE(cntl_t), SAVE, PUBLIC :: cntl
   ! ==================================================================
@@ -615,6 +639,8 @@ MODULE system
   ! == NASPC  : Number of corrector steps when using ASPC           ==
   ! == NSTBLK : CPU block size for dist. linalg                     ==
   ! == IPRNG   : seed for pseudo-random number generator            ==
+  ! == rnlsm*_bc: blockcounts for rnlsm                             ==
+  ! == rnlsm_autotune_maxit: enable autotuning for >0               ==
   ! ==--------------------------------------------------------------==
   TYPE, PUBLIC :: cnti_t
      INTEGER :: nomore = HUGE(0)
@@ -630,6 +656,7 @@ MODULE system
      INTEGER :: nchs = HUGE(0)
      INTEGER :: ncalls0 = HUGE(0)
      INTEGER :: nit0 = HUGE(0)
+     INTEGER :: lsinr = HUGE(0) !ritama
      INTEGER :: kssta = HUGE(0) !vw not initialized at all
      INTEGER :: nkssta = HUGE(0)
      INTEGER :: imovie = HUGE(0)
@@ -672,7 +699,13 @@ MODULE system
      INTEGER :: lfit = HUGE(0) !vw not initialized at all
      INTEGER :: isocs = HUGE(0) !vw not initialized at all
      INTEGER :: jsoct = HUGE(0) !vw not initialized at all
+     INTEGER :: rnlsm1_bc
+     INTEGER :: rnlsm2_bc
+     INTEGER :: rnlsm_autotune_maxit = HUGE(0)
      INTEGER :: disortho_bsize = HUGE(0)
+     INTEGER :: blocksize_uspp = HUGE(0)
+     INTEGER :: elpa_num_proc = HUGE(0)
+     INTEGER :: fft_tune_it_per_batch = HUGE(0)
   END TYPE cnti_t
   TYPE(cnti_t), SAVE, PUBLIC :: cnti
   ! ==================================================================
@@ -734,6 +767,7 @@ MODULE system
   ! == ASIC   : alpha parameter for Hartree SIC correction          ==
   ! == BSIC   : beta parameter for XC SIC correction                ==
   ! == NOSPT0 : Temperature at which Nose velocities are initialized==
+  ! == rnlsm*_b*: blocksizes in rnlsm1/2                            ==
   ! ==--------------------------------------------------------------==
   TYPE, PUBLIC :: cntr_t
      REAL(real_8) :: delt_elec = HUGE(0.0_real_8)
@@ -760,6 +794,9 @@ MODULE system
      REAL(real_8) :: gceps = HUGE(0.0_real_8) !vw not initialized at all
      REAL(real_8) :: wnose0 = HUGE(0.0_real_8) !vw not initialized at all
      REAL(real_8) :: wnosp0 = HUGE(0.0_real_8) !vw not initialized at all
+     REAL(real_8) :: tausinr = HUGE(0.0_real_8) !ritama
+     REAL(real_8) :: gammasinr = HUGE(0.0_real_8) !ritama
+     REAL(real_8) :: tempsinr = HUGE(0.0_real_8) !ritama
      REAL(real_8) :: epsdav = HUGE(0.0_real_8)
      REAL(real_8) :: amprp = HUGE(0.0_real_8)
      REAL(real_8) :: fdiff = HUGE(0.0_real_8)
@@ -790,6 +827,10 @@ MODULE system
      REAL(real_8) :: dampge = HUGE(0.0_real_8)
      REAL(real_8) :: dampgc = HUGE(0.0_real_8)
      REAL(real_8) :: gfreq = HUGE(0.0_real_8) !vw not initialized at all
+     REAL(real_8) :: rnlsm1_b1 = HUGE(0.0_real_8)
+     REAL(real_8) :: rnlsm1_b2 = HUGE(0.0_real_8)
+     REAL(real_8) :: rnlsm2_b1 = HUGE(0.0_real_8)
+     REAL(real_8) :: rnlsm2_b2 = HUGE(0.0_real_8)
   END TYPE cntr_t
   TYPE(cntr_t), SAVE, PUBLIC :: cntr
   ! strings

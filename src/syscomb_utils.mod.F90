@@ -333,7 +333,7 @@ CONTAINS
     IF(paral%io_parent)WRITE(6,*)"CALCULATING KS-HAMILTONIAN, NO RESET OF OCCUPATIONS"
     CALL rhoofr(c0(:,1:crge%n),rhoe,psi(:,1),crge%n)
     CALL forcedr(c0,cm,sc0,rhoe,psi,tau0,fion,eigv,&
-         crge%n,1,.FALSE.,.TRUE.)
+         crge%n,1,.FALSE.,.TRUE.,.TRUE.)
     CALL hpsi (c0, cm, sc0, rhoe, psi(:,1), crge%n, 1, clsd%nlsd)
     CALL ovlap(crge%n,hmat,c0,cm)
     CALL mp_sum(hmat,crge%n*crge%n,parai%allgrp)
@@ -382,7 +382,7 @@ CONTAINS
        crge%f(k,1)=0.0_real_8
        CALL rhoofr(c0(:,1:crge%n),rhoe,psi(:,1),crge%n)
        CALL forcedr(c0,cm,sc0,rhoe,psi,tau0,fion,eigv,&
-            crge%n,1,.FALSE.,.TRUE.)
+            crge%n,1,.FALSE.,.TRUE.,.TRUE.)
        CALL hpsi (c0, cm, sc0, rhoe, psi(:,1), crge%n, 1, clsd%nlsd)
        CALL ovlap(crge%n,hmat,c0,cm)
        CALL mp_sum(hmat,crge%n*crge%n,parai%allgrp)
@@ -421,7 +421,7 @@ CONTAINS
        crge%f(l,1)=0.0_real_8
        CALL rhoofr(c0(:,1:crge%n),rhoe,psi(:,1),crge%n)
        CALL forcedr(c0,cm,sc0,rhoe,psi,tau0,fion,eigv,&
-            crge%n,1,.FALSE.,.TRUE.)
+            crge%n,1,.FALSE.,.TRUE.,.TRUE.)
        CALL hpsi (c0, cm, sc0, rhoe, psi(:,1), crge%n, 1, clsd%nlsd)
        CALL ovlap(crge%n,hmat,c0,cm)
        CALL mp_sum(hmat,crge%n*crge%n,parai%allgrp)

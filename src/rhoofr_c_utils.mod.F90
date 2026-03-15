@@ -78,7 +78,7 @@ CONTAINS
     INTEGER                                  :: i, ia, iat, ierr, ig, ikind, &
                                                 ikk, ikpt, is, is1, ispin1, &
                                                 isub, isub3, iwf, kbeg, kend, &
-                                                kinc, nkpoint
+                                                kinc, nkpoint, nstates(2,1)
     LOGICAL                                  :: tfcal
     REAL(real_8)                             :: argm, argp, coef3, g2m, g2p, &
                                                 rsum, rsum1, rsum1abs, rsumv, &
@@ -197,46 +197,32 @@ CONTAINS
     IF (pslo_com%tivan) THEN
        IF (cntl%tlsd) THEN
           ! ALPHA SPIN
-          CALL rhov(nstate,1,spin_mod%nsup,rsumv,psi)
+          nstates(1,1)=1
+          nstates(2,1)=spin_mod%nsup
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
           rsum=rsum+parm%omega*rsumv
           !$omp parallel do private(I)
           DO i=1,fpar%nnr1
              rhoe(i,1)=rhoe(i,1)+REAL(psi(i))
           ENDDO
           ! BETA SPIN
-          CALL rhov(nstate,spin_mod%nsup+1,nstate,rsumv,psi)
+          nstates(1,1)=spin_mod%nsup+1
+          nstates(2,1)=spin_mod%nsup+spin_mod%nsdown
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
           rsum=rsum+parm%omega*rsumv
           !$omp parallel do private(I)
           DO i=1,fpar%nnr1
              rhoe(i,2)=rhoe(i,2)+REAL(psi(i))
           ENDDO
        ELSE
-          CALL rhov(nstate,1,nstate,rsumv,psi)
+          nstates(1,1)=1
+          nstates(2,1)=nstate
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
           rsum=rsum+parm%omega*rsumv
           !$omp parallel do private(I)
           DO i=1,fpar%nnr1
              rhoe(i,1)=rhoe(i,1)+REAL(psi(i))
           ENDDO
-       ENDIF
-       ! Vanderbilt Charges
-       IF (paral%parent) THEN
-          ALLOCATE(qa(ions1%nat),STAT=ierr)
-          IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
-               __LINE__,__FILE__)
-          CALL zeroing(qa)!,ions1%nat)
-          CALL augchg(fnl,crge%f,qa,nstate)
-          iat=0
-          DO is=1,ions1%nsp
-             chrg%vdbchg(is)=0.0_real_8
-             DO ia=1,ions0%na(is)
-                iat=iat+1
-                chrg%vdbchg(is)=chrg%vdbchg(is)+qa(iat)
-             ENDDO
-             chrg%vdbchg(is)=chrg%vdbchg(is)/ions0%na(is)
-          ENDDO
-          DEALLOCATE(qa,STAT=ierr)
-          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-               __LINE__,__FILE__)
        ENDIF
     ENDIF
     ! ALPHA+BETA DENSITY IN RHOE(*,1), BETA DENSITY IN RHOE(*,2)

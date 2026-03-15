@@ -1,6 +1,4 @@
-#ifdef __SR8000
-!option MP(P(0)), LANGLVL(SAVE(0))
-#endif
+#include "cpmd_global.h"
 
 MODULE detsp_utils
   USE array_utils,                     ONLY: array_alloc,&
@@ -279,6 +277,9 @@ CONTAINS
     ALLOCATE(nghtol(nhx,maxsys%nsx),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__) ! FIXME deallocate missing
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map (alloc:nghtol)
+#endif
     ALLOCATE(nghcom(nhx,maxsys%nsx),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__) ! FIXME deallocate missing
@@ -439,16 +440,19 @@ CONTAINS
        ! the rs and ls groups are not actually used at the moment
        ! creation is done for completeness just in case it becomes 
        ! nescessary.
+#if !defined(__PARALLEL)
        irslspar%rsgrp=HUGE(0)
        irslspar%lsgrp=HUGE(0)
+#endif
        CALL mp_group(irslspar%nrsnodes,grouplist(1:irslspar%nrsnodes),irslspar%rsgrp,parai%qmmmgrp)
        !     grouplist(1)=nproc-1
        CALL mp_group(irslspar%nlsnodes,grouplist(irslspar%nrsnodes+1),irslspar%lsgrp,parai%qmmmgrp)
     ENDIF
     ! split nodes to planes for the electrostatic interactions on the 
     ! has to be done after loadpa has been executed      
+#if !defined(__PARALLEL)
     ifparai%ifgrp=-1
-
+#endif
     CALL mp_sync(parai%qmmmgrp)
     RETURN
   END SUBROUTINE qmmmgrps_init
@@ -475,8 +479,16 @@ CONTAINS
     ! it locally. e.g. required in the NEC-SX.
     ! ==================================================================
     ! ARGS
+#ifdef __PARALLEL
+    USE mpi_f08
+#endif
     CHARACTER(len=*)                         :: fname
+#ifdef __PARALLEL
+    INTEGER                                  :: fromnode, tonode
+    type(MPI_COMM)                           :: comm
+#else
     INTEGER                                  :: fromnode, tonode, comm
+#endif
 
     INTEGER, PARAMETER                       :: iunit = 72 , maxline = 120 
 

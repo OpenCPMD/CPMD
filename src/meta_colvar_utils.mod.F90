@@ -496,10 +496,6 @@ CONTAINS
 
     CALL zeroing(tscr)!,3*maxsys%nax*maxsys%nsx)
     CALL gettau(tscr,f_hill)
-#ifdef __SR11000
-    !poption parallel, tlocal(IS,IA,FACT)
-    !voption indep(DTB2MI,FHILLS,TSCR)
-#endif
     DO is=1,ions1%nsp
        fact= dt_ions*dtb2mi(is)
        DO ia=1,ions0%na(is)
@@ -511,10 +507,6 @@ CONTAINS
     IF (maxf2 .GT. 1.0e-12_real_8) THEN
        CALL zeroing(tscr)!,3*maxsys%nax*maxsys%nsx)
        CALL gettau(tscr,f_wall)
-#ifdef __SR11000
-       !poption parallel, tlocal(IS,IA,FACT)
-       !voption indep(DTB2MI,FHILLS,TSCR)
-#endif
        DO is=1,ions1%nsp
           fact= dt_ions*dtb2mi(is)
           DO ia=1,ions0%na(is)
@@ -697,11 +689,11 @@ CONTAINS
     CALL zeroing(cvd_scl)
 
     IF (paral%parent)THEN
-       DO i=1,3
-          DO j=1,maxsys%nax
-             DO k=1,maxsys%nsx
-                taupw(i,j,k,iwalk)=taup(i,j,k)
-             ENDDO
+       DO j=1,maxsys%nax
+          DO k=1,maxsys%nsx
+             taupw(1,j,k,iwalk)=taup(1,j,k)
+             taupw(2,j,k,iwalk)=taup(2,j,k)
+             taupw(3,j,k,iwalk)=taup(3,j,k)
           ENDDO
        ENDDO
     ENDIF
@@ -1008,10 +1000,6 @@ CONTAINS
 
     CALL zeroing(tscr)!,3*maxsys%nax*maxsys%nsx)
     CALL gettau(tscr,f_hill)
-#ifdef __SR11000
-    !poption parallel, tlocal(IS,IA,FACT)
-    !voption indep(DTB2MI,FHILLS,TSCR)
-#endif
     DO is=1,ions1%nsp
        fact= dt_ions*dtb2mi(is)
        DO ia=1,ions0%na(is)
@@ -1023,10 +1011,6 @@ CONTAINS
     IF (maxf2 .GT. 1.0e-12_real_8) THEN
        CALL zeroing(tscr)!,3*maxsys%nax*maxsys%nsx)
        CALL gettau(tscr,f_wall)
-#ifdef __SR11000
-       !poption parallel, tlocal(IS,IA,FACT)
-       !voption indep(DTB2MI,FHILLS,TSCR)
-#endif
        DO is=1,ions1%nsp
           fact= dt_ions*dtb2mi(is)
           DO ia=1,ions0%na(is)

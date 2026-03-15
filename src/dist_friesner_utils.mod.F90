@@ -22,7 +22,6 @@ MODULE dist_friesner_utils
   USE prng_utils,                      ONLY: repprngu_vec
   USE randtowf_utils,                  ONLY: randtowf
   USE sort_utils,                      ONLY: sort2
-  USE summat_utils,                    ONLY: give_scr_summat
   USE system,                          ONLY: cnti,&
                                              cntl,&
                                              cntr,&
@@ -31,6 +30,9 @@ MODULE dist_friesner_utils
   USE timer,                           ONLY: tihalt,&
                                              tiset
   USE zeroing_utils,                   ONLY: zeroing
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
 
   IMPLICIT NONE
 
@@ -69,6 +71,17 @@ CONTAINS
                                                 edavmax = 300._real_8, &
                                                 edavmin = -300._real_8
     CHARACTER(len=20)                        :: charspin
+#ifdef __PARALLEL
+    INTEGER :: chunk_begin, chunk_begin_e, chunk_end, chunk_end_e, chunk_new, &
+      chunk_new_e, i, iaux, icycle, ierr, ig, index1, index2, index4, ip, is, &
+      isub, itest, j, lan_max, lanlist(parai%nproc), msglen, &
+      nconvold, ncurr, iwork(5*ndiag), ifail(ndiag), nfound, ngw2, nhpsiold, &
+      nleft, nolan, norb, norbx, lc_index(nstate), ntest, num_eig, nx, &
+      old_send_cnt_e(parai%nproc), rank, send_cnt(parai%nproc), &
+      send_cnt_e(parai%nproc), send_displ(parai%nproc), &
+      send_displ_e(parai%nproc), start, start_col, sz
+    type(MPI_COMM)                          :: langrp
+#else
     INTEGER :: chunk_begin, chunk_begin_e, chunk_end, chunk_end_e, chunk_new, &
       chunk_new_e, i, iaux, icycle, ierr, ig, index1, index2, index4, ip, is, &
       isub, itest, j, lan_max, langrp, lanlist(parai%nproc), msglen, &
@@ -77,6 +90,7 @@ CONTAINS
       old_send_cnt_e(parai%nproc), rank, send_cnt(parai%nproc), &
       send_cnt_e(parai%nproc), send_displ(parai%nproc), &
       send_displ_e(parai%nproc), start, start_col, sz
+#endif
     INTEGER, ALLOCATABLE                     :: index0(:)
     LOGICAL                                  :: conv_flag, mem_flag, tcheck, &
                                                 tconv, tdebug, tlsd2, ttest
@@ -1105,20 +1119,14 @@ CONTAINS
     INTEGER                                  :: ndiag
 
     INTEGER                                  :: ldiag, lhpsi, lkrylov_ref, &
-                                                lscr, lsummat
+                                                lscr
 
     lscr=0
     ldiag=0
     lkrylov_ref=0
-    lsummat=0
     lhpsi=0
     IF (.NOT.fint1%ttrot) THEN
        CALL give_scr_hpsi(lhpsi,tag,ndiag)
-    ENDIF
-    IF (.FALSE.) THEN
-       CALL give_scr_summat(lsummat,tag,ndiag)
-    ELSE
-       lsummat = 0
     ENDIF
     CALL give_scr_krylov_ref(lkrylov_ref,tag,ndiag)
     IF (tkpts%tkpnt) THEN
@@ -1133,7 +1141,7 @@ CONTAINS
        ENDIF                 ! INDEX ADAV ALPHA0 BETA1
     ENDIF
     ldiag=MAX(ldiag,2*ndiag)  ! CONVFRIE
-    lfriesner=lscr+MAX(lhpsi,lsummat,lkrylov_ref,ldiag)+10
+    lfriesner=lscr+MAX(lhpsi,lkrylov_ref,ldiag)+10
     tag='LSCR+MAX(HPSI,SUMHMAT,...)'
     ! ==--------------------------------------------------------------==
     RETURN

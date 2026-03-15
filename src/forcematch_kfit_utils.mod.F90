@@ -1865,7 +1865,7 @@ CONTAINS
        IF (paral%io_parent)&
             WRITE(6,'(A)') '  fm  Abs. and rel. RMS on forces:'
        IF (paral%io_parent)&
-            WRITE(6,'(e10.4,1x,f8.3)') rms, rms_rel
+            WRITE(6,'(e11.4,1x,f8.3)') rms, rms_rel
     ENDIF
 
     RETURN
@@ -2390,7 +2390,7 @@ CONTAINS
 
     RETURN
 
-222 FORMAT('  fm  ', 5(e9.3, 1x))
+222 FORMAT('  fm  ', 5(e10.3, 1x))
   END SUBROUTINE fm_kfit_rms_per_atom
   ! 
 

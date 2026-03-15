@@ -143,6 +143,7 @@ MODULE store_types
   ! ==--------------------------------------------------------------==
   LOGICAL :: twritebintrajectory
   LOGICAL :: twriteforcetrajectory
+  LOGICAL :: twritefixforcetrajectory
 
   INTEGER :: maxwriteatom
 
@@ -163,6 +164,7 @@ MODULE store_types
      INTEGER :: MINWRITEATOM
      INTEGER :: MAXWRITEATOM
      LOGICAL :: TWRITEFORCETRAJECTORY
+     LOGICAL :: TWRITEFIXFORCETRAJECTORY
   END TYPE cprint_t
   TYPE(cprint_t) :: cprint
   TYPE :: iface1_t

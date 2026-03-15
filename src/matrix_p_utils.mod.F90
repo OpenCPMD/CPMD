@@ -3,8 +3,7 @@ MODULE matrix_p_utils
                                              twnl
   USE error_handling,                  ONLY: stopgm
   USE fft_maxfft,                      ONLY: maxfftn
-  USE fnonloc_utils,                   ONLY: fnonloc,&
-                                             give_scr_fnonloc
+  USE fnonloc_utils,                   ONLY: fnonloc
   USE geq0mod,                         ONLY: geq0
   USE ions,                            ONLY: ions0,&
                                              ions1
@@ -21,8 +20,7 @@ MODULE matrix_p_utils
   USE response_pmod,                   ONLY: &
        ddfnl_ddk, ddtwnl_ddk, dfnl_dk, dtwnl_dk, fnl00, h0_11, h1_00, h1_10, &
        h2_00, vofrho0
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE sfac,                            ONLY: eigr,&
                                              fnl
   USE sgpp,                            ONLY: sgpp1,&
@@ -482,16 +480,6 @@ CONTAINS
          __LINE__,__FILE__)
     CALL zeroing(c2)!,ngw*nstate)
 
-    CALL give_scr_fnonloc(il_auxc,il_ddia,nstate)
-    ALLOCATE(auxc(il_auxc),STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-         __LINE__,__FILE__)
-    CALL zeroing(auxc)!,il_auxc)
-    ALLOCATE(ddia(il_ddia),STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-         __LINE__,__FILE__)
-    CALL zeroing(ddia)!,il_ddia)
-
     DO k_ = 1,3
        CALL zeroing(c2)!,ngw*nstate)
        CALL zeroing(fnl)!,ions1%nat*maxsys%nhxs*nstate*1)
@@ -515,18 +503,12 @@ CONTAINS
     DEALLOCATE(c2,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
-    DEALLOCATE(auxc,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
-    DEALLOCATE(ddia,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
 
     IF (paral%parent) THEN
        time2 =m_walltime()
        tcpu = (time2 - time1)*0.001_real_8
        IF (paral%io_parent)&
-            WRITE(6,'(a,t50,f8.2,a8)')&
+            WRITE(6,'(a,t50,f9.2,a8)')&
             ' cpu time for matrix elements calculation:',&
             tcpu,' seconds'
     ENDIF
@@ -540,13 +522,8 @@ CONTAINS
     CHARACTER(len=*)                         :: tag
     INTEGER                                  :: nstate
 
-    INTEGER                                  :: l_auxc, l_ddia, l_rnlsm, lmat
 
-    CALL give_scr_rnlsm(l_rnlsm,tag,nstate,.FALSE.)
-    CALL give_scr_fnonloc(l_auxc,l_ddia,nstate)
-    lmat = 2*nstate*(nstate+1)
-
-    lmatrix_p = MAX(l_rnlsm,l_auxc+l_ddia,lmat)
+    lmatrix_p = 2*nstate*(nstate+1)
     RETURN
   END SUBROUTINE give_scr_matrix_p
   ! ==================================================================

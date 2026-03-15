@@ -2,8 +2,7 @@ MODULE newcell_utils
   USE initclust_utils,                 ONLY: gf_periodic
   USE nlccset_utils,                   ONLY: nlccset
   USE rggen_utils,                     ONLY: gvector
-  USE rinforce_utils,                  ONLY: give_scr_putwnl,&
-                                             putps,&
+  USE rinforce_utils,                  ONLY: putps,&
                                              putwnl,&
                                              testspline
 
@@ -12,7 +11,6 @@ MODULE newcell_utils
   PRIVATE
 
   PUBLIC :: newcell
-  PUBLIC :: give_scr_newcell
 
 CONTAINS
 
@@ -31,19 +29,5 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE newcell
-  ! ==================================================================
-  SUBROUTINE give_scr_newcell(lnewcell,tag)
-    ! ==--------------------------------------------------------------==
-    INTEGER                                  :: lnewcell
-    CHARACTER(len=30)                        :: tag
-
-! ==--------------------------------------------------------------==
-
-    CALL give_scr_putwnl(lnewcell,tag)
-    ! ==--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE give_scr_newcell
-  ! ==================================================================
-
 
 END MODULE newcell_utils

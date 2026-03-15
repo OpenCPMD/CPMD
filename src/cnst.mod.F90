@@ -8,8 +8,10 @@ MODULE cnst
   ! == last update: 2008-03-25 by akohlmey@cmm.chem.upenn.edu       ==
   ! == CODATA 2006, Version 5.1, http://physics.nist.gov/constants  ==
   ! ==--------------------------------------------------------------==
-  ! == UIMAG = CMPLX(0._real_8,1._real_8)                          ==
+  ! == UIMAG = CMPLX(0._real_8,1._real_8)                           ==
   ! == PI      PI NUMBER                                            ==
+  ! == DSQRTPI DSQRT(PI)                                            ==
+  ! == INV_DSQRTPI 1/DSQRT(PI)                                      ==
   ! == FPI     4*PI                                                 ==
   ! == RY      RYDBERG IN ELECTRON-VOLT                             ==
   ! == EVTOKEL ELECTRON-VOL IN KELVIN                               ==
@@ -27,6 +29,7 @@ MODULE cnst
   COMPLEX(real_8), PARAMETER ::  uimag=(0._real_8,1._real_8)  
   ! NEW UNITS
   REAL(real_8), PARAMETER :: pi=3.141592653589793_real_8, fpi=4.0_real_8*pi,&
+       dsqrtpi=SQRT(pi), dsqrtpi_inv=1.0_real_8/SQRT(pi), &
        ry=13.60569193_real_8, evtokel=11604.505_real_8, factem=2._real_8*ry*evtokel,&
        scmass=1822.888485_real_8, fbohr=1._real_8/0.529177210859_real_8,&
        au_deb=2.5417462289_real_8, au_kb=294210.1080_real_8, kb_au=1._real_8/au_kb,&

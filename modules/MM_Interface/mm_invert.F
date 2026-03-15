@@ -26,6 +26,7 @@ C     |                                                        |
 C     |    BUILTIN FUNCTIONS: ABS                              |
 C     |________________________________________________________|
 C
+!     cmb - Revised on 14 March 2024
       INTEGER W(*),LV
       REAL*8 V(LV,*),S,T
       INTEGER H,I,J,K,L,M,N,O,P,Q,ISUB
@@ -70,9 +71,6 @@ C     -----------------------------
       V(L,L) = -1.D0
       S = 1.D0/S
 !$OMP parallel do private(I) shared(S)
-#ifdef __SR11000
-*poption parallel, tlocal(I)
-#endif
       DO I = 1,N
         V(I,L) = -S*V(I,L)
       ENDDO
@@ -88,11 +86,13 @@ C     ------------------------------
 C     |*** ELIMINATE BY COLUMNS ***|
 C     ------------------------------
       IF ( K .EQ. 0 ) GOTO 70
+!$OMP parallel do private(I) shared(T)
       DO I = 1,K
         V(I,J) = V(I,J) + T*V(I,L)
       ENDDO
 70    V(L,J) = S*T
       IF ( M .GT. N ) GOTO 50
+!$OMP parallel do private(I) shared(T)
       DO I = M,N
         V(I,J) = V(I,J) + T*V(I,L)
       ENDDO

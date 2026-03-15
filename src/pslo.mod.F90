@@ -7,6 +7,7 @@ MODULE pslo
   ! == INCLUDE FILES FOR PSEUDOPOTENTIAL (LOGICAL VARIABLES)       ==
   ! ==-------------------------------------------------------------==
   ! == TIVAN .TRUE. if Vanderbilt PP are used                      ==
+  ! == mixed_psp .TRUE. if Vanderbitl and NC are present
   ! == TVAN(1:NSP) For each specie .TRUE. if Vanderbilt PP         ==
   ! == TNUM(1:NSP) Use of numerical values for PP                  ==
   ! == TBIN(1:NSP) For Vanderbilt PP: If PP file is BINARY         ==
@@ -17,6 +18,7 @@ MODULE pslo
   ! =================================================================
   TYPE :: pslo_com_t
      LOGICAL :: tivan
+     LOGICAL :: mixed_psp
      LOGICAL :: tvan(maxsp)
      LOGICAL :: tnum(maxsp)
      LOGICAL :: tbin(maxsp)

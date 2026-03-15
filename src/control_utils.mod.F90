@@ -27,6 +27,7 @@ MODULE control_utils
                                              fint5,&
                                              maxbetap,&
                                              maxtrot
+  USE fft,                             ONLY: a2a_msgsize,batch_fft
   USE g_loc,                           ONLY: gloc_list,&
                                              glocal,&
                                              gloci,&
@@ -64,8 +65,7 @@ MODULE control_utils
   USE nose,                            ONLY: &
        cafesini, cafesinr, lctrng, loct, loctpin, loctt0, ncafesgrp, nosl, &
        tcafes, tnosepc
-  USE para_global,                     ONLY: para_buff_size,&
-                                             para_stack_buff_size,&
+  USE para_global,                     ONLY: il_para_buff,&
                                              para_use_mpi_in_place
   USE parac,                           ONLY: parai,&
                                              paral
@@ -121,6 +121,9 @@ MODULE control_utils
                                              maxreg,&
                                              rmixsd,&
                                              tolx_inr
+
+  USE ace_hfx,                       ONLY: LANG_DYN,&
+                                GAMMA,T_BATH !SAGAR HACK
 
   IMPLICIT NONE
 
@@ -391,6 +394,25 @@ CONTAINS
     ! ==    TASKGROUPS {MAXIMUM,MINIMUM,CARTESIAN}                    ==
     ! ==      nogrp                                                   ==
     ! ==    DISTRIBUTE FNL [ON,OFF]                                   ==
+    ! ==    DISTRIBUTE FNL ROT [ON,OFF]                               ==
+    ! ==    USE_OVERLAPPING_COMM_COMP [ON,OFF]                        ==
+    ! ==    USE_ELPA [ON,OFF]                                         ==
+    ! ==      nproc_elpa                                              ==
+    ! ==    USE_ELPA_AUTOTUNING [ON,OFF]                              ==
+    ! ==    RNLSM1_BLOCKCOUT                                          ==
+    ! ==    rnlsm1_bc                                                 ==
+    ! ==    RNLSM1_BLOCKSIZE1                                         ==
+    ! ==    rnlsm1_b1                                                 ==
+    ! ==    RNLSM1_BLOCKSIZE2                                         ==
+    ! ==    rnlsm1_b2                                                 ==
+    ! ==    RNLSM2_BLOCKCOUNT                                         ==
+    ! ==    rnlsm2_bc                                                 ==
+    ! ==    RNLSM2_BLOCKSIZE1                                         ==
+    ! ==    rnlsm2_b1                                                 ==
+    ! ==    RNLSM2_BLOCKSIZE2                                         ==
+    ! ==    rnlsm2_b2                                                 ==
+    ! ==    RNLSM_AUTOTUNE                                            ==
+    ! ==    nint                                                      ==
     ! ==    SPLINE [POINTS QFUNCTION INIT RANGE]                      ==
     ! ==      nsplp qsrang                                            ==
     ! ==    REAL SPACE WFN [KEEP, SIZE]                               ==
@@ -440,7 +462,7 @@ CONTAINS
     INTEGER                                  :: first, last, keep_first, ierr, &
                                                 iunit, nbr_unknown_lines, &
                                                 nbr_info_lines, counter
-    INTEGER                                  :: i, iflag
+    INTEGER                                  :: i, iflag, tempi
     LOGICAL                                  :: something_went_wrong, go_on_reading, &
                                                 wait_for_qmstart, is_there
     LOGICAL                                  :: erread, mirror, test, store_or_not, &
@@ -516,6 +538,8 @@ CONTAINS
        error_message        = ' '
        !
        ! Defaults that are not in control_def, part II
+       !
+       LANG_DYN=.FALSE.  !SAGAR HACK
        !
        mirror        = .FALSE.
        tsrho         = .FALSE.
@@ -792,7 +816,14 @@ CONTAINS
              ELSEIF ( keyword_contains(line,'MOLECULAR',and='DYNAMICS')) THEN
                 ! Molecular Dynamics
                 cntl%md=.TRUE.
-                IF ( keyword_contains(line,'BO')) cntl%tmdbo=.TRUE.
+                IF ( keyword_contains(line,'CP')) THEN
+                   cntl%tmdbo=.FALSE.
+                   cntl%tmdcp=.TRUE.
+                END IF
+                IF ( keyword_contains(line,'BO')) THEN
+                   cntl%tmdbo=.TRUE.
+                   cntl%tmdcp=.FALSE.
+                END IF
                 IF ( keyword_contains(line,'FILE') ) THEN
                    IF ( keyword_contains(line,'XYZ')) rout1%xtin=.TRUE.
                    cntl%tmdfile=.TRUE.
@@ -818,7 +849,6 @@ CONTAINS
                    ENDIF
                 ENDIF
                 IF (cntl%tmdbo.AND.keyword_contains(line,'PT')) cntl%tresponse=.TRUE.
-                IF ( keyword_contains(line,'CP')) cntl%tmdbo=.FALSE.
                 IF ( keyword_contains(line,'CLASSICAL')) clc%classical=.TRUE.
                 ! EHR[
                 IF ( keyword_contains(line,'EH',alias='EHRENFEST') ) THEN
@@ -912,11 +942,24 @@ CONTAINS
              ELSEIF ( keyword_contains(line,'FORCEMATCH') ) THEN
                 ! Forcematching
                 cntl%fmatch=.TRUE.
+             ELSEIF ( keyword_contains(line,'VERBOSE') ) THEN
+                ! Debug force calculation
+                IF ( keyword_contains(line,'FORCES') ) THEN
+                   cntl%tverbosefor=.TRUE.
+                ENDIF               
+                ! Debug force calculation
+                IF ( keyword_contains(line,'POSITIONS') ) THEN
+                   cntl%tverbosepos=.TRUE.
+                ENDIF               
+                ! Debug force calculation
+                IF ( keyword_contains(line,'VELOCITIES') ) THEN
+                   cntl%tverbosevel=.TRUE.
+                ENDIF                              
              ELSEIF ( keyword_contains(line,'DEBUG') ) THEN
                 ! Debug force calculation
                 IF ( keyword_contains(line,'FORCES') ) THEN
                    cntl%tdebfor=.TRUE.
-                ENDIF
+                ENDIF               
                 ! Debug FILEOPEN processing
                 IF ( keyword_contains(line,'FILE') ) THEN
                    fo_info%fo_tdebug=.TRUE.
@@ -1183,6 +1226,11 @@ CONTAINS
                 READ(iunit,'(A)',iostat=ierr) line
                 first=1
                 CALL readsi(line,first,last,cnti%iprng,erread)
+!-------------------------------------------------------------------------------
+             ELSEIF ( keyword_contains(line,'LANGEVIN_DYNAMICS') ) THEN  !SAGAR HACK
+                READ(iunit,*,iostat=ierr)GAMMA,T_BATH
+                LANG_DYN=.TRUE.
+!-------------------------------------------------------------------------------
              ELSEIF ( keyword_contains(line,'LANGEVIN') ) THEN
                 IF ( keyword_contains(line,'MOVECM',alias='MOVECOM')) glepar%gle_com=0
                 IF ( keyword_contains(line,'CENTROIDOFF')) tglepc=.FALSE.
@@ -2849,6 +2897,42 @@ CONTAINS
                    something_went_wrong = .true.
                    go_on_reading        = .false.
                 ENDIF
+
+!!---------------------------------RITAMA-----------------------------------------!!
+             ELSEIF ( keyword_contains(line,'SINR') ) THEN
+                cntl%tsinr=.TRUE. 
+                previous_line = line
+                READ(iunit,'(A)',iostat=ierr) line
+                first=1
+                CALL readsr(line,first,last,cntr%tausinr,   erread)
+                IF (erread) THEN
+                   error_message        = "ERROR WHILE READING VALUE TAU OF SINR"
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+                first=last
+                CALL readsr(line,first,last,cntr%gammasinr,   erread)
+                IF (erread) THEN
+                   error_message        = "ERROR WHILE READING VALUE GAMMA OF SINR"
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+                first=last
+                CALL readsr(line,first,last,cntr%tempsinr,   erread)
+                IF (erread) THEN
+                   error_message        = "ERROR WHILE READING VALUE OF TEMP FOR SINR"
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+                first=last
+                CALL readsi(line,first,last,cnti%lsinr,   erread)
+                IF (erread) THEN
+                   error_message        = "ERROR WHILE READING VALUE OF L OF SINR"
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+
+!!---------------------------------RITAMA-----------------------------------------!!
              ELSEIF ( keyword_contains(line,'USE_IN_STREAM') ) THEN
                 cntl%is_in_stream=.TRUE.
              ELSEIF ( keyword_contains(line,'USE_OUT_STREAM') ) THEN
@@ -3421,17 +3505,8 @@ CONTAINS
                 previous_line = line
                 READ(iunit,'(A)',iostat=ierr) line
                 first=1
-                CALL readsi(line,first,last,para_buff_size,erread)
-                IF(erread) THEN
-                   error_message        = "ERROR WHILE READING VALUE"
-                   something_went_wrong = .true.
-                   go_on_reading        = .false.
-                ENDIF
-             ELSEIF ( keyword_contains(line,'PARA_STACK_BUFF_SIZE') ) THEN
-                previous_line = line
-                READ(iunit,'(A)',iostat=ierr) line
-                first=1
-                CALL readsi(line,first,last,para_buff_size,erread)
+                CALL readsi(line,first,last,tempi,erread)
+                il_para_buff=tempi
                 IF(erread) THEN
                    error_message        = "ERROR WHILE READING VALUE"
                    something_went_wrong = .true.
@@ -3440,7 +3515,7 @@ CONTAINS
              ELSEIF ( keyword_contains(line,'RHOOUT') ) THEN
                 ! Store density
                 rout1%rhoout=.TRUE.
-                IF ( keyword_contains(line,'SAMPLE') ) THEN
+                IF ( keyword_contains(line,'SAMPLE',cut_at='=') ) THEN
                    first = index_of_delimiter(line,'SAMPLE','=')
                    CALL readsi(line,first,last,rout1%nrhoout,erread)
                    IF (erread) THEN
@@ -3529,6 +3604,9 @@ CONTAINS
                 ENDIF
                 IF ( keyword_contains(line,'FORCES') ) THEN
                    cprint%twriteforcetrajectory=.TRUE.
+                ENDIF
+                IF ( keyword_contains(line,'FIXFORCE') ) THEN
+                   cprint%twritefixforcetrajectory=.TRUE.
                 ENDIF
                 IF ( keyword_contains(line,'SMALL')) trajsmall=.TRUE.
                 IF ( keyword_contains(line,'RANGE') ) THEN
@@ -3634,6 +3712,129 @@ CONTAINS
                 ELSE
                    cntr%memsize=-1._real_8
                 ENDIF
+             ELSEIF ( keyword_contains(line,'USE_OVERLAPPING_COMM_COMP') ) THEN
+                IF ( keyword_contains(line,'OFF') ) THEN
+                   cntl%overlapp_comm_comp=.FALSE.
+                ELSE
+                   cntl%overlapp_comm_comp=.TRUE.
+                ENDIF
+             ELSEIF ( keyword_contains(line,'BLOCKSIZE_USPP') ) THEN
+                READ(iunit,'(A)',iostat=ierr) line
+                CALL readsi(line,1,last,cnti%blocksize_uspp,erread)
+                IF (erread) THEN
+                   error_message        = "ERROR WHILE READING VALUE"
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+             ELSEIF ( keyword_contains(line,'USE_ELPA') ) THEN
+                IF ( keyword_contains(line,'OFF') ) THEN
+                   cntl%use_elpa=.FALSE.
+#ifdef _HAS_LIBELPA
+                ELSE
+                   cntl%use_elpa=.TRUE.
+#endif
+                ENDIF
+                IF(cntl%use_elpa)THEN
+                   READ(iunit,'(A)',iostat=ierr) line
+                   CALL readsi(line,1,last,cnti%elpa_num_proc,erread)
+                END IF
+             ELSEIF ( keyword_contains(line,'USE_ELPA_AUTOTUNE') ) THEN
+                IF ( keyword_contains(line,'OFF') ) THEN
+                   cntl%use_elpa_autotune=.FALSE.
+                ELSE
+                   cntl%use_elpa_autotune=.TRUE.
+                ENDIF
+             ELSEIF ( keyword_contains(line,'USE_BATCHFFT') ) THEN
+                IF ( keyword_contains(line,'OFF') ) THEN
+                   batch_fft=.FALSE.
+                ELSE
+                   batch_fft=.TRUE.
+                ENDIF
+             ELSEIF ( keyword_contains(line,'ALL2ALL_BATCHSIZE') ) THEN
+                READ(iunit,'(A)',iostat=ierr) line
+                CALL readsi(line,1,last,a2a_msgsize,erread)
+             ELSEIF ( keyword_contains(line,'TUNE_FFT_BATCHSIZE') ) THEN
+                IF ( keyword_contains(line,'OFF') ) THEN
+                   cntl%fft_tune_batchsize=.FALSE.
+                ELSE
+                   cntl%fft_tune_batchsize=.TRUE.
+                   READ(iunit,'(A)',iostat=ierr) line
+                   CALL readsi(line,1,last,cnti%fft_tune_it_per_batch,erread)
+                   cnti%fft_tune_it_per_batch=cnti%fft_tune_it_per_batch+1
+                   IF (erread) THEN
+                      error_message        = "ERROR WHILE READING VALUE"
+                      something_went_wrong = .true.
+                      go_on_reading        = .false.
+                   ENDIF
+                   
+                ENDIF
+             ELSEIF ( keyword_contains(line,'RNLSM1_BLOCKCOUNT') ) THEN
+                READ(iunit,'(A)',iostat=ierr) line
+                CALL readsi(line,1,last,cnti%rnlsm1_bc,erread)
+                IF (erread) THEN
+                   error_message        = "ERROR WHILE READING VALUE"
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+             ELSEIF ( keyword_contains(line,'RNLSM2_BLOCKCOUNT') ) THEN
+                READ(iunit,'(A)',iostat=ierr) line
+                CALL readsi(line,1,last,cnti%rnlsm2_bc,erread)
+                IF (erread) THEN
+                   error_message        = "ERROR WHILE READING VALUE"
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+             ELSEIF ( keyword_contains(line,'RNLSM2_BLOCKSIZE1') ) THEN
+                READ(iunit,'(A)',iostat=ierr) line
+                CALL readsr(line,1,last,cntr%rnlsm2_b1,erread)
+                IF (erread) THEN
+                   error_message        = "ERROR WHILE READING VALUE"
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+
+             ELSEIF ( keyword_contains(line,'RNLSM2_BLOCKSIZE2') ) THEN
+                READ(iunit,'(A)',iostat=ierr) line
+                CALL readsr(line,1,last,cntr%rnlsm2_b2,erread)
+                IF (erread) THEN
+                   error_message        = "ERROR WHILE READING VALUE"
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+
+             ELSEIF ( keyword_contains(line,'RNLSM1_BLOCKSIZE1') ) THEN
+                READ(iunit,'(A)',iostat=ierr) line
+                CALL readsr(line,1,last,cntr%rnlsm1_b1,erread)
+                IF (erread) THEN
+                   error_message        = "ERROR WHILE READING VALUE"
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+
+             ELSEIF ( keyword_contains(line,'RNLSM1_BLOCKSIZE2') ) THEN
+                READ(iunit,'(A)',iostat=ierr) line
+                CALL readsr(line,1,last,cntr%rnlsm1_b2,erread)
+                IF (erread) THEN
+                   error_message        = "ERROR WHILE READING VALUE"
+                   something_went_wrong = .true.
+                   go_on_reading        = .false.
+                ENDIF
+
+             ELSEIF ( keyword_contains(line,'RNLSM_AUTOTUNE') ) THEN
+                IF ( keyword_contains(line,'OFF') ) THEN
+                   cntl%rnlsm_autotune=.FALSE.
+                ELSE
+                   cntl%rnlsm_autotune=.TRUE.
+                   READ(iunit,'(A)',iostat=ierr) line
+                   CALL readsi(line,1,last,cnti%rnlsm_autotune_maxit,erread)
+                   IF (erread) THEN
+                      error_message        = "ERROR WHILE READING VALUE"
+                      something_went_wrong = .true.
+                      go_on_reading        = .false.
+                   ENDIF
+                   !we skip the first iteration as warmup iteration
+                   cnti%rnlsm_autotune_maxit=cnti%rnlsm_autotune_maxit+1
+                ENDIF
              ELSEIF ( keyword_contains(line,'SPLINE') ) THEN
                 IF ( keyword_contains(line,'POINTS') ) THEN
                    ! Number of spline points
@@ -3720,11 +3921,16 @@ CONTAINS
                 ! fake read; CP_GROUPS are initialised at the very beginning
                 previous_line = line
                 READ(iunit,'(A)',iostat=ierr) line
-             ELSEIF ( keyword_contains(line,'DISTRIBUTE',and='FNL') .OR. &
-                      keyword_contains(line,'DISTRIBUTED',and='FNL') ) THEN
+             ELSEIF ( keyword_contains(line,'DISTRIBUTE',and='FNL',but_not='ROT') .OR. &
+                      keyword_contains(line,'DISTRIBUTED',and='FNL',but_not='ROT') ) THEN
                 ! storage form of fnl
                 IF ( keyword_contains(line,'ON')) cntl%tfdist=.TRUE.
                 IF ( keyword_contains(line,'OFF')) cntl%tfdist=.FALSE.
+             ELSEIF ( keyword_contains(line,'DISTRIBUTE',and='ROT') .OR. &
+                      keyword_contains(line,'DISTRIBUTED',and='ROT') ) THEN
+                ! fnl distributed rotation or nodelocal
+                IF ( keyword_contains(line,'ON')) cntl%distribute_fnl_rot=.TRUE.
+                IF ( keyword_contains(line,'OFF')) cntl%distribute_fnl_rot=.FALSE.
              ELSEIF ( keyword_contains(line,'FILEPATH') ) THEN
                 ! Path to the restart files (all the line)
                 READ(iunit,'(A)',iostat=ierr) fo_info%fpath

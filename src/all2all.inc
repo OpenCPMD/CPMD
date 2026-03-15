@@ -1,89 +1,224 @@
 subroutine mp_all2all_int4_r1(data_in, data_out, n, comm )
-#ifdef __PARALLEL
-  use mpi
-#endif
   ! Arguments
-  integer, intent(in) :: n, comm
-  integer(int_4), intent(inout) , dimension(*) :: data_out, data_in
-  ! Variables
-  integer :: ierr
-  character(*),parameter :: procedureN='mp_all2all_int4_r1'
 #ifdef __PARALLEL
-
+  integer, intent(in) :: n
+  type(MPI_COMM), intent(in) ::  comm
+#else
+  integer, intent(in) :: n, comm
+#endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  integer(int_4), intent(in) , dimension(*) ::  data_in
+#else
+  integer(int_4), intent(inout) , dimension(*) ::  data_in
+#endif
+  integer(int_4), intent(out) , dimension(*) :: data_out
+  ! Variables
+  integer :: ierr,nnodes
+  character(*),parameter :: procedureN='mp_all2all_int4_r1'
+  real(real_8) :: tim1,tim2
+#ifdef __PARALLEL  
+  call mpi_comm_size ( comm, nnodes, ierr )
+  cmcal(ipar_aall)=cmcal(ipar_aall)+1.0d0
+  cmlen(ipar_aall)=cmlen(ipar_aall)+n*nnodes*mp_int4_in_bytes
+  tim1=m_walltime()     
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1:nnodes*n)) if(.not.comm_buffers_on_host)
+#endif
+#endif
   CALL mpi_alltoall(data_in,n,MPI_INTEGER,data_out,n,MPI_INTEGER,comm,ierr)
-  call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp end target data
+#else
+  !$omp target update to(data_out(1:nnodes*n)) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+  tim2=m_walltime()
+  cmtim(ipar_aall)=cmtim(ipar_aall)+tim2-tim1
 #else
   data_out(1:n)=data_in(1:n)
 #endif
 end subroutine mp_all2all_int4_r1
 subroutine mp_all2all_int8_r1(data_in, data_out, n, comm )
-#ifdef __PARALLEL
-  use mpi
-#endif
   ! Arguments
-  integer, intent(in) :: n, comm
-  integer(int_8), intent(inout) , dimension(*) :: data_out, data_in
-  ! Variables
-  integer :: ierr
-  character(*),parameter :: procedureN='mp_all2all_int8_r1'
 #ifdef __PARALLEL
-
+  integer, intent(in) :: n
+  type(MPI_COMM), intent(in) ::  comm
+#else
+  integer, intent(in) :: n, comm
+#endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  integer(int_8), intent(in) , dimension(*) ::  data_in
+#else
+  integer(int_8), intent(inout) , dimension(*) ::  data_in
+#endif
+  integer(int_8), intent(out) , dimension(*) :: data_out
+  ! Variables
+  integer :: ierr,nnodes
+  character(*),parameter :: procedureN='mp_all2all_int8_r1'
+  real(real_8) :: tim1,tim2
+#ifdef __PARALLEL  
+  call mpi_comm_size ( comm, nnodes, ierr )
+  cmcal(ipar_aall)=cmcal(ipar_aall)+1.0d0
+  cmlen(ipar_aall)=cmlen(ipar_aall)+n*nnodes*mp_int8_in_bytes
+  tim1=m_walltime()     
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1:nnodes*n)) if(.not.comm_buffers_on_host)
+#endif
+#endif
   CALL mpi_alltoall(data_in,n,MPI_INTEGER8,data_out,n,MPI_INTEGER8,comm,ierr)
-  call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp end target data
+#else
+  !$omp target update to(data_out(1:nnodes*n)) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+  tim2=m_walltime()
+  cmtim(ipar_aall)=cmtim(ipar_aall)+tim2-tim1
 #else
   data_out(1:n)=data_in(1:n)
 #endif
 end subroutine mp_all2all_int8_r1
 subroutine mp_all2all_real8_r1(data_in, data_out, n, comm )
-#ifdef __PARALLEL
-  use mpi
-#endif
   ! Arguments
-  integer, intent(in) :: n, comm
-  real(real_8), intent(inout) , dimension(*) :: data_out, data_in
-  ! Variables
-  integer :: ierr
-  character(*),parameter :: procedureN='mp_all2all_real8_r1'
 #ifdef __PARALLEL
-
+  integer, intent(in) :: n
+  type(MPI_COMM), intent(in) ::  comm
+#else
+  integer, intent(in) :: n, comm
+#endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  real(real_8), intent(in) , dimension(*) ::  data_in
+#else
+  real(real_8), intent(inout) , dimension(*) ::  data_in
+#endif
+  real(real_8), intent(out) , dimension(*) :: data_out
+  ! Variables
+  integer :: ierr,nnodes
+  character(*),parameter :: procedureN='mp_all2all_real8_r1'
+  real(real_8) :: tim1,tim2
+#ifdef __PARALLEL  
+  call mpi_comm_size ( comm, nnodes, ierr )
+  cmcal(ipar_aall)=cmcal(ipar_aall)+1.0d0
+  cmlen(ipar_aall)=cmlen(ipar_aall)+n*nnodes*mp_double_in_bytes
+  tim1=m_walltime()     
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1:nnodes*n)) if(.not.comm_buffers_on_host)
+#endif
+#endif
   CALL mpi_alltoall(data_in,n,MPI_DOUBLE_PRECISION,data_out,n,MPI_DOUBLE_PRECISION,comm,ierr)
-  call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp end target data
+#else
+  !$omp target update to(data_out(1:nnodes*n)) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+  tim2=m_walltime()
+  cmtim(ipar_aall)=cmtim(ipar_aall)+tim2-tim1
 #else
   data_out(1:n)=data_in(1:n)
 #endif
 end subroutine mp_all2all_real8_r1
 subroutine mp_all2all_complex4_r1(data_in, data_out, n, comm )
-#ifdef __PARALLEL
-  use mpi
-#endif
   ! Arguments
-  integer, intent(in) :: n, comm
-  complex(real_4), intent(inout) , dimension(*) :: data_out, data_in
-  ! Variables
-  integer :: ierr
-  character(*),parameter :: procedureN='mp_all2all_complex4_r1'
 #ifdef __PARALLEL
-
+  integer, intent(in) :: n
+  type(MPI_COMM), intent(in) ::  comm
+#else
+  integer, intent(in) :: n, comm
+#endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  complex(real_4), intent(in) , dimension(*) ::  data_in
+#else
+  complex(real_4), intent(inout) , dimension(*) ::  data_in
+#endif
+  complex(real_4), intent(out) , dimension(*) :: data_out
+  ! Variables
+  integer :: ierr,nnodes
+  character(*),parameter :: procedureN='mp_all2all_complex4_r1'
+  real(real_8) :: tim1,tim2
+#ifdef __PARALLEL  
+  call mpi_comm_size ( comm, nnodes, ierr )
+  cmcal(ipar_aall)=cmcal(ipar_aall)+1.0d0
+  cmlen(ipar_aall)=cmlen(ipar_aall)+n*nnodes*mp_complex_in_bytes
+  tim1=m_walltime()     
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1:nnodes*n)) if(.not.comm_buffers_on_host)
+#endif
+#endif
   CALL mpi_alltoall(data_in,n,MPI_COMPLEX,data_out,n,MPI_COMPLEX,comm,ierr)
-  call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp end target data
+#else
+  !$omp target update to(data_out(1:nnodes*n)) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+  tim2=m_walltime()
+  cmtim(ipar_aall)=cmtim(ipar_aall)+tim2-tim1
 #else
   data_out(1:n)=data_in(1:n)
 #endif
 end subroutine mp_all2all_complex4_r1
 subroutine mp_all2all_complex8_r1(data_in, data_out, n, comm )
-#ifdef __PARALLEL
-  use mpi
-#endif
   ! Arguments
-  integer, intent(in) :: n, comm
-  complex(real_8), intent(inout) , dimension(*) :: data_out, data_in
-  ! Variables
-  integer :: ierr
-  character(*),parameter :: procedureN='mp_all2all_complex8_r1'
 #ifdef __PARALLEL
-
+  integer, intent(in) :: n
+  type(MPI_COMM), intent(in) ::  comm
+#else
+  integer, intent(in) :: n, comm
+#endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  complex(real_8), intent(in) , dimension(*) ::  data_in
+#else
+  complex(real_8), intent(inout) , dimension(*) ::  data_in
+#endif
+  complex(real_8), intent(out) , dimension(*) :: data_out
+  ! Variables
+  integer :: ierr,nnodes
+  character(*),parameter :: procedureN='mp_all2all_complex8_r1'
+  real(real_8) :: tim1,tim2
+#ifdef __PARALLEL  
+  call mpi_comm_size ( comm, nnodes, ierr )
+  cmcal(ipar_aall)=cmcal(ipar_aall)+1.0d0
+  cmlen(ipar_aall)=cmlen(ipar_aall)+n*nnodes*mp_double_complex_in_bytes
+  tim1=m_walltime()     
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1:nnodes*n)) if(.not.comm_buffers_on_host)
+#endif
+#endif
   CALL mpi_alltoall(data_in,n,MPI_DOUBLE_COMPLEX,data_out,n,MPI_DOUBLE_COMPLEX,comm,ierr)
-  call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp end target data
+#else
+  !$omp target update to(data_out(1:nnodes*n)) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+  tim2=m_walltime()
+  cmtim(ipar_aall)=cmtim(ipar_aall)+tim2-tim1
 #else
   data_out(1:n)=data_in(1:n)
 #endif

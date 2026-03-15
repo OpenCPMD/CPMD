@@ -77,7 +77,7 @@ CONTAINS
     number = xc_f03_functional_get_number ( func_string )
 
 #else
-
+    number = -1
     CALL stopgm(procedureN,"no libxc available",&
          __LINE__,__FILE__)
 
@@ -128,15 +128,16 @@ CONTAINS
     TYPE(xc_f03_func_t), INTENT(in)          :: p
     INTEGER, INTENT(in)                      :: np
     REAL(real_8), INTENT(in)                 :: rho(*)
-    REAL(real_8), INTENT(out)                :: zk(*), vrho(*)
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'lxc_lda_exc_vxc'
 
 #if defined(_HAS_LIBXC)
+    REAL(real_8), INTENT(out)                :: zk(*), vrho(*)
 
     CALL xc_f03_lda_exc_vxc( p, np, rho, zk, vrho )
 
 #else
+    REAL(real_8), INTENT(inout)                :: zk(*), vrho(*)
 
     CALL stopgm(procedureN,"no libxc available",&
          __LINE__,__FILE__)
@@ -150,15 +151,14 @@ CONTAINS
     TYPE(xc_f03_func_t), INTENT(in)          :: p
     INTEGER, INTENT(in)                      :: np
     REAL(real_8), INTENT(in)                 :: rho(*), sigma(*)
-    REAL(real_8), INTENT(out)                :: zk(*), vrho(*), vsigma(*)
-
     CHARACTER(*), PARAMETER                  :: procedureN = 'lxc_gga_exc_vxc'
-
 #if defined(_HAS_LIBXC)
+    REAL(real_8), INTENT(out)                :: zk(*), vrho(*), vsigma(*)
 
     CALL xc_f03_gga_exc_vxc( p, np, rho, sigma, zk, vrho, vsigma )
 
 #else
+    REAL(real_8), INTENT(inout)                :: zk(*), vrho(*), vsigma(*)
 
     CALL stopgm(procedureN,"no libxc available",&
          __LINE__,__FILE__)

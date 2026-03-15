@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE atwf
   USE kinds,                           ONLY: real_8
   USE system,                          ONLY: maxsp
@@ -55,12 +57,21 @@ MODULE atwf
   ! == ZSMAT(NATTOT,NATTOT)                                         ==
   ! ==--------------------------------------------------------------==
   REAL(real_8), ALLOCATABLE, SAVE :: cat(:,:,:,:)
+#ifdef _USE_SCRATCHLIBRARY
+  REAL(real_8), POINTER, SAVE __CONTIGUOUS :: xxmat(:,:)
+  REAL(real_8), POINTER, SAVE __CONTIGUOUS :: xsmat(:,:)
+
+  COMPLEX(real_8), POINTER, SAVE __CONTIGUOUS :: catom(:,:)
+  COMPLEX(real_8), POINTER, SAVE __CONTIGUOUS :: zxmat(:,:)
+  COMPLEX(real_8), POINTER, SAVE __CONTIGUOUS :: zsmat(:,:)
+#else
   REAL(real_8), ALLOCATABLE, SAVE :: xxmat(:,:)
   REAL(real_8), ALLOCATABLE, SAVE :: xsmat(:,:)
 
   COMPLEX(real_8), ALLOCATABLE, TARGET, SAVE :: catom(:,:)
   COMPLEX(real_8), ALLOCATABLE, SAVE :: zxmat(:,:)
   COMPLEX(real_8), ALLOCATABLE, SAVE :: zsmat(:,:)
+#endif
   ! ==--------------------------------------------------------------==
   ! == MESHAT                                                       ==
   ! == CLOGAT                                                       ==

@@ -1486,7 +1486,7 @@ CONTAINS
          WRITE(6,'(/,1X,"SUM OVER ALL STATES OF <Gi> ",3(2x,f12.6),/)')&
          sum4,sum5,sum6
     IF (paral%io_parent)&
-         WRITE(6,'(/,1X,"SUM OVER ALL STATES OF <Gi>^2",3(2x,1PE12.6),/)')&
+         WRITE(6,'(/,1X,"SUM OVER ALL STATES OF <Gi>^2",3(2x,1PE13.6),/)')&
          sum1,sum2,sum3
     IF (paral%io_parent)&
          WRITE(6,'(1X,82(1H*),/)')

@@ -10,7 +10,7 @@
       use kinds, only: real_4, real_8, int_1, int_2, int_4, int_8
       use error_handling, only: stopgm
 !     ==--------------------------------------------------------------==
-!cmb - Revised on 25 October 2013
+!cmb - Revised on 14 March 2024
       use system 
       use parac
       use cppt
@@ -48,9 +48,6 @@ CEHR]
       NH3=spar%nr3s/2+1 
 
 !$OMP parallel do private(IG,rI,rJ,rK,Gt1,Gt2,Gt3,gdotr)
-#ifdef __SR11000
-*poption parallel, tlocal(IG,rI,rJ,rK,Gt1,Gt2,Gt3,gdotr)
-#endif
       DO IG=1,ncpw%ngw
         rI=DBLE(INYH(1,IG)-NH1)
         rJ=DBLE(INYH(2,IG)-NH2)
@@ -67,9 +64,6 @@ CEHR]
 !     If a Broken symmetry run..the HS wf and its velocities are
 !     scaled simultaneously (NN)
       IF(CNTL%BSYMM)THEN
-#ifdef __SR11000
-*poption parallel, tlocal(IS,IG)
-#endif
 !$OMP parallel do private(IS,IG) __COLLAPSE2
         DO IS=1,NSTATE
           DO IG=1,ncpw%ngw
@@ -80,9 +74,6 @@ CEHR]
           ENDDO
         ENDDO
       ELSE
-#ifdef __SR11000
-*poption parallel, tlocal(IS,IG)
-#endif
 !$OMP parallel do private(IS,IG) __COLLAPSE2
         DO IS=1,NSTATE
           DO IG=1,ncpw%ngw
@@ -107,9 +98,6 @@ CEHR]
       IF(CNTL%TMDBO.AND.CNTL%TEXTRAP) THEN
 C     if using wavefunction extrapolation, apply the same
 C     shift also to the wavefunction history.
-#ifdef __SR11000
-*poption parallel, tlocal(IH,IK,IS,IG)
-#endif
 !$OMP parallel do private(IH,IK,IS,IG) __COLLAPSE4
         DO IH=1,cnti%MEXTRA
           DO IK=1,nkpt%nkpnt

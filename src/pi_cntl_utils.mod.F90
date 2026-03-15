@@ -492,13 +492,13 @@ CONTAINS
        ENDIF
        ! DM2
        IF ((pimd1%tpinm .OR. pimd1%tstage).AND.(.NOT.pimd1%tringp)) THEN
-          ! DM        WRITE(output_unit,'(A,G12.6)') ' >>>> FACMASS : ',WMASS
-          WRITE(output_unit,'(A,4x,G12.6)') ' SCALING FACTOR FACMASS:',pimd2%wmass
-          ! DM        WRITE(output_unit,'(A,G12.6)') ' >>>> FACSTAGE: ',FACSTAGE
-          WRITE(output_unit,'(A,3x,G12.6)') ' MASS DISPARITY FACSTAGE:',pimd2%facstage
+          ! DM        WRITE(output_unit,'(A,G13.6)') ' >>>> FACMASS : ',WMASS
+          WRITE(output_unit,'(A,4x,G13.6)') ' SCALING FACTOR FACMASS:',pimd2%wmass
+          ! DM        WRITE(output_unit,'(A,G13.6)') ' >>>> FACSTAGE: ',FACSTAGE
+          WRITE(output_unit,'(A,3x,G13.6)') ' MASS DISPARITY FACSTAGE:',pimd2%facstage
        ENDIF
        IF (glepar%gle_mode>0) THEN
-          WRITE(output_unit,'(A,2x,G12.6)') ' SCALING FACTOR GLE_LAMBDA:',pimd2%gle_lambda
+          WRITE(output_unit,'(A,2x,G13.6)') ' SCALING FACTOR GLE_LAMBDA:',pimd2%gle_lambda
        ENDIF
        WRITE(output_unit,'(A,13x,I4)') ' PRINT LEVEL:',pimd3%levprt
 

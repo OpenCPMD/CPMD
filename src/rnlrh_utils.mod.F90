@@ -1,4 +1,7 @@
+#include "cpmd_global.h"
+
 MODULE rnlrh_utils
+  USE cp_grp_utils,                    ONLY: cp_grp_split_atoms
   USE cvan,                            ONLY: dvan
   USE elct,                            ONLY: crge
   USE ener,                            ONLY: ener_c,&
@@ -8,6 +11,7 @@ MODULE rnlrh_utils
                                              ions1
   USE kinds,                           ONLY: real_8
   USE kpnt,                            ONLY: wk
+  USE mp_interface,                    ONLY: mp_sum
   USE nlps,                            ONLY: imagp,&
                                              nghtol,&
                                              nlm,&
@@ -17,7 +21,8 @@ MODULE rnlrh_utils
   USE pslo,                            ONLY: pslo_com
   USE sfac,                            ONLY: fnl,&
                                              fnl2,&
-                                             fnlgp
+                                             fnlgp,&
+                                             fnl_packed
   USE sgpp,                            ONLY: sgpp1,&
                                              sgpp2
   USE spin,                            ONLY: clsd,&
@@ -47,54 +52,59 @@ CONTAINS
     ! ==     ENERGY, I.E. ENL                                         ==
     ! ==     K-POINTS IMPLEMENTED (FNL IS COMPLEX -> IMAGP=2)         ==
     ! ==--------------------------------------------------------------==
-    REAL(real_8)                             :: enl
-    INTEGER                                  :: nstate, nkpoint
+    REAL(real_8), INTENT(OUT)                :: enl
+    INTEGER, INTENT(IN)                      :: nstate, nkpoint
 
     INTEGER                                  :: i, ia, ii, ik, is, isa, isa0, &
                                                 isub, iv, jv, ki, kj, l, l2, &
-                                                li, lj
+                                                li, lj ,ia_sum, na(2,ions1%nsp), &
+                                                offset, ierr
+    INTEGER, ALLOCATABLE                     :: na_grp(:,:,:)
     REAL(real_8)                             :: sum, weight
+    CHARACTER(*), PARAMETER                  :: procedureN = 'rnlrh'
 
     enl=0._real_8
     ! If no non-local components -> return.
     IF (nlm.EQ.0) RETURN
     ! ==--------------------------------------------------------------==
-    CALL tiset('     RNLRH',isub)
+    CALL tiset(procedureN,isub)
     ! ==--------------------------------------------------------------==
     ! == Compute the non-local contribution to the total energy (ENL) ==
     ! ==--------------------------------------------------------------==
+    ALLOCATE(na_grp(2,ions1%nsp,0:parai%cp_nogrp-1), stat=ierr)
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate na_grp',&
+         __LINE__,__FILE__)
+
+    CALL cp_grp_split_atoms(na_grp)
+    na(:,:)=na_grp(:,:,parai%cp_inter_me)
+    IF(pslo_com%tivan)THEN
+       ! VANDERBILT PSEUDOPOTENTIAL
+       IF (imagp.EQ.2)&
+            CALL stopgm(procedureN,'K-POINTS NOT IMPLEMENTED',& 
+            __LINE__,__FILE__)
+       !$omp parallel private(is,i,offset,ia_sum) reduction(+:enl)
+       offset=0
+       DO is=1,ions1%nsp
+          ia_sum=na(2,is)-na(1,is)+1
+          IF(ia_sum.EQ.0)CYCLE
+          IF (pslo_com%tvan(is)) THEN
+             ! VANDERBILT PSEUDOPOTENTIAL
+             !$omp do
+             DO i=parap%nst12(parai%mepos,1),parap%nst12(parai%mepos,2)
+                enl=enl+calc_enl_uspp(ia_sum,nlps_com%ngh(is),&
+                     fnl_packed(offset+1:offset+ia_sum*nlps_com%ngh(is),i),dvan(:,:,is))*&
+                     wk(1)*crge%f(i,1)
+             END DO
+             !$omp end do nowait
+          END IF
+          offset=offset+ia_sum*nlps_com%ngh(is)
+       END DO
+       !$omp end parallel
+    END IF
     DO ik=1,nkpoint
        isa0=0
        DO is=1,ions1%nsp
-          IF (pslo_com%tvan(is)) THEN
-             ! VANDERBILT PSEUDOPOTENTIAL
-             IF (imagp.EQ.2)&
-                  CALL stopgm('RNLRH','K-POINTS NOT IMPLEMENTED',& 
-                  __LINE__,__FILE__)
-             DO iv=1,nlps_com%ngh(is)
-                DO jv=1,nlps_com%ngh(is)
-                   sum=0.0_real_8
-                   ! Remember: NST12(MEPOS,1)=1
-                   ! ST12(MEPOS,2)=NSTATE for serial jobs
-                   DO i=parap%nst12(parai%mepos,1),parap%nst12(parai%mepos,2)
-                      ii=i-parap%nst12(parai%mepos,1)+1
-                      IF (cntl%tfdist) THEN
-                         DO ia=1,ions0%na(is)
-                            isa=isa0+ia
-                            sum=sum+crge%f(i,ik)*fnl2(1,isa,iv,ii,ik)*&
-                                 fnl2(1,isa,jv,ii,ik)
-                         ENDDO
-                      ELSE
-                         DO ia=1,ions0%na(is)
-                            isa=isa0+ia
-                            sum=sum+crge%f(i,ik)*fnl2(1,isa,iv,i,ik)*&
-                                 fnl2(1,isa,jv,i,ik)
-                         ENDDO
-                      ENDIF
-                   ENDDO
-                   enl=enl+dvan(jv,iv,is)*sum
-                ENDDO
-             ENDDO
+          IF(pslo_com%tivan)THEN
           ELSEIF (sgpp1%tsgp(is)) THEN
              ! Stefan Goedecker pp
              DO iv=1,nlps_com%ngh(is)
@@ -113,13 +123,13 @@ CONTAINS
                          ii=i-parap%nst12(parai%mepos,1)+1
                          IF (imagp.EQ.1) THEN
                             IF (cntl%tfdist) THEN
-                               DO ia=1,ions0%na(is)
+                               DO ia=na(1,is),na(2,is)
                                   isa=isa0+ia
                                   sum=sum+weight*fnl2(1,isa,iv,ii,ik)*&
                                        fnl2(1,isa,jv,ii,ik)
                                ENDDO
                             ELSE
-                               DO ia=1,ions0%na(is)
+                               DO ia=na(1,is),na(2,is)
                                   isa=isa0+ia
                                   sum=sum+weight*fnl2(1,isa,iv,i,ik)*&
                                        fnl2(1,isa,jv,i,ik)
@@ -127,14 +137,14 @@ CONTAINS
                             ENDIF
                          ELSE
                             IF (cntl%tfdist) THEN
-                               DO ia=1,ions0%na(is)
+                               DO ia=na(1,is),na(2,is)
                                   isa=isa0+ia
                                   sum=sum+weight*&
                                        (fnl2(1,isa,iv,ii,ik)*fnl2(1,isa,jv,ii,ik)&
                                        +fnl2(2,isa,iv,ii,ik)*fnl2(2,isa,jv,ii,ik))
                                ENDDO
                             ELSE
-                               DO ia=1,ions0%na(is)
+                               DO ia=na(1,is),na(2,is)
                                   isa=isa0+ia
                                   sum=sum+weight*&
                                        (fnl2(1,isa,iv,i,ik)*fnl2(1,isa,jv,i,ik)&
@@ -157,13 +167,13 @@ CONTAINS
                    ii=i-parap%nst12(parai%mepos,1)+1
                    IF (imagp.EQ.1) THEN
                       IF (cntl%tfdist) THEN
-                         DO ia=1,ions0%na(is)
+                         DO ia=na(1,is),na(2,is)
                             isa=isa0+ia
                             sum=sum+crge%f(i,ik)*wk(ik)*&
                                  fnl2(1,isa,iv,ii,ik)*fnl2(1,isa,iv,ii,ik)
                          ENDDO
                       ELSE
-                         DO ia=1,ions0%na(is)
+                         DO ia=na(1,is),na(2,is)
                             isa=isa0+ia
                             sum=sum+crge%f(i,ik)*wk(ik)*&
                                  fnl2(1,isa,iv,i,ik)*fnl2(1,isa,iv,i,ik)
@@ -171,14 +181,14 @@ CONTAINS
                       ENDIF
                    ELSE
                       IF (cntl%tfdist) THEN
-                         DO ia=1,ions0%na(is)
+                         DO ia=na(1,is),na(2,is)
                             isa=isa0+ia
                             sum=sum+crge%f(i,ik)*wk(ik)*&
                                  (fnl2(1,isa,iv,ii,ik)*fnl2(1,isa,iv,ii,ik)&
                                  +fnl2(2,isa,iv,ii,ik)*fnl2(2,isa,iv,ii,ik))
                          ENDDO
                       ELSE
-                         DO ia=1,ions0%na(is)
+                         DO ia=na(1,is),na(2,is)
                             isa=isa0+ia
                             sum=sum+crge%f(i,ik)*wk(ik)*&
                                  (fnl2(1,isa,iv,i,ik)*fnl2(1,isa,iv,i,ik)&
@@ -194,10 +204,39 @@ CONTAINS
        ENDDO
     ENDDO
     IF (lspin2%tlse .AND. lspin2%tcas22) CALL rnlcas
-    CALL tihalt('     RNLRH',isub)
+    IF(parai%cp_nogrp.GT.1) CALL mp_sum(enl,parai%cp_inter_grp)
+    DEALLOCATE(na_grp, stat=ierr)
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate na_grp',&
+         __LINE__,__FILE__)
+
+    CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE rnlrh
+  ! ==================================================================
+  PURE FUNCTION calc_enl_uspp(ia_sum,ngh,fnl_,dvan_) RESULT(enl)
+    INTEGER,INTENT(IN)                       :: ia_sum, ngh
+    REAL(real_8),INTENT(IN)                  :: fnl_(ia_sum,ngh,*)
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: dvan_(:,:)
+    REAL(real_8)                             :: sum
+    REAL(real_8)                             :: enl
+    INTEGER                                  :: iv,ia,jv
+    enl=0._real_8
+    DO iv=1,ngh
+       sum=0._real_8
+       DO ia=1,ia_sum
+          sum=sum+fnl_(ia,iv,1)*fnl_(ia,iv,1)
+       END DO
+       enl=enl+sum*dvan_(iv,iv)
+       DO jv=iv+1,ngh
+          sum=0._real_8
+          DO ia=1,ia_sum
+             sum=sum+fnl_(ia,iv,1)*fnl_(ia,jv,1)
+          END DO
+          enl=enl+sum*dvan_(jv,iv)*2.0_real_8
+       END DO
+    END DO
+  END FUNCTION calc_enl_uspp
   ! ==================================================================
   SUBROUTINE rnlcas
     ! ==--------------------------------------------------------------==

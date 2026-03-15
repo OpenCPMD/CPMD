@@ -67,6 +67,7 @@ MODULE printp_utils
 
   PUBLIC :: printp
   PUBLIC :: printp2
+  PUBLIC :: printp3
   PUBLIC :: print_mts_forces
 
 CONTAINS
@@ -545,9 +546,10 @@ CONTAINS
     
     if (biCanonicalEnsembleDo) then 
        f2 = getNameFtrajectoryTape(bicanonicalCpmdConfig)
-     else
+    else
        f2 = f2default
     ENDIF
+
     IF (ropt_mod%rprint) THEN
        IF (paral%io_parent)&
             CALL fileopen(4,f2,fo_app+if2,ferror)
@@ -615,6 +617,96 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE printp2
+  ! ==================================================================
+
+  ! ==================================================================
+  SUBROUTINE printp3(taup,fion)
+    ! ==--------------------------------------------------------------==
+
+    REAL(real_8)                             :: taup(:,:,:), fion(:,:,:)
+
+    CHARACTER(len=11), PARAMETER             :: f2default = 'FTRAJECTORY'
+    CHARACTER(len=20) :: f2
+
+    INTEGER                                  :: j, k, l
+    INTEGER, SAVE                            :: if2 = fo_vmark
+    LOGICAL                                  :: ferror, printnow
+
+! ==--------------------------------------------------------------==
+! ==  OPEN THE TRAJECTORY AND MOVIE FILES                         ==
+! ==--------------------------------------------------------------==
+    if (.not.cprint%twritefixforcetrajectory) return   
+    if (biCanonicalEnsembleDo) then 
+       f2 = getNameFtrajectoryTape(bicanonicalCpmdConfig)
+    else
+       f2 = f2default
+    ENDIF
+    f2 = TRIM(f2)//'_FIX'
+
+    IF (rout1%rout .AND. MOD(iteropt%nfi-1,cnti%ntraj).EQ.0) THEN
+       IF (paral%io_parent)&
+            CALL fileopen(4,f2,fo_app+if2,ferror)
+    ENDIF
+    if2=0
+    ! ..Store ionic coordinates and velocities for statistics
+    ! FIXME: AK 2005/05/25 not yet converted to GROMOS ordering.
+    
+    IF (rout1%rout .AND. MOD(iteropt%nfi-1,cnti%ntraj).EQ.0) THEN
+       IF (cntl%tsampl) THEN
+          l=0
+          DO k=1,ions1%nsp
+             DO j=1,ions0%na(k)
+                l=l+1
+                IF (l.GE.cprint%minwriteatom.AND.l.LE.cprint%maxwriteatom) THEN
+                   IF (.NOT.trajsmall .OR. l.LE.trajsmalln) THEN
+                      IF (cprint%twritebintrajectory) THEN
+                         IF (paral%io_parent)&
+                              WRITE(4)&
+                              iteropt%nfi,&
+                              taup(1,j,k),taup(2,j,k),taup(3,j,k),&
+                              fion(1,j,k),fion(2,j,k),fion(3,j,k)
+                      ELSE
+                         IF (paral%io_parent)&
+                              WRITE(4,'(I7,9(2X,F22.14))')&
+                              iteropt%nfi,&
+                              taup(1,j,k),taup(2,j,k),taup(3,j,k),&
+                              fion(1,j,k),fion(2,j,k),fion(3,j,k)
+                      ENDIF
+                   ENDIF
+                ENDIF
+             ENDDO
+          ENDDO
+       ELSE
+          l=0
+          DO k=1,ions1%nsp
+             DO j=1,ions0%na(k)
+                l=l+1
+                IF (l.GE.cprint%minwriteatom.AND.l.LE.cprint%maxwriteatom) THEN
+                   IF (.NOT.trajsmall .OR. l.LE.trajsmalln) THEN
+                      IF (cprint%twritebintrajectory) THEN
+                         IF (paral%io_parent)&
+                              WRITE(4)&
+                              iteropt%nfi,&
+                              taup(1,j,k),taup(2,j,k),taup(3,j,k),&
+                              fion(1,j,k),fion(2,j,k),fion(3,j,k)
+                      ELSE
+                         IF (paral%io_parent)&
+                              WRITE(4,'(I7,9(2X,F22.14))')&
+                              iteropt%nfi,&
+                              taup(1,j,k),taup(2,j,k),taup(3,j,k),&
+                              fion(1,j,k),fion(2,j,k),fion(3,j,k)
+                      ENDIF
+                   ENDIF
+                ENDIF
+             ENDDO
+          ENDDO
+       ENDIF
+       IF (paral%io_parent)&
+            CALL fileclose(4)
+    ENDIF
+    ! ==--------------------------------------------------------------==
+    RETURN
+  END SUBROUTINE printp3
   ! ==================================================================
 
 

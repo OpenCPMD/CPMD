@@ -20,7 +20,7 @@ CONTAINS
 
 ! Variables
 
-#if defined(__NO_MEMSIZE) || defined(__SR8000) || defined(__ES) || defined(__WINNT) || defined(__BG)
+#if defined(__NO_MEMSIZE) || defined(__ES) || defined(__WINNT) || defined(__BG)
     IF (paral%io_parent.AND..FALSE.)&
          WRITE(6,'(A4,A10,A,10X,A)')&
          ' ***',SUBR,'| SIZE OF THE PROGRAM IS NOT AVAILABLE','***' 
@@ -60,18 +60,6 @@ CONTAINS
          WRITE(6,'(A,A,A,F7.2,A,A,F7.2,A)')&
          ' ***',subr,'| PROGSIZE DATA=',vdata,' MByte',&
          '  /  STACK=',vstack,' MByte'
-#elif defined(__SR8000)
-    ! ==--------------------------------------------------------------==
-    ! call to the shell is prohibitively expensive on sr8000
-    IF (paral%io_parent.AND..FALSE.)&
-         WRITE(6,'(A,A,A)') ' ***',subr,&
-         '| SIZE OF THE PROGRAM IS NOT AVAILABLE ***'
-    ! WRITE(6,'(A,A,A,$)')
-    ! *    ' ***',SUBR,'| SIZE OF THE PROGRAM IS '
-    ! WRITE(STRING,'(A,I10,A,A)') 'ps -o rss -p ',MY_PID,
-    ! *  ' | sed -e "/RSS/d" | sed -e "s/K.*$/ KBytes ***/" ',
-    ! *  ' | sed -e "s/M.*$/ MBytes ***/" '
-    ! CALL SYSTEM(STRING)
 #elif defined(__OSX) || defined(__OSX_IFC)
     CHARACTER (len=140) :: string
     ! ==--------------------------------------------------------------==

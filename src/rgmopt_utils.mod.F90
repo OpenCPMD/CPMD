@@ -92,7 +92,7 @@ SUBROUTINE rgmopt(c0,c1,c2,cm,sc0,pme,gde,vpp,eigv)
   USE setbsstate_utils, ONLY : setbsstate
   USE mm_dim_utils, ONLY : mm_dim
   USE bs_forces_diag_utils, ONLY : bs_forces_diag
-  USE newcell_utils, ONLY : newcell, give_scr_newcell
+  USE newcell_utils, ONLY : newcell
   USE totstr_utils, ONLY : totstr, dstre
   USE dum2_utils, ONLY : dumpr
   USE moverho_utils, ONLY : moverho,give_scr_moverho
@@ -634,7 +634,7 @@ SUBROUTINE rgmopt(c0,c1,c2,cm,sc0,pme,gde,vpp,eigv)
                 eigv,nstate,0,.FALSE.,.TRUE.,.TRUE.)
         ELSE
            CALL forcedr(c0(:,:,1),c2(:,:,1),sc0(:,:,1),rhoe,psi,tau0,fion,eigv,&
-                nstate,1,.TRUE.,.TRUE.)
+                nstate,1,.TRUE.,.TRUE.,.TRUE.)
         ENDIF
         IF (ropt_mod%calste) THEN
            CALL totstr
@@ -1580,7 +1580,7 @@ SUBROUTINE give_scr_rgmopt(lrgmopt,tag)
   USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8
   USE error_handling, ONLY: stopgm
   USE timer, ONLY: tiset, tihalt
-  USE newcell_utils, ONLY : newcell, give_scr_newcell
+  USE newcell_utils, ONLY : newcell
   USE parac, ONLY : paral,parai
   USE elct , ONLY:crge
   USE nlcc , ONLY:corel
@@ -1605,24 +1605,22 @@ SUBROUTINE give_scr_rgmopt(lrgmopt,tag)
   USE updwf_utils, ONLY : give_scr_updwf, updwf
   USE ortho_utils, ONLY : ortho,give_scr_ortho
   USE rhopri_utils, ONLY : rhopri ,give_scr_rhopri
-  USE rhoofr_utils, ONLY : give_scr_rhoofr,rhoofr
+  USE rhoofr_utils, ONLY : rhoofr
   USE initrun_utils, ONLY : give_scr_initrun
-  USE rnlsm_utils, ONLY : rnlsm, give_scr_rnlsm
+  USE rnlsm_utils, ONLY : rnlsm
   USE forcedr_utils, ONLY : give_scr_forcedr
   IMPLICIT NONE
   INTEGER                                    :: lrgmopt
   CHARACTER(len=30)                          :: tag
 
   INTEGER :: lcalc_alm, lcopot, ldeort, ldipd, lforces, lforces_diag, &
-      linitrun, lmoverho, lnewcell, lortho, lposupa, lprepv, lrbfgs, lrgdiis, &
-      lrhoofr, lrhopri, lrinr, lrlbfgs, lrnlsm, lrortv, lrprfo, lrrfo, &
+      linitrun, lmoverho, lortho, lposupa, lprepv, lrbfgs, lrgdiis, &
+      lrhopri, lrinr, lrlbfgs, lrortv, lrprfo, lrrfo, &
       lsdion, ltddft, lupdwf, nstate
 
   nstate=crge%n
   lcopot=0
   lortho=0
-  lrnlsm=0
-  lrhoofr=0
   lcalc_alm=0
   lforces_diag=0
   lforces=0
@@ -1633,7 +1631,6 @@ SUBROUTINE give_scr_rgmopt(lrgmopt,tag)
   lrprfo=0
   lrrfo=0
   lrinr=0
-  lnewcell=0
   ldeort=0
   lupdwf=0
   lprepv=0
@@ -1651,10 +1648,6 @@ SUBROUTINE give_scr_rgmopt(lrgmopt,tag)
      CALL give_scr_ortho(lortho,tag,nstate)
   ENDIF
   IF (cntl%tdiag) THEN
-     IF (pslo_com%tivan) THEN
-        CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
-     ENDIF
-     CALL give_scr_rhoofr(lrhoofr,tag)
      IF (fint1%ttrot) THEN
         CALL give_scr_calc_alm(lcalc_alm,tag)
      ENDIF
@@ -1665,9 +1658,6 @@ SUBROUTINE give_scr_rgmopt(lrgmopt,tag)
      IF (paral%parent) THEN
         CALL give_scr_sdion(lsdion,tag)
      ENDIF
-     IF (cntl%tprcp) THEN
-        CALL give_scr_newcell(lnewcell,tag)
-     ENDIF
      IF (corel%tinlc) THEN
         CALL give_scr_copot(lcopot,tag)
      ENDIF
@@ -1675,9 +1665,6 @@ SUBROUTINE give_scr_rgmopt(lrgmopt,tag)
         CALL give_scr_ortho(lortho,tag,nstate)
      ENDIF
   ELSE
-     IF (cntl%tprcp) THEN
-        CALL give_scr_newcell(lnewcell,tag)
-     ENDIF
      IF (cntl%tdiag) THEN
         CALL give_scr_forces_diag(lforces_diag,tag,nstate,.TRUE.)
         IF (tmovr) THEN
@@ -1722,10 +1709,10 @@ SUBROUTINE give_scr_rgmopt(lrgmopt,tag)
   ELSE
      ldipd=0
   ENDIF
-  lrgmopt=MAX(linitrun,lcopot,lortho,lrnlsm,lrhoofr,&
+  lrgmopt=MAX(linitrun,lcopot,lortho,&
        lcalc_alm,lforces_diag,lforces,&
        lsdion,lrgdiis,lrbfgs,lrrfo,lrinr,lrlbfgs,lrprfo,&
-       lnewcell,ldeort,lupdwf,lprepv,lposupa,lrortv,&
+       ldeort,lupdwf,lprepv,lposupa,lrortv,&
        ldipd,lforces_diag,lrhopri,lmoverho,ltddft)
   ! ==--------------------------------------------------------------==
   RETURN

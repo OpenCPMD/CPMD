@@ -116,7 +116,7 @@ CONTAINS
        ! *                FHIST(1),DE,A,ALAM)
        ! IF(PARENT) THEN
        ! CALL EBACK(1)
-       ! WRITE(6,'(A,G8.3,A,T55,G15.8)') 
+       ! WRITE(6,'(A,G10.3,A,T55,G15.8)') 
        ! *        ' LINE SEARCH : LAMBDA=',ALAM*FHIST(1),
        ! *        '       ENERGY =',DE
        ! ENDIF
@@ -157,7 +157,7 @@ CONTAINS
        ! &                RHOE,PSI,SCR,LSCR2,
        ! *                FHIST(IHIST),DE,A,ALAM)
        ! IF(PARENT) THEN
-       ! WRITE(6,'(A,G8.3,A,T55,G15.8)') 
+       ! WRITE(6,'(A,G10.3,A,T55,G15.8)') 
        ! *        ' LINE SEARCH : LAMBDA=',ALAM*FHIST(IHIST),
        ! *        '       ENERGY =',DE
        ! ENDIF

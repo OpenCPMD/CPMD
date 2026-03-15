@@ -518,10 +518,10 @@ CONTAINS
                1) THEN
              IF (iprnt.GE.1) THEN
                 IF (paral%io_parent)&
-                     WRITE (6,'(5X,A,A,1PE10.4)') 'MINIMUM ALLOWED ',&
+                     WRITE (6,'(5X,A,A,1PE11.4)') 'MINIMUM ALLOWED ',&
                      'CHANGE OF A LINE SEARCH STEP: ', STEP_MIN_L
                 IF (paral%io_parent)&
-                     WRITE (6,'(5X,A,1PE10.4)') 'ACTUAL CHANGE: ',&
+                     WRITE (6,'(5X,A,1PE11.4)') 'ACTUAL CHANGE: ',&
                      STPPRD*(SZ_L-SCLPRV)
              ENDIF
              lstpls = .TRUE.
@@ -529,10 +529,10 @@ CONTAINS
                THEN
              IF (iprnt.GE.1) THEN
                 IF (paral%io_parent)&
-                     WRITE (6,'(5X,A,A,1PE10.4)') 'MINIMUM ALLOWED ',&
+                     WRITE (6,'(5X,A,A,1PE11.4)') 'MINIMUM ALLOWED ',&
                      'LINE SEARCH STEP: ', STEP_MIN_L
                 IF (paral%io_parent)&
-                     WRITE (6,'(5X,A,1PE10.4)') 'ACTUAL STEP: ',&
+                     WRITE (6,'(5X,A,1PE11.4)') 'ACTUAL STEP: ',&
                      STPPRD*SZ_L
              ENDIF
              lstpls = .TRUE.
@@ -1471,7 +1471,7 @@ CONTAINS
              ENDIF
           ENDDO
           IF ((lprhes).AND.paral%io_parent)&
-               WRITE(6,'(5X,A,E8.2,A)') 'EIGENVALUES BELOW ',&
+               WRITE(6,'(5X,A,E9.2,A)') 'EIGENVALUES BELOW ',&
                CUTEIG, ' ARE SET TO ZERO ALONG WITH GRADIENT'
        ENDIF
        ! 

@@ -8,15 +8,17 @@ MODULE vofrhoa_utils
   USE ener,                            ONLY: ener_com
   USE error_handling,                  ONLY: stopgm
   USE fftmain_utils,                   ONLY: fwfftn
+  USE gpu
   USE htrstr_utils,                    ONLY: htrstr
-  USE kinds,                           ONLY: real_8
+  USE kinds,                           ONLY: real_8,&
+                                             int_8
   USE mp_interface,                    ONLY: mp_sum
   USE nvtx_utils
   USE parac,                           ONLY: parai
   USE potfor_utils,                    ONLY: potfor
   USE ppener_utils,                    ONLY: ppener
   USE simulmod,                        ONLY: vploc
-  USE state_utils,                     ONLY: copy_to_re
+  USE state_utils,                     ONLY: set_to_re
   USE system,                          ONLY: cntl,&
                                              fpar,&
                                              ncpw,&
@@ -27,7 +29,10 @@ MODULE vofrhoa_utils
                                              tiset
   USE vlocst_utils,                    ONLY: vlocst
   USE zeroing_utils,                   ONLY: zeroing
-
+#ifdef _USE_SCRATCHLIBRARY
+  USE scratch_interface,               ONLY: request_scratch,&
+                                             free_scratch
+#endif
   IMPLICIT NONE
 
   PRIVATE
@@ -50,16 +55,23 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! EHR[
     ! EHR]
-    REAL(real_8)                             :: tau0(:,:,:), fion(:,:,:), &
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: tau0(:,:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:), &
                                                 rhoe(:)
-    COMPLEX(real_8)                          :: v(:), vtemp(:)
-    LOGICAL                                  :: tfor, tstress
+    COMPLEX(real_8),INTENT(INOUT)&
+         __CONTIGUOUS                        :: v(:), vtemp(:)
+    LOGICAL,INTENT(IN)                       :: tfor, tstress
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'vofrhoa'
 
     COMPLEX(real_8)                          :: ee, eh, ei, eps
+#ifdef _USE_SCRATCHLIBRARY
+    COMPLEX(real_8), POINTER __CONTIGUOUS    :: eirop(:), eivps(:)
+#else
     COMPLEX(real_8), ALLOCATABLE             :: eirop(:), eivps(:)
+#endif
     INTEGER                                  :: ierr, isub, nnrs
+    INTEGER(int_8)                           :: il_eivps(1), il_eirop(1)
     REAL(real_8)                             :: ehs
 
 ! Variables
@@ -68,16 +80,32 @@ CONTAINS
 
     CALL tiset(procedureN,isub)
     __NVTX_TIMER_START ( procedureN )
+    il_eirop(1)=ncpw%nhg
+    il_eivps(1)=ncpw%nhg
 
-    ALLOCATE(eivps(ncpw%nhg),STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_eivps,eivps,procedureN//'_eivps',ierr)
+#else
+    ALLOCATE(eivps(il_eivps(1)),STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
-    ALLOCATE(eirop(ncpw%nhg),STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_eirop,eirop,procedureN//'_eirop',ierr)
+#else
+    ALLOCATE(eirop(il_eirop(1)),STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu=.false.
+    update_second_to_gpu=.false.
+    update_third_to_gpu=.false.
+    update_result_to_host=.false.
+    comm_buffers_on_host=.false.
+#endif
     nnrs  = spar%nr1s*spar%nr2s*spar%nr3s
-    CALL eicalc(eivps,eirop)
+    CALL eicalc(eivps,eirop,update_to_host=.FALSE.)
     ! ..External Field or forces of external potential
     ener_com%eext=0._real_8
     ! EHR[
@@ -87,12 +115,7 @@ CONTAINS
        CALL mp_sum(ener_com%eext,parai%allgrp)
     ENDIF
     ! TRANSFORM THE DENSITY TO G SPACE
-    CALL zeroing( v )
-    CALL copy_to_re ( fpar%nnr1 ,rhoe , v )
-!!$omp parallel do private(IR)
-    !DO ir=1,fpar%nnr1
-    !   v(ir)=CMPLX(rhoe(ir),0._real_8,kind=real_8)
-    !ENDDO
+    CALL set_to_re ( fpar%nnr1, rhoe, v )
     CALL  fwfftn(v,.FALSE.,parai%allgrp)
     ! ==--------------------------------------------------------------==
     ! ==                       PERIODIC SYSTEMS                       ==
@@ -101,6 +124,14 @@ CONTAINS
     IF (tfor) CALL potfor(fion,v,eirop)
     ! COMPUTE ELECTROSTATIC AND PSEUDOPOTENTIAL ENERGIES.
     CALL ppener(eh,ei,ee,eps,v(:),vtemp,eivps,eirop)
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu=.true.
+    update_second_to_gpu=.true.
+    update_third_to_gpu=.true.
+    update_result_to_host=.true.
+    comm_buffers_on_host=.true.
+#endif
     ! Hartree term for all charges
     ener_com%ehep = REAL(eh)*parm%omega
     ! Ion-Ion interaction (T.D. add VPLOC)
@@ -131,13 +162,20 @@ CONTAINS
        CALL vlocst(ener_com%epseu,v,eivps)
     ENDIF
 
-    DEALLOCATE(eivps,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-         __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_eirop,eirop,procedureN//'_eirop',ierr)
+#else
     DEALLOCATE(eirop,STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
-
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_eivps,eivps,procedureN//'_eivps',ierr)
+#else
+    DEALLOCATE(eivps,STAT=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+         __LINE__,__FILE__)
     __NVTX_TIMER_STOP
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==

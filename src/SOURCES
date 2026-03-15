@@ -229,7 +229,7 @@ SRC_MODULES = kinds.mod.F90 machine.mod.F90 timer.mod.F90 error_handling.mod.F90
            rrane_utils.mod.F90 ranp_utils.mod.F90 wrgeo_utils.mod.F90 rnlsm1_utils.mod.F90 rnlsm2_utils.mod.F90 \
            forces_utils.mod.F90 lowdin_utils.mod.F90 domdr_utils.mod.F90 \
            rgs_utils.mod.F90 rgsvan_utils.mod.F90 atomwf_utils.mod.F90 atrho_utils.mod.F90 xcener_utils.mod.F90 \
-           graden_utils.mod.F90 gcener_utils.mod.F90 hesele_utils.mod.F90 noforce_utils.mod.F90 rhoofr_utils.mod.F90 \
+           graden_utils.mod.F90 gcener_utils.mod.F90 hesele_utils.mod.F90 rhoofr_utils.mod.F90 \
            vpsi_utils.mod.F90 nlforce_utils.mod.F90 rotate_utils.mod.F90 hnlmat_utils.mod.F90 ovlap_utils.mod.F90 \
            dotp_utils.mod.F90 fnonloc_utils.mod.F90 gsize_utils.mod.F90 csize_utils.mod.F90 rscpot_utils.mod.F90 \
            csmat_utils.mod.F90 ksmat_utils.mod.F90 vofrho_utils.mod.F90 vofrhoa_utils.mod.F90 vofrhob_utils.mod.F90 \
@@ -244,7 +244,7 @@ SRC_MODULES = kinds.mod.F90 machine.mod.F90 timer.mod.F90 error_handling.mod.F90
            wv30_utils.mod.F90 rv30_utils.mod.F90 wr30wfn_utils.mod.F90 debfor_utils.mod.F90 merge_utils.mod.F90 \
            ptheory_utils.mod.F90 clinbcg_utils.mod.F90 elstpo_utils.mod.F90 mulliken_utils.mod.F90 espchg_utils.mod.F90 \
            secder_driver.mod.F90 atimes_utils.mod.F90 projv_utils.mod.F90 vdw_wf_alloc_utils.mod.F90 \
-           kin_energy_utils.mod.F90 vpsi_lse_utils.mod.F90 disortho_utils.mod.F90 norhoe_utils.mod.F90 ssic_utils.mod.F90 \
+           kin_energy_utils.mod.F90 vpsi_lse_utils.mod.F90 disortho_utils.mod.F90 ssic_utils.mod.F90 \
            testex_utils.mod.F90 atomc_utils.mod.F90 eextern_utils.mod.F90 egointer_utils.mod.F90 fileopen_utils.mod.F90 \
            forcedr_utils.mod.F90 initrun_utils.mod.F90 ldos_utils.mod.F90 fnlalloc_utils.mod.F90 anneal_utils.mod.F90 \
            rnlsm_utils.mod.F90 wfnio_utils.mod.F90 density_functionals_utils.mod.F90 linalg_utils.mod.F90 forcedr_driver.mod.F90 \
@@ -268,5 +268,6 @@ SRC_MODULES = kinds.mod.F90 machine.mod.F90 timer.mod.F90 error_handling.mod.F90
            dcacp_utils.mod.F90 \
            bicanonicalCpmd.mod.F90 bicanonicalConfig.mod.F90 bicanonicalInputReader.mod.F90 bicanonicalCalculationConfig.mod.F90 bicanonicalCalculation.mod.F90 \
           pi_prpt_utils.mod.F90 pi_npt_cpmd_utils.mod.F90 pi_stress_utils.mod.F90 pi_npt_bomd_utils.mod.F90 \
-          nvml_interfaces.mod.F90 nvml_types.mod.F90 nvml_utils.mod.F90 mts_utils.mod.F90 interface_utils.mod.F90 \
-          dftd3_driver.mod.F90 
+          nvml_interfaces.mod.F90 nvml_types.mod.F90 nvml_utils.mod.F90 mts_utils.mod.F90 interface_utils.mod.F90 distribution_utils.mod.F90 fnl_utils.mod.F90 \
+          beta_utils.mod.F90 rnlsm_helper_utils.mod.F90 elpa_utils.mod.F90 autotune_utils.mod.F90 ace_hfx.mod.F90 sinr_utils.mod.F90 \
+          dftd3_driver.mod.F90 blas_utils.mod.F90 gpu.mod.F90 lapack_utils.mod.F90

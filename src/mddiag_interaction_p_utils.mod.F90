@@ -483,7 +483,7 @@ CONTAINS
 
     ! calculate the forces on the ions with the new C0
     CALL forces(c0,c1,tau0,fion,rhoe,psi,&
-         nstate,1,.FALSE.,.TRUE.)
+         nstate,1,.FALSE.,.TRUE.,.TRUE.)
 
     ! DMB E2 calc
     ! if(parent) write(6,*) 'ETOT= ',ETOT

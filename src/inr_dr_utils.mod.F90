@@ -310,7 +310,7 @@ CONTAINS
           ifirst=1
        ENDIF
        IF (paral%io_parent)&
-            WRITE(6,'(/,2x,a,e10.4)') 'STARTING  INR:  '//&
+            WRITE(6,'(/,2x,a,e11.4)') 'STARTING  INR:  '//&
             'RESIDUAL THRESHOLD FOR CONVERGENCE =',tol_inr
     ENDIF
 
@@ -320,7 +320,7 @@ CONTAINS
     CALL mp_bcast(correct,cotc0%nodim,parai%source,parai%allgrp)
 
 
-199 FORMAT(18x,'RESIDUAL AT ',i4,3x,'ITERATION ',6x,'=',e10.4)
+199 FORMAT(18x,'RESIDUAL AT ',i4,3x,'ITERATION ',6x,'=',e11.4)
 100 IF (iter.LT.inr_integer%itmax_inr) THEN
 
        iter=iter+1
@@ -483,8 +483,8 @@ CONTAINS
 
           IF (paral%io_parent)&
                WRITE(6,'(1X,64("*"),/)')
-198       FORMAT(1x,'RESIDUAL=',2x,e10.4,3x,'DEQUAD.=',1x,e10.4,4x,&
-               'DXMAX=',1x,e10.4)
+198       FORMAT(1x,'RESIDUAL=',2x,e11.4,3x,'DEQUAD.=',1x,e11.4,4x,&
+               'DXMAX=',1x,e11.4)
 561       FORMAT(1x,'ITERATION',3x,i3,4x,' ALPHA(',i3,') =',f9.5)
 
        ENDIF
@@ -525,9 +525,9 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
             __LINE__,__FILE__)
     ENDIF
-215 FORMAT(1x,'INR CONVERGED:        CYCLE CHANGE IN ENERGY',3x,e10.4,&
+215 FORMAT(1x,'INR CONVERGED:        CYCLE CHANGE IN ENERGY',3x,e11.4,&
          2x,'A.U.')
-216 FORMAT(1x,'INR DID NOT CONVERGE: CYCLE CHANGE IN ENERGY',3x,e10.4,&
+216 FORMAT(1x,'INR DID NOT CONVERGE: CYCLE CHANGE IN ENERGY',3x,e11.4,&
          2x,'A.U.')
 
     IF (paral%parent) DEALLOCATE(ypar,STAT=ierr)
@@ -765,7 +765,7 @@ CONTAINS
     ENDDO
     IF (paral%io_parent)&
          WRITE(6,198) (SUM(k),k=1,3)
-198 FORMAT(1x,'COM',3x,'DX=  ',e10.4,8x,'DY= ',e10.4,7x,'DZ= ',e10.4)
+198 FORMAT(1x,'COM',3x,'DX=  ',e11.4,8x,'DY= ',e11.4,7x,'DZ= ',e11.4)
 
     RETURN
   END SUBROUTINE delta_rcm

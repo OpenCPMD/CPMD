@@ -1,16 +1,21 @@
 #include "cpmd_global.h"
 
 MODULE fnonloc_utils
+  USE beta_utils,                      ONLY: build_beta
   USE cp_grp_utils,                    ONLY: cp_grp_get_sizes,&
                                              cp_grp_redist
-  USE cppt,                            ONLY: twnl
+  USE cppt,                            ONLY: twnl,twnl_nghtol
   USE cvan,                            ONLY: deeq,&
-                                             dvan
+                                             dvan,&
+                                             deeq_fnl_hfx
+  USE elct,                            ONLY: crge
   USE ener,                            ONLY: ener_d
   USE error_handling,                  ONLY: stopgm
   USE ions,                            ONLY: ions0,&
                                              ions1
-  USE kinds,                           ONLY: real_8
+  USE kinds,                           ONLY: real_8,&
+                                             int_4,&
+                                             int_8
   USE kpnt,                            ONLY: eigkr
   USE kpts,                            ONLY: tkpts
   USE mp_interface,                    ONLY: mp_sum
@@ -24,6 +29,7 @@ MODULE fnonloc_utils
   USE reshaper,                        ONLY: reshape_inplace
   USE sfac,                            ONLY: eigr,&
                                              fnl,&
+                                             fnla, &
                                              fnl2
   USE sgpp,                            ONLY: sgpp1,&
                                              sgpp2
@@ -40,15 +46,18 @@ MODULE fnonloc_utils
   USE timer,                           ONLY: tihalt,&
                                              tiset
   USE zeroing_utils,                   ONLY: zeroing
+#ifdef _USE_SCRATCHLIBRARY
+  USE scratch_interface,               ONLY: request_scratch,&
+                                             free_scratch
+#endif
 
   IMPLICIT NONE
 
   PRIVATE
 
   PUBLIC :: fnonloc
-  PUBLIC :: give_scr_fnonloc
   !public :: fcasnl
-
+  PUBLIC :: fnonloc_hfx
 CONTAINS
 
   ! ==================================================================
@@ -133,9 +142,6 @@ CONTAINS
 #if defined(__ES)
              !$omp parallel do private(I,IA,JV,LSPIN,ISA,IAA)
 #endif
-#ifdef __SR8000
-             !poption parallel, tlocal(I,IA,JV,LSPIN,ISA,IAA)
-#endif 
              DO i=1,nstate
                 IF (cntl%tlsd.AND.ispin.EQ.2) THEN
                    IF (i.LE.spin_mod%nsup) THEN
@@ -167,18 +173,15 @@ CONTAINS
              IF (cntl%tfdist) CALL mp_sum(ddia,imagp*maxsys%nax*nstate,parai%allgrp)
              IF (NGWK_local.GT.0) THEN
                 IF (tkpts%tkpnt) THEN
-                   CALL zgemm("N","N",NGWK_local,nstate,ions0%na(is),zone,&
+                   CALL cpmd_zgemm("N","N",NGWK_local,nstate,ions0%na(is),zone,&
                         eigkr(ibeg_c0,isa0+1,ikind),nkpt%ngwk,ddki(1,1,1),&
                         maxsys%nax,zzero,auxc,nkpt%ngwk)
                 ELSE
-                   CALL dgemm("N","N",2*NGW_local,nstate,ions0%na(is),1._real_8,&
+                   CALL cpmd_dgemm("N","N",2*NGW_local,nstate,ions0%na(is),1._real_8,&
                         eigr(ibeg_c0,isa0+1,1),2*ncpw%ngw,ddia(1,1),maxsys%nax,0._real_8,&
                         auxc,2*ncpw%ngw)
                 ENDIF
                 !$omp parallel do private(I,IG,FFI,CTM,T1,TR,TI)
-#ifdef __SR8000
-                !poption parallel, tlocal(I,IG,FFI,CTM,T1,TR,TI)
-#endif 
                 DO i=1,nstate
                    ffi=f(i)
                    IF (ffi.LT.1.e-5_real_8) ffi=1.0_real_8
@@ -221,9 +224,6 @@ CONTAINS
                 IF (l.EQ.l2.AND.li.EQ.lj) THEN
                    kj=sgpp2%lfval(jv,is)
                    !$omp parallel do private(I,IA,ISA,IAA)
-#ifdef __SR8000
-                   !poption parallel, tlocal(I,IA,ISA,IAA)
-#endif 
                    DO i=1,nstate
 #ifdef _vpp_
                       !OCL NOALIAS 
@@ -263,18 +263,15 @@ CONTAINS
              IF (NGWK_local.GT.0) THEN
                 ! vw here we can build only the submatrix
                 IF (tkpts%tkpnt) THEN
-                   CALL zgemm("N","N",NGWK_local,nstate,ions0%na(is),zone,&
+                   CALL cpmd_zgemm("N","N",NGWK_local,nstate,ions0%na(is),zone,&
                         eigkr(ibeg_c0,isa0+1,ikind),nkpt%ngwk,ddki(1,1,1),&
                         maxsys%nax,zzero,auxc,nkpt%ngwk)
                 ELSE
-                   CALL dgemm("N","N",2*NGW_local,nstate,ions0%na(is),1._real_8,&
+                   CALL cpmd_dgemm("N","N",2*NGW_local,nstate,ions0%na(is),1._real_8,&
                         eigr(ibeg_c0,isa0+1,1),2*ncpw%ngw,ddia(1,1),maxsys%nax,0._real_8,&
                         auxc,2*ncpw%ngw)
                 ENDIF
                 !$omp parallel do private(I,IG,FFI,CTM,T1,TR,TI)
-#ifdef __SR8000
-                !poption parallel, tlocal(I,IG,FFI,CTM,T1,TR,TI)
-#endif 
                 DO i=1,nstate
                    ffi=f(i)
                    IF (ffi.LT.1.e-5_real_8) ffi=1.0_real_8
@@ -326,18 +323,15 @@ CONTAINS
              ENDIF
              IF (NGWK_local.GT.0) THEN
                 IF (tkpts%tkpnt) THEN
-                   CALL zgemm('N','N',NGWK_local,nstate,ions0%na(is),zone,&
+                   CALL cpmd_zgemm('N','N',NGWK_local,nstate,ions0%na(is),zone,&
                         eigkr(ibeg_c0,isa0+1,ikind),nkpt%ngwk,ddia,maxsys%nax,&
                         zzero,auxc,nkpt%ngwk)
                 ELSE
-                   CALL dgemm('N','N',2*NGW_local,nstate,ions0%na(is),1._real_8,&
+                   CALL cpmd_dgemm('N','N',2*NGW_local,nstate,ions0%na(is),1._real_8,&
                         eigr(ibeg_c0,isa0+1,1),2*ncpw%ngw,ddia,maxsys%nax,0.0_real_8,&
                         auxc,2*ncpw%ngw)
                 ENDIF
                 !$omp parallel do private(I,IG,CTM,FFI,T)
-#ifdef __SR8000
-                !poption parallel, tlocal(I,IG,CTM,FFI,T)
-#endif 
                 DO i=1,nstate
                    ctm=(0.0_real_8,-1.0_real_8)**nghtol(iv,is)
                    ffi=f(i)
@@ -395,17 +389,6 @@ CONTAINS
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
   END SUBROUTINE fnonloc
-  ! ==================================================================
-  SUBROUTINE give_scr_fnonloc(il_auxc,il_ddia,nstate)
-    ! ==--------------------------------------------------------------==
-    INTEGER                                  :: il_auxc, il_ddia, nstate
-
-! ==--------------------------------------------------------------==
-
-    il_auxc=2*nkpt%ngwk*nstate+2
-    il_ddia=2*maxsys%nax*nstate+2
-    ! ==--------------------------------------------------------------==
-  END SUBROUTINE give_scr_fnonloc
   ! ==================================================================
   SUBROUTINE fcasnl(c2,auxc,ddia)
     ! ==--------------------------------------------------------------==
@@ -642,5 +625,168 @@ CONTAINS
     ! ==--------------------------------------------------------------==
   END SUBROUTINE fcasnl
   ! ==================================================================
+
+
+  ! ==================================================================
+  SUBROUTINE fnonloc_hfx(c2,nstate)
+    ! ==--------------------------------------------------------------==
+    ! == CALCULATES THE NON-LOCAL PP CONTRIBUTION OF THE HAMILTONIAN  ==
+    ! ==--------------------------------------------------------------==
+    ! == INPUT/OUPUT:                                                 ==
+    ! ==   C2(NGWK,NSTATE) Wavefunctions, output C2 = C2 + |N.L.PART> ==
+    ! == INPUT:                                                       ==
+    ! ==   NSTATE      Number of states                               ==
+    ! ==   F(1:NSTATE) Occupation numbers                             ==
+    ! ==   IKIND  Index of k point                                    ==
+    ! ==   ISPIN  Need with LSD option for diagonalization scheme     ==
+    ! ==          Does not work with cntl%tdiag (ISPIN=1) and TIVAN        ==
+    ! == SCRATCH                                                      ==
+    ! ==   AUXC(NGWK)                                                 ==
+    ! ==   DDIA(IMAGP*maxsys%nax)                                            ==
+    ! ==--------------------------------------------------------------==
+    INTEGER                                  :: nstate
+    COMPLEX(real_8)                          :: c2(nkpt%ngwk,nstate)
+
+    CHARACTER(*), PARAMETER                  :: procedureN = 'fnonloc_hfx'
+    INTEGER                                  :: i, ierr, is, isa0, isub, &
+                                                ispin, offset_dai, &
+                                                na(2,ions1%nsp)
+    REAL(real_8)                             :: weight
+    INTEGER(int_8)                           :: il_dai(2), il_eiscr(2)
+#ifdef _USE_SCRATCHLIBRARY
+    COMPLEX(real_8),POINTER __CONTIGUOUS &
+                       , ASYNCHRONOUS        :: eiscr(:,:)
+    REAL(real_8),POINTER __CONTIGUOUS &
+                       , ASYNCHRONOUS        :: dai(:,:)
+#else
+    REAL(real_8), ALLOCATABLE &
+                       , ASYNCHRONOUS        :: dai(:,:)
+    COMPLEX(real_8),ALLOCATABLE &
+                       , ASYNCHRONOUS        :: eiscr(:,:)
+#endif
+    ! Variables
+! ==--------------------------------------------------------------==
+! ==--------------------------------------------------------------==
+! == Compute the force on the electronic degrees of freedom due   ==
+! == to the non-local part of the potential, and add it to the    ==
+! == other piece, coming from the local contribution.             ==
+! ==--------------------------------------------------------------==
+
+    IF (nkpt%ngwk.EQ.0 .AND. .NOT.cntl%tfdist) RETURN
+    CALL tiset(procedureN,isub)
+    __NVTX_TIMER_START ( procedureN )
+
+    il_dai(1)=0
+    DO is=1,ions1%nsp
+       IF(pslo_com%tvan(is))THEN
+          il_dai(1)=il_dai(1)+ions0%na(is)*nlps_com%ngh(is)
+          na(1,is)=1
+          na(2,is)=ions0%na(is)
+       ELSE
+          na(1,is)=1
+          na(2,is)=0
+       END IF
+    END DO
+    il_dai(2)=nstate
+    il_eiscr(1)=ncpw%ngw
+    il_eiscr(2)=il_dai(1)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_dai,dai,procedureN//'_dai',ierr)
+#else
+    ALLOCATE(dai(il_dai(1),il_dai(2)), stat=ierr)
+#endif
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate dai',&
+         __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_eiscr,eiscr,procedureN//'_eiscr',ierr)
+#else
+    ALLOCATE(eiscr(il_eiscr(1),il_eiscr(2)), stat=ierr)
+#endif
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate eiscr',&
+         __LINE__,__FILE__)
+      
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+    !$omp& map(to:crge%f(:,1)) &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(i,weight,ispin,offset_dai,isa0,is)
+    DO i=1,nstate
+       !setup spin settings
+       weight=crge%f(i,1)
+       ispin=1
+       IF (cntl%tlsd.AND.i.GT.spin_mod%nsup) ispin=2
+
+       !offset for dai
+       isa0=0
+       offset_dai=1
+       !fill local part of dai
+       DO is=1,ions1%nsp
+          IF(pslo_com%tvan(is))THEN
+             !DIR$ forceinline
+             CALL build_dai_deeq_fnl_hfx(dai(offset_dai:,i),&
+                  isa0,weight,deeq_fnl_hfx(:,:,i),ions0%na(is),nlps_com%ngh(is))
+             offset_dai=offset_dai+nlps_com%ngh(is)*ions0%na(is)
+          END IF
+          isa0=isa0+ions0%na(is)
+       END DO
+    END DO
+    CALL build_beta(na,eigr,eiscr,ncpw%ngw,1,INT(il_eiscr(1),kind=int_4),&
+         twnl_nghtol=twnl_nghtol(:,:,:,1))
+    
+    CALL cpmd_dgemm("N","N",2*ncpw%ngw,nstate,INT(il_dai(1),kind=int_4),1._real_8,&
+         eiscr,2*ncpw%ngw,dai(1,1),INT(il_dai(1),kind=int_4),1._real_8,&
+         c2,2*ncpw%ngw)
+
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_eiscr,eiscr,procedureN//'_eiscr',ierr)
+#else
+    DEALLOCATE(eiscr, stat=ierr)
+#endif
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate eiscr',&
+         __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_dai,dai,procedureN//'_dai',ierr)
+#else
+    DEALLOCATE(dai, stat=ierr)
+#endif
+    IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot deallocate dai',&
+         __LINE__,__FILE__)
+    __NVTX_TIMER_STOP
+    CALL tihalt(procedureN,isub)
+    ! ==--------------------------------------------------------------==
+  END SUBROUTINE fnonloc_hfx
+  ! ==================================================================
+
+  ! ==================================================================
+  !DIR$ ATTRIBUTES FORCEINLINE::build_dai_deeq_fnl_hfx
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  SUBROUTINE build_dai_deeq_fnl_hfx(dai,isa0,weight,deeq_fnl_hfx,na_is,ngh_is)
+#else
+  PURE SUBROUTINE build_dai_deeq_fnl_hfx(dai,isa0,weight,deeq_fnl_hfx,na_is,ngh_is)
+#endif
+    INTEGER,INTENT(IN)                       :: isa0,na_is,ngh_is
+    REAL(real_8),INTENT(IN)                  :: weight
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: deeq_fnl_hfx(:,:)
+    REAL(real_8),INTENT(OUT)                 :: dai(na_is,ngh_is,*)
+    INTEGER                                  :: iv,jv,ia,isa
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp parallel do private(iv,ia,isa) collapse(2)
+#endif
+    DO iv=1,ngh_is
+       DO ia=1,na_is
+          isa=isa0+ia
+          dai(ia,iv,1)=-&
+               weight*deeq_fnl_hfx(isa,iv)
+       END DO
+    END DO
+
+    RETURN
+  END SUBROUTINE build_dai_deeq_fnl_hfx
+  ! ==================================================================
+
+ 
 
 END MODULE fnonloc_utils

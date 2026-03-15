@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE kin_energy_utils
   USE cppt,                            ONLY: hg
   USE dotp_utils,                      ONLY: dotp
@@ -8,6 +10,7 @@ MODULE kin_energy_utils
   USE geq0mod,                         ONLY: geq0
   USE kinds,                           ONLY: real_8
   USE prcp,                            ONLY: prcp_com
+  USE reshaper,                        ONLY: reshape_inplace
   USE special_functions,               ONLY: cp_erf
   USE spin,                            ONLY: clsd,&
                                              lspin2
@@ -31,82 +34,24 @@ CONTAINS
     ! ==  THE KINETIC ENERGY EKIN. IT IS DONE IN RECIPROCAL SPACE     ==
     ! ==  WHERE THE ASSOCIATED OPERATORS ARE DIAGONAL.                ==
     ! ==--------------------------------------------------------------==
-    COMPLEX(real_8)                          :: c0(:,:)
-    INTEGER                                  :: nstate
-    REAL(real_8)                             :: rsum
+    COMPLEX(real_8),INTENT(IN) __CONTIGUOUS  :: c0(:,:)
+    INTEGER,INTENT(IN)                       :: nstate
+    REAL(real_8),INTENT(OUT)                 :: rsum
 
     REAL(real_8), PARAMETER                  :: deltakin = 1.e-10_real_8 
-
-    INTEGER                                  :: i, ig, is1, isub
-    REAL(real_8)                             :: arg, g2, ima, imb, ra, rb, &
-                                                sk1, sk2, xkin, xskin
-
-#if defined(__SR8000)
-    REAL(real_8), ALLOCATABLE :: g2w(:)
-
-    INTEGER, SAVE :: ifirst=0
-#endif
+    REAL(real_8),POINTER __CONTIGUOUS        :: c0_r(:,:)
+    INTEGER                                  :: ig, isub
+    REAL(real_8)                             :: ima, imb, ra, rb, &
+                                                sk1, sk2, xkin
+    CHARACTER(*), PARAMETER                  :: procedureN = 'kin_energy'
     ! ==--------------------------------------------------------------==
-    CALL tiset('KIN_ENERGY',isub)
-    ! ==--------------------------------------------------------------==
-#if defined(__SR8000)
-    IF (ifirst.EQ.0) THEN
-       ALLOCATE(g2w(ngw),STAT=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-            __LINE__,__FILE__)
-       ifirst=1
-    ENDIF
-#endif
+    CALL tiset(procedureN,isub)
     ! ==--------------------------------------------------------------==
     ! Accumulate the charge and kinetic energy
     rsum=0._real_8
     xkin=0._real_8
-    !$omp parallel do private(I,SK1,XSKIN,IS1,ARG,G2,IG) &
-    !$omp  reduction(+:RSUM,XKIN)
-    DO i=1,nstate
-       IF (crge%f(i,1).NE.0._real_8) THEN! TODO check F(I,1) === F(I)
-          rsum=rsum+crge%f(i,1)*dotp(ncpw%ngw,c0(:,i),c0(:,i))
-          sk1=0.0_real_8
-          IF (prcp_com%akin.GT.deltakin) THEN
-             xskin=1._real_8/prcp_com%gskin
-             is1=1
-             IF (geq0) THEN
-                is1=2
-                arg=-prcp_com%gckin*xskin
-                g2=0.5_real_8*prcp_com%gakin*(1._real_8+cp_erf(arg))
-                sk1=sk1+REAL(g2*CONJG(c0(1,i))*c0(1,i))
-             ENDIF
-#if defined(__SR8000)
-             !poption parallel
-             !poption tlocal(ARG)
-             DO ig=is1,ngw
-                arg=(hg(ig)-prcp_com%gckin)*xskin
-                g2w(ig)=hg(ig)+prcp_com%gakin*(1._real_8+cp_erf(arg))
-             ENDDO
-#ifdef __SR8000
-             !poption parallel, tlocal(IG), psum(SK1)
-#endif 
-             DO ig=is1,ngw
-                sk1=sk1+REAL(g2w(ig)*CONJG(c0(ig,i))*c0(ig,i))
-             ENDDO
-#else
-             DO ig=is1,ncpw%ngw
-                arg=(hg(ig)-prcp_com%gckin)*xskin
-                g2=hg(ig)+prcp_com%gakin*(1._real_8+cp_erf(arg))
-                sk1=sk1+REAL(g2*CONJG(c0(ig,i))*c0(ig,i))
-             ENDDO
-#endif
-          ELSE
-#ifdef __SR8000
-             !poption parallel, tlocal(IG), psum(SK1)
-#endif 
-             DO ig=1,ncpw%ngw
-                sk1=sk1+REAL(hg(ig)*CONJG(c0(ig,i))*c0(ig,i))
-             ENDDO
-          ENDIF
-          xkin=xkin+crge%f(i,1)*sk1
-       ENDIF
-    ENDDO
+    CALL reshape_inplace(c0,(/2*ncpw%ngw,nstate/),c0_r)
+    CALL kin_energy_r(c0_r,hg,xkin,rsum,nstate,ncpw%ngw)
     ener_com%ekin=xkin*parm%tpiba2
     ! Other kinetic energies for CAS22 method
     IF (lspin2%tlse .AND. (lspin2%tcas22.OR.lspin2%tpenal)) THEN
@@ -134,10 +79,69 @@ CONTAINS
        ener_c%ekin_2 = ener_com%ekin + parm%tpiba2 * ( sk2 - sk1 )
     ENDIF
     ! 
-    CALL tihalt('KIN_ENERGY',isub)
+    CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE kin_energy
   ! ==================================================================
+  SUBROUTINE kin_energy_r(c0_r,hg,xkin,rsum,nstate,ngw)
+    INTEGER,INTENT(IN)                       :: nstate, ngw
+    REAL(real_8),INTENT(IN)                  :: c0_r(2,ngw,nstate),hg(ngw)
+    REAL(real_8),INTENT(OUT)                 :: rsum,xkin
+    REAL(real_8)                             :: xskin,temp,sk1,arg,g2
+    INTEGER                                  :: is1,ig,i
+    REAL(real_8), PARAMETER                  :: deltakin = 1.e-10_real_8
+    
+    rsum=0.0_real_8
+    xkin=0.0_real_8
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(I,SK1,XSKIN,IS1,ARG,G2,IG,TEMP) &
+    !$omp  reduction(+:RSUM,XKIN)
+    DO i=1,nstate
+       IF (crge%f(i,1).NE.0._real_8) THEN! TODO check F(I,1) === F(I)
 
+          sk1=0.0_real_8
+          temp=0._real_8
+          is1=1
+          IF (prcp_com%akin.GT.deltakin) THEN
+             xskin=1._real_8/prcp_com%gskin
+             IF (geq0) THEN
+                is1=2
+                arg=-prcp_com%gckin*xskin
+                g2=0.5_real_8*prcp_com%gakin*(1._real_8+cp_erf(arg))
+                sk1=sk1+g2*(c0_r(1,1,i)**2+c0_r(2,1,i)**2)
+                temp=c0_r(1,1,i)**2*0.5_real_8
+             ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)             
+             !$omp parallel do reduction(+:temp,sk1)
+#endif
+             DO ig=is1,ngw
+                arg=(hg(ig)-prcp_com%gckin)*xskin
+                g2=hg(ig)+prcp_com%gakin*(1._real_8+cp_erf(arg))
+                sk1=sk1+g2*(c0_r(1,ig,i)**2+c0_r(2,ig,i)**2)
+                temp=temp+c0_r(1,ig,i)**2+c0_r(2,ig,i)**2
+             ENDDO
+          ELSE
+             IF(geq0)THEN
+                temp=c0_r(1,1,i)**2*0.5_real_8
+                is1=2
+             END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)             
+             !$omp parallel do reduction(+:temp,sk1)
+#endif
+             DO ig=is1,ngw
+                sk1=sk1+hg(ig)*(c0_r(1,ig,i)**2+c0_r(2,ig,i)**2)
+                temp=temp+c0_r(1,ig,i)**2+c0_r(2,ig,i)**2
+             ENDDO
+          ENDIF
+          rsum=rsum+temp*crge%f(i,1)*2.0_real_8
+          xkin=xkin+crge%f(i,1)*sk1
+       ENDIF
+    ENDDO
+  END SUBROUTINE kin_energy_r
+  
 END MODULE kin_energy_utils

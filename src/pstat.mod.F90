@@ -14,9 +14,9 @@ MODULE pstat
   ! ==     IPAR_AALL  ALL TO ALL COMM                               ==
   ! ==     IPAR_SYNC  SYNCHRONISATION                               ==
   ! ==--------------------------------------------------------------==
-  INTEGER, PARAMETER :: cmpar=6 
+  INTEGER, PARAMETER :: cmpar=7
   INTEGER, PARAMETER :: ipar_send=1,ipar_cast=2,ipar_gsum=3,ipar_gmul=4,&
-       ipar_aall=5,ipar_sync=6
+       ipar_aall=5,ipar_sync=6,ipar_agav=7
   ! ==--------------------------------------------------------------==
   ! == For each different message passing calls:                    ==
   ! == CMLEN    Total Length of messages                            ==

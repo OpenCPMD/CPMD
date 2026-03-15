@@ -71,8 +71,7 @@ MODULE prbomd_utils
   USE moverho_utils,                   ONLY: give_scr_moverho,&
                                              moverho
   USE mp_interface,                    ONLY: mp_bcast
-  USE newcell_utils,                   ONLY: give_scr_newcell,&
-                                             newcell
+  USE newcell_utils,                   ONLY: newcell
   USE nlcc,                            ONLY: corel
   USE norm,                            ONLY: cnorm,&
                                              gemax,&
@@ -718,7 +717,7 @@ CONTAINS
 
     INTEGER                                  :: lcalc_alm, lcopot, lddipo, &
                                                 lforces_diag, linitrun, &
-                                                lmoverho, lmtd, lnewcell, &
+                                                lmoverho, lmtd, &
                                                 lrhopri, nstate
 
     nstate=crge%n
@@ -733,11 +732,10 @@ CONTAINS
     IF(fint1%ttrot) CALL give_scr_calc_alm(lcalc_alm,tag)
     IF(tmovr) CALL give_scr_moverho(lmoverho,tag)
     CALL give_scr_forces_diag(lforces_diag,tag,nstate,.TRUE.)
-    CALL give_scr_newcell(lnewcell,tag)
     CALL give_scr_meta_extlagr(lmtd,tag)
     IF(rout1%rhoout) CALL give_scr_rhopri(lrhopri,tag,nstate)
     IF(vdwl%vdwd) CALL give_scr_ddipo(lddipo,tag)
-    lprbomd=MAX(linitrun,lcopot,lcalc_alm,lmoverho,lforces_diag,lnewcell,&
+    lprbomd=MAX(linitrun,lcopot,lcalc_alm,lmoverho,lforces_diag,&
          lmtd,lrhopri,lddipo)
     ! ==--------------------------------------------------------------==
     RETURN

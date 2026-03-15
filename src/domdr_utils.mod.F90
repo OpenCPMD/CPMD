@@ -22,14 +22,14 @@ USE nlps,                           ONLY: nghtol,&
 USE  parac,                         ONLY: paral,&
                                           parai
 USE pslo,                           ONLY: pslo_com
-USE rnlsm_utils,                    ONLY: give_scr_rnlsm,rnlsm
+USE rnlsm_utils,                    ONLY: rnlsm
 USE sfac,                           ONLY: dfnl,&
                                           eigr,&
                                           ei1,ei2,ei3,eigrb,&
-                                          fnl
+                                          fnl,&
+                                          fnl_packed
 USE spin,                           ONLY: spin_mod
-USE spsi_utils,                     ONLY: spsi,&
-                                          give_scr_spsi
+USE spsi_utils,                     ONLY: spsi
 USE system,                         ONLY: cntl,&
                                           iatpt,&
                                           maxsys,&
@@ -536,7 +536,7 @@ CONTAINS
       CALL rnlsm(sca,hubbu%nuproj,1,1,.false.)
 !
 ! S|phi>
-      CALL spsi(hubbu%nuproj,sca) 
+      CALL spsi(hubbu%nuproj,sca,fnl_packed,redist=.TRUE.)
 !
       CALL FNLDEALLOC(.FALSE.,.FALSE.)
       CALL FNL_SET('RECV')

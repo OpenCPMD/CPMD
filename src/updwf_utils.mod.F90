@@ -1,8 +1,11 @@
+#include "cpmd_global.h"
+
 MODULE updwf_utils
   USE adapttol_utils,                  ONLY: tol_chk_cnvgrad
   USE forcedr_driver,                  ONLY: forcedr
   USE forcedr_utils,                   ONLY: give_scr_forcedr
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE hesele_utils,                    ONLY: hesele
   USE hubbardu,                        ONLY: hubbu
   USE kinds,                           ONLY: real_8
@@ -13,6 +16,7 @@ MODULE updwf_utils
   USE mm_input,                        ONLY: clc
   USE mm_qmmm_forcedr_utils,           ONLY: mm_qmmm_forcedr
   USE norm,                            ONLY: gemax
+  USE odiis_utils,                     ONLY: odiis
   USE ortho_utils,                     ONLY: give_scr_ortho,&
                                              ortho,&
                                              preortho
@@ -52,14 +56,16 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ==               UPDATES THE WAVEFUNCTIONS                      ==
     ! ==--------------------------------------------------------------==
-    COMPLEX(real_8)                          :: c0(:,:), c2(:,:), sc0(:,:)
-    REAL(real_8)                             :: tau0(:,:,:), fion(:,:,:)
-    COMPLEX(real_8)                          :: pme(*), gde(*)
-    REAL(real_8)                             :: vpp(nkpt%ngwk), rhoe(:,:)
-    COMPLEX(real_8)                          :: psi(:,:)
-    INTEGER                                  :: nstate
-    REAL(real_8)                             :: eigv(nstate)
-    LOGICAL                                  :: tfor, update_pot
+    COMPLEX(real_8),INTENT(INOUT) __CONTIGUOUS :: c0(:,:)
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS   :: c2(:,:), sc0(:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS    :: tau0(:,:,:)
+    REAL(real_8),INTENT(OUT) __CONTIGUOUS      :: fion(:,:,:), rhoe(:,:)
+    REAL(real_8),INTENT(OUT)                   :: vpp(nkpt%ngwk)
+    COMPLEX(real_8),INTENT(INOUT)              :: pme(*), gde(*)
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS   :: psi(:,:)
+    INTEGER,INTENT(IN)                         :: nstate
+    REAL(real_8),INTENT(OUT)                   :: eigv(nstate)
+    LOGICAL,INTENT(IN)                         :: tfor, update_pot
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'updwf'
 
@@ -81,12 +87,11 @@ CONTAINS
        CALL mm_dim(mm_go_qm,statusdummy)
     ELSE
        CALL forcedr(c0,c2,sc0,rhoe,psi,tau0,fion,eigv,&
-            nstate,1,.TRUE.,tfor)
+            nstate,1,.TRUE.,tfor,.TRUE.)
        IF (.NOT.tfor) THEN
           CALL zeroing(fion)!,3*maxsys%nax*maxsys%nsx)
        ENDIF
     ENDIF
-
     !
     IF(cntl%thubb) hubbu%tpom=.false. 
     IF (paral%qmnode.AND..NOT.clc%classical)THEN
@@ -98,6 +103,9 @@ CONTAINS
           IF (cntl%diis) THEN
              IF (ropt_mod%sdiis) THEN
                 CALL hesele(dt2bye,vpp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+                !$omp target update to(vpp)
+#endif
              ENDIF
              CALL odiis(c0,c2,vpp,nstate,pme,gde,dt2bye,ropt_mod%sdiis)
              IF (ropt_mod%sdiis) THEN
@@ -139,15 +147,28 @@ CONTAINS
        ! ==  ORTHOGONALIZATION                                           ==
        ! ==--------------------------------------------------------------==
        IF (cntl%nonort) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu  =.FALSE.
+          update_second_to_gpu =.FALSE.
+          update_third_to_gpu  =.FALSE.
+          update_result_to_host=.FALSE.
+          comm_buffers_on_host =.FALSE.
+#endif
           IF (geq0) THEN
              CALL zclean(c0,nstate,ncpw%ngw)
           ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu  =.TRUE.
+          update_second_to_gpu =.TRUE.
+          update_third_to_gpu  =.TRUE.
+          update_result_to_host=.TRUE.
+          comm_buffers_on_host =.TRUE.
+#endif
        ELSE
-          CALL preortho(c0,nstate)
-          IF (pslo_com%tivan) THEN
-             CALL rnlsm(c0,nstate,1,1,.FALSE.)
-          ENDIF
-          CALL ortho(nstate,c0,c2)
+          IF (.NOT.pslo_com%tivan) THEN
+             CALL preortho(c0,nstate)
+             CALL ortho(nstate,c0,c2)
+          END IF
        ENDIF
     ENDIF
     ! ==--------------------------------------------------------------==

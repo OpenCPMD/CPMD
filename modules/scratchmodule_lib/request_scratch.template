@@ -1,0 +1,546 @@
+  SUBROUTINE request_internal_scratch_shape_${suffix}(s, usr_ptr, tagin, ierr)
+    INTEGER( INT64 ), INTENT( IN )              :: s(${dim})
+    ${type}, POINTER, CONTIGUOUS, INTENT( OUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                  :: tagin
+    INTEGER( INT32 ), INTENT( OUT )             :: ierr
+    TYPE( C_PTR )                               :: c_addr
+    CHARACTER( 256 )                            :: tag
+    INTEGER( INT64 )                            :: len_in_char
+    INTEGER( INT64 )                            :: len_in_type
+    CHARACTER, POINTER, CONTIGUOUS              :: char_ptr(:)
+    ${type}, POINTER, CONTIGUOUS                :: type_ptr(:)
+    INTEGER( INT32 ), PARAMETER                 :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = PRODUCT( s )
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(${shape}),STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+    
+    CALL alloc_usr_ptr( char_ptr, pool_int, len_in_char, tag, ierr )
+    c_addr = C_LOC( char_ptr )
+    CALL C_F_POINTER(c_addr, type_ptr, (/len_in_type/))
+    usr_ptr( ${shape} )&
+         => type_ptr
+    NULLIFY( type_ptr, char_ptr )
+    
+  END SUBROUTINE request_internal_scratch_shape_${suffix}
+  
+  SUBROUTINE request_external_scratch_shape_${suffix}(pool_ext, s, usr_ptr, tagin, ierr)
+    TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
+    INTEGER( INT64 ), INTENT( IN )              :: s(${dim})
+    ${type}, POINTER, CONTIGUOUS, INTENT( OUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                  :: tagin
+    INTEGER( INT32 ), INTENT( OUT )             :: ierr
+    TYPE( C_PTR )                               :: c_addr
+    CHARACTER( 256 )                            :: tag
+    INTEGER( INT64 )                            :: len_in_char
+    INTEGER( INT64 )                            :: len_in_type
+    CHARACTER, POINTER, CONTIGUOUS              :: char_ptr(:)
+    ${type}, POINTER, CONTIGUOUS                :: type_ptr(:)
+    INTEGER( INT32 ), PARAMETER                 :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = PRODUCT( s )
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(${shape}),STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    CALL alloc_usr_ptr( char_ptr, pool_ext, len_in_char, tag, ierr )
+    c_addr = C_LOC( char_ptr )
+    CALL C_F_POINTER(c_addr, type_ptr, (/len_in_type/))
+    usr_ptr( ${shape} )&
+         => type_ptr
+    NULLIFY( type_ptr, char_ptr )
+
+  END SUBROUTINE request_external_scratch_shape_${suffix}
+
+  SUBROUTINE request_internal_scratch_bounds_${suffix}(s, usr_ptr, tagin, ierr)
+    INTEGER( INT64 ), INTENT( IN )              :: s(${dim},2)
+    ${type}, POINTER, CONTIGUOUS, INTENT( OUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                  :: tagin
+    INTEGER( INT32 ), INTENT( OUT )             :: ierr
+    
+    TYPE( C_PTR )                               :: c_addr
+    CHARACTER( 256 )                            :: tag
+    CHARACTER, POINTER, CONTIGUOUS              :: char_ptr(:) => NULL()
+    ${type}, POINTER, CONTIGUOUS                :: type_ptr(:) => NULL()
+    INTEGER( INT64 )                            :: len_in_char
+    INTEGER( INT64 )                            :: len_in_type
+    INTEGER( INT32 )                            :: i
+    INTEGER( INT32 ), PARAMETER                 :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = INT( 1, KIND = INT64 )
+    DO i = 1, ${dim}
+       len_in_type = len_in_type * &
+            ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
+    END DO
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(${bounds}),STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    CALL alloc_usr_ptr( char_ptr, pool_int, len_in_char, tag, ierr )
+    c_addr = C_LOC( char_ptr )
+    CALL C_F_POINTER(c_addr, type_ptr, (/len_in_type/))
+    usr_ptr( ${bounds} )&
+         => type_ptr
+    NULLIFY( type_ptr, char_ptr )
+
+  END SUBROUTINE request_internal_scratch_bounds_${suffix}
+  
+  SUBROUTINE request_external_scratch_bounds_${suffix}(pool_ext, s, usr_ptr, tagin, ierr)
+    TYPE( memory_pool ), INTENT( INOUT )           :: pool_ext
+    INTEGER( INT64 ), INTENT( IN )              :: s(${dim},2)
+    ${type}, POINTER, CONTIGUOUS, INTENT( OUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                  :: tagin
+    INTEGER( INT32 ), INTENT( OUT )             :: ierr
+    
+    TYPE( C_PTR )                               :: c_addr
+    CHARACTER( 256 )                            :: tag
+    CHARACTER, POINTER, CONTIGUOUS              :: char_ptr(:) => NULL()
+    ${type}, POINTER, CONTIGUOUS                :: type_ptr(:) => NULL()
+    INTEGER( INT64 )                            :: len_in_char
+    INTEGER( INT64 )                            :: len_in_type
+    INTEGER( INT32 )                            :: i
+    INTEGER( INT32 ), PARAMETER                 :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = INT( 1, KIND = INT64 )
+    DO i = 1, ${dim}
+       len_in_type = len_in_type * &
+            ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
+    END DO
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(${bounds}),STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    CALL alloc_usr_ptr( char_ptr, pool_ext, len_in_char, tag, ierr )
+    c_addr = C_LOC( char_ptr )
+    CALL C_F_POINTER(c_addr, type_ptr, (/len_in_type/))
+    usr_ptr( ${bounds} )&
+         => type_ptr
+    NULLIFY( type_ptr, char_ptr )
+
+  END SUBROUTINE request_external_scratch_bounds_${suffix}
+
+  SUBROUTINE request_saved_internal_scratch_shape_${suffix}(s, usr_ptr, tagin, ierr)
+    INTEGER( INT64 ), INTENT( IN )              :: s(${dim})
+    ${type}, POINTER, CONTIGUOUS, INTENT( OUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                  :: tagin
+    INTEGER( INT32 ), INTENT( OUT )             :: ierr
+    TYPE( C_PTR )                               :: c_addr
+    CHARACTER( 256 )                            :: tag
+    INTEGER( INT64 )                            :: len_in_char
+    INTEGER( INT64 )                            :: len_in_type
+    CHARACTER, POINTER, CONTIGUOUS              :: char_ptr(:)
+    ${type}, POINTER, CONTIGUOUS                :: type_ptr(:)
+    INTEGER( INT32 ), PARAMETER                 :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = PRODUCT( s )
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(${shape}),STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+    
+    CALL reattach_usr_ptr( char_ptr, pool_int, len_in_char, tag, ierr )
+    c_addr = C_LOC( char_ptr )
+    CALL C_F_POINTER(c_addr, type_ptr, (/len_in_type/))
+    usr_ptr( ${shape} )&
+         => type_ptr
+    NULLIFY( type_ptr, char_ptr )
+    
+  END SUBROUTINE request_saved_internal_scratch_shape_${suffix}
+  
+  SUBROUTINE request_saved_external_scratch_shape_${suffix}(pool_ext, s, usr_ptr, tagin, ierr)
+    TYPE( memory_pool ), INTENT( INOUT )        :: pool_ext
+    INTEGER( INT64 ), INTENT( IN )              :: s(${dim})
+    ${type}, POINTER, CONTIGUOUS, INTENT( OUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                  :: tagin
+    INTEGER( INT32 ), INTENT( OUT )             :: ierr
+    TYPE( C_PTR )                               :: c_addr
+    CHARACTER( 256 )                            :: tag
+    INTEGER( INT64 )                            :: len_in_char
+    INTEGER( INT64 )                            :: len_in_type
+    CHARACTER, POINTER, CONTIGUOUS              :: char_ptr(:)
+    ${type}, POINTER, CONTIGUOUS                :: type_ptr(:)
+    INTEGER( INT32 ), PARAMETER                 :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = PRODUCT( s )
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(${shape}),STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    CALL reattach_usr_ptr( char_ptr, pool_ext, len_in_char, tag, ierr )
+    c_addr = C_LOC( char_ptr )
+    CALL C_F_POINTER(c_addr, type_ptr, (/len_in_type/))
+    usr_ptr( ${shape} )&
+         => type_ptr
+    NULLIFY( type_ptr, char_ptr )
+
+  END SUBROUTINE request_saved_external_scratch_shape_${suffix}
+
+  SUBROUTINE request_saved_internal_scratch_bounds_${suffix}(s, usr_ptr, tagin, ierr)
+    INTEGER( INT64 ), INTENT( IN )              :: s(${dim},2)
+    ${type}, POINTER, CONTIGUOUS, INTENT( OUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                  :: tagin
+    INTEGER( INT32 ), INTENT( OUT )             :: ierr
+    
+    TYPE( C_PTR )                               :: c_addr
+    CHARACTER( 256 )                            :: tag
+    CHARACTER, POINTER, CONTIGUOUS              :: char_ptr(:) => NULL()
+    ${type}, POINTER, CONTIGUOUS                :: type_ptr(:) => NULL()
+    INTEGER( INT64 )                            :: len_in_char
+    INTEGER( INT64 )                            :: len_in_type
+    INTEGER( INT32 )                            :: i
+    INTEGER( INT32 ), PARAMETER                 :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+
+    len_in_type = INT( 1, KIND = INT64 )
+    DO i = 1, ${dim}
+       len_in_type = len_in_type * &
+            ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
+    END DO
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(${bounds}),STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    CALL reattach_usr_ptr( char_ptr, pool_int, len_in_char, tag, ierr )
+    c_addr = C_LOC( char_ptr )
+    CALL C_F_POINTER(c_addr, type_ptr, (/len_in_type/))
+    usr_ptr( ${bounds} )&
+         => type_ptr
+    NULLIFY( type_ptr, char_ptr )
+
+  END SUBROUTINE request_saved_internal_scratch_bounds_${suffix}
+
+  SUBROUTINE request_saved_external_scratch_bounds_${suffix}(pool_ext, s, usr_ptr, tagin, ierr)
+    TYPE( memory_pool ), INTENT( INOUT )        :: pool_ext
+    INTEGER( INT64 ), INTENT( IN )              :: s(${dim},2)
+    ${type}, POINTER, CONTIGUOUS, INTENT( OUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                  :: tagin
+    INTEGER( INT32 ), INTENT( OUT )             :: ierr
+    
+    TYPE( C_PTR )                               :: c_addr
+    CHARACTER( 256 )                            :: tag
+    CHARACTER, POINTER, CONTIGUOUS              :: char_ptr(:) => NULL()
+    ${type}, POINTER, CONTIGUOUS                :: type_ptr(:) => NULL()
+    INTEGER( INT64 )                            :: len_in_char
+    INTEGER( INT64 )                            :: len_in_type
+    INTEGER( INT32 )                            :: i
+    INTEGER( INT32 ), PARAMETER                 :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+
+    len_in_type = INT( 1, KIND = INT64 )
+    DO i = 1, ${dim}
+       len_in_type = len_in_type * &
+            ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
+    END DO
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       ALLOCATE(usr_ptr(${bounds}),STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    CALL reattach_usr_ptr( char_ptr, pool_ext, len_in_char, tag, ierr )
+    c_addr = C_LOC( char_ptr )
+    CALL C_F_POINTER(c_addr, type_ptr, (/len_in_type/))
+    usr_ptr( ${bounds} )&
+         => type_ptr
+    NULLIFY( type_ptr, char_ptr )
+
+  END SUBROUTINE request_saved_external_scratch_bounds_${suffix}
+
+  SUBROUTINE free_internal_scratch_shape_${suffix}(s, usr_ptr, tagin, ierr)
+    INTEGER( INT64 ), INTENT( IN )             :: s(${dim})
+    ${type}, POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                 :: tagin
+    INTEGER( INT32 ), INTENT( OUT )            :: ierr
+
+    TYPE( C_PTR )                              :: c_addr
+    CHARACTER( 256 )                           :: tag
+    INTEGER( INT64 )                           :: len_in_char
+    INTEGER( INT64 )                           :: len_in_type
+    CHARACTER, POINTER, CONTIGUOUS             :: char_ptr(:)
+    INTEGER( INT32 ), PARAMETER                :: type_size_in_char = &
+                                   STORAGE_SIZE( usr_ptr ) / character_storage_size
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = PRODUCT( s )
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    c_addr = C_LOC( usr_ptr )
+    CALL C_F_POINTER(c_addr, char_ptr, (/len_in_char/))
+
+    CALL free_usr_ptr( char_ptr, pool_int, len_in_char, tag, ierr )
+    NULLIFY( char_ptr )
+    
+  END SUBROUTINE free_internal_scratch_shape_${suffix}
+
+  SUBROUTINE free_external_scratch_shape_${suffix}(pool_ext, s, usr_ptr, tagin, ierr)
+    TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
+    INTEGER( INT64 ), INTENT( IN )             :: s(${dim})
+    ${type}, POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                 :: tagin
+    INTEGER( INT32 ), INTENT( OUT )            :: ierr
+
+    TYPE( C_PTR )                              :: c_addr
+    CHARACTER( 256 )                           :: tag
+    INTEGER( INT64 )                           :: len_in_char
+    INTEGER( INT64 )                           :: len_in_type
+    CHARACTER, POINTER, CONTIGUOUS             :: char_ptr(:)
+    INTEGER( INT32 ), PARAMETER                :: type_size_in_char = &
+                                   STORAGE_SIZE( usr_ptr ) / character_storage_size
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = PRODUCT( s )
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    c_addr = C_LOC( usr_ptr )
+    CALL C_F_POINTER(c_addr, char_ptr, (/len_in_char/))
+
+    CALL free_usr_ptr( char_ptr, pool_ext, len_in_char, tag, ierr )
+    NULLIFY( char_ptr )
+    
+  END SUBROUTINE free_external_scratch_shape_${suffix}
+  
+  SUBROUTINE free_internal_scratch_bounds_${suffix}(s, usr_ptr, tagin, ierr)
+    INTEGER( INT64 ), INTENT( IN )             :: s(${dim},2)
+    ${type}, POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                 :: tagin
+    INTEGER( INT32 ), INTENT( OUT )            :: ierr
+    
+    TYPE( C_PTR )                              :: c_addr
+    CHARACTER( 256 )                           :: tag
+    CHARACTER, POINTER, CONTIGUOUS             :: char_ptr(:) => NULL()
+    INTEGER( INT64 )                           :: len_in_char
+    INTEGER( INT64 )                           :: len_in_type
+    INTEGER( INT32 )                            :: i
+    INTEGER( INT32 ), PARAMETER                :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = INT( 1, KIND = INT64 )
+    DO i = 1, ${dim}
+       len_in_type = len_in_type * &
+            ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
+    END DO
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    c_addr = C_LOC( usr_ptr )
+    CALL C_F_POINTER(c_addr, char_ptr, (/len_in_char/))
+    CALL free_usr_ptr( char_ptr, pool_int, len_in_char, tag, ierr )
+    NULLIFY( char_ptr )
+
+  END SUBROUTINE free_internal_scratch_bounds_${suffix}
+  
+  SUBROUTINE free_external_scratch_bounds_${suffix}(pool_ext, s, usr_ptr, tagin, ierr)
+    TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
+    INTEGER( INT64 ), INTENT( IN )             :: s(${dim},2)
+    ${type}, POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                 :: tagin
+    INTEGER( INT32 ), INTENT( OUT )            :: ierr
+
+    TYPE( C_PTR )                              :: c_addr
+    CHARACTER( 256 )                           :: tag
+    CHARACTER, POINTER, CONTIGUOUS             :: char_ptr(:) => NULL()
+    INTEGER( INT64 )                           :: len_in_char
+    INTEGER( INT64 )                           :: len_in_type
+    INTEGER( INT32 )                            :: i
+    INTEGER( INT32 ), PARAMETER                :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = INT( 1, KIND = INT64 )
+    DO i = 1, ${dim}
+       len_in_type = len_in_type * &
+            ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
+    END DO
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    c_addr = C_LOC( usr_ptr )
+    CALL C_F_POINTER(c_addr, char_ptr, (/len_in_char/))
+    CALL free_usr_ptr( char_ptr, pool_ext, len_in_char, tag, ierr )
+    NULLIFY( char_ptr )
+
+  END SUBROUTINE free_external_scratch_bounds_${suffix}
+
+  SUBROUTINE save_internal_scratch_shape_${suffix}(s, usr_ptr, tagin, ierr)
+    INTEGER( INT64 ), INTENT( IN )             :: s(${dim})
+    ${type}, POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                 :: tagin
+    INTEGER( INT32 ), INTENT( OUT )            :: ierr
+
+    TYPE( C_PTR )                              :: c_addr
+    CHARACTER( 256 )                           :: tag
+    INTEGER( INT64 )                           :: len_in_char
+    INTEGER( INT64 )                           :: len_in_type
+    CHARACTER, POINTER, CONTIGUOUS             :: char_ptr(:)
+    INTEGER( INT32 ), PARAMETER                :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = PRODUCT( s )
+    !quick return if len <=0
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    c_addr = C_LOC( usr_ptr )
+    CALL C_F_POINTER(c_addr, char_ptr, (/len_in_char/))
+    CALL detach_usr_ptr( char_ptr, pool_int, len_in_char, tag, ierr )
+    NULLIFY( char_ptr )
+
+  END SUBROUTINE save_internal_scratch_shape_${suffix}
+  
+  SUBROUTINE save_external_scratch_shape_${suffix}(pool_ext, s, usr_ptr, tagin, ierr)
+    TYPE( memory_pool ), INTENT( INOUT )      :: pool_ext
+    INTEGER( INT64 ), INTENT( IN )             :: s(${dim})
+    ${type}, POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                 :: tagin
+    INTEGER( INT32 ), INTENT( OUT )            :: ierr
+
+    TYPE( C_PTR )                              :: c_addr
+    CHARACTER( 256 )                           :: tag
+    INTEGER( INT64 )                           :: len_in_char
+    INTEGER( INT64 )                           :: len_in_type
+    CHARACTER, POINTER, CONTIGUOUS             :: char_ptr(:)
+    INTEGER( INT32 ), PARAMETER                :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = PRODUCT( s )
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    c_addr = C_LOC( usr_ptr )
+    CALL C_F_POINTER(c_addr, char_ptr, (/len_in_char/))
+    CALL detach_usr_ptr( char_ptr, pool_ext, len_in_char, tag, ierr )
+    NULLIFY( char_ptr )
+
+  END SUBROUTINE save_external_scratch_shape_${suffix}
+
+  SUBROUTINE save_internal_scratch_bounds_${suffix}(s, usr_ptr, tagin, ierr)
+    INTEGER( INT64 ), INTENT( IN )             :: s(${dim},2)
+    ${type}, POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                 :: tagin
+    INTEGER( INT32 ), INTENT( OUT )            :: ierr
+
+    TYPE( C_PTR )                              :: c_addr
+    CHARACTER( 256 )                           :: tag
+    CHARACTER, POINTER, CONTIGUOUS             :: char_ptr(:) => NULL()
+    INTEGER( INT64 )                           :: len_in_char
+    INTEGER( INT64 )                           :: len_in_type
+    INTEGER( INT32 )                            :: i
+    INTEGER( INT32 ), PARAMETER                :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = INT( 1, KIND = INT64 )
+    DO i = 1, ${dim}
+       len_in_type = len_in_type * &
+            ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
+    END DO
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    c_addr = C_LOC( usr_ptr )
+    CALL C_F_POINTER(c_addr, char_ptr, (/len_in_char/))
+    CALL detach_usr_ptr( char_ptr, pool_int, len_in_char, tag, ierr )
+    NULLIFY( char_ptr )
+
+  END SUBROUTINE save_internal_scratch_bounds_${suffix}
+  
+  SUBROUTINE save_external_scratch_bounds_${suffix}(pool_ext, s, usr_ptr, tagin, ierr)
+    TYPE( memory_pool ), INTENT( INOUT )       :: pool_ext
+    INTEGER( INT64 ), INTENT( IN )             :: s(${dim},2)
+    ${type}, POINTER, CONTIGUOUS, INTENT( INOUT ) :: usr_ptr${rank}
+    CHARACTER(*), INTENT( IN )                 :: tagin
+    INTEGER( INT32 ), INTENT( OUT )            :: ierr
+
+    TYPE( C_PTR )                              :: c_addr
+    CHARACTER( 256 )                           :: tag
+    CHARACTER, POINTER, CONTIGUOUS             :: char_ptr(:) => NULL()
+    INTEGER( INT64 )                           :: len_in_char
+    INTEGER( INT64 )                           :: len_in_type
+    INTEGER( INT32 )                            :: i
+    INTEGER( INT32 ), PARAMETER                :: type_size_in_char = &
+         STORAGE_SIZE( usr_ptr ) / character_storage_size 
+
+    tag = TRIM( ADJUSTL( tagin ) )
+    len_in_type = INT( 1, KIND = INT64 )
+    DO i = 1, ${dim}
+       len_in_type = len_in_type * &
+            ( ABS( s( i, 2 )  -  s( i, 1 ) ) + INT( 1, KIND = INT64 ) )
+    END DO
+    IF( len_in_type .LE. 0 )THEN
+       DEALLOCATE(usr_ptr,STAT=ierr)
+       RETURN
+    END IF
+    len_in_char = len_in_type * type_size_in_char
+
+    c_addr = C_LOC( usr_ptr )
+    CALL C_F_POINTER(c_addr, char_ptr, (/len_in_char/))
+    CALL detach_usr_ptr( char_ptr, pool_ext, len_in_char, tag, ierr )
+    NULLIFY( char_ptr )
+
+  END SUBROUTINE save_external_scratch_bounds_${suffix}

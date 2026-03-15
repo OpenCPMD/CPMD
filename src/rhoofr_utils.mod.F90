@@ -1,7 +1,6 @@
 #include "cpmd_global.h"
 
 MODULE rhoofr_utils
-  USE augchg_utils,                    ONLY: augchg
   USE cnst,                            ONLY: uimag
   USE cp_cuda_types,                   ONLY: cp_cuda_env
   USE cp_cudensity_utils,              ONLY: cp_cubuild_density_copy_to_host,&
@@ -32,7 +31,8 @@ MODULE rhoofr_utils
                                              CuUser_setpsi_2_states_g
   USE density_utils,                   ONLY: build_density_imag,&
                                              build_density_real,&
-                                             build_density_sum
+                                             build_density_sum,&
+                                             build_density_sum_batch
   USE dg,                              ONLY: ipooldg,&
                                              tdgcomm
   USE elct,                            ONLY: crge
@@ -45,15 +45,34 @@ MODULE rhoofr_utils
                                              lr1s,&
                                              lr2s,&
                                              lr3s,&
-                                             nzff
+                                             nzff,&
+                                             msrays,&
+                                             fft_total,&
+                                             fft_batchsize,&
+                                             fft_residual,&
+                                             fft_numbatches,&
+                                             fft_tune_num_it,&
+                                             fft_time_total,&
+                                             wfn_g,&
+                                             wfn_r,&
+                                             xf,&
+                                             yf,&
+                                             NZFS,&
+                                             INZS,&
+                                             locks_inv
   USE fftmain_utils,                   ONLY: fwfftn,&
-                                             invfftn
+                                             invfftn,&
+                                             invfftn_batch
   USE fftnew_utils,                    ONLY: setfftn
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE ions,                            ONLY: ions0,&
                                              ions1
   USE kin_energy_utils,                ONLY: kin_energy
-  USE kinds,                           ONLY: real_8
+  USE kinds,                           ONLY: real_8,&
+                                             int_8
+  USE fft_maxfft,                      ONLY: maxfft
+  USE machine,                         ONLY: m_walltime
   USE moverho_utils,                   ONLY: give_scr_moverho,&
                                              moverho
   USE mp_interface,                    ONLY: mp_comm_dup,&
@@ -65,9 +84,9 @@ MODULE rhoofr_utils
   USE part_1d,                         ONLY: part_1d_get_el_in_blk,&
                                              part_1d_nbr_el_in_blk
   USE pslo,                            ONLY: pslo_com
+  USE reshaper,                        ONLY: reshape_inplace
   USE rho1ofr_utils,                   ONLY: rhoabofr
-  USE rhov_utils,                      ONLY: give_scr_rhov,&
-                                             rhov
+  USE rhov_utils,                      ONLY: rhov
   USE ropt,                            ONLY: ropt_mod
   USE rswfmod,                         ONLY: maxstates,&
                                              rsactive,&
@@ -77,7 +96,8 @@ MODULE rhoofr_utils
                                              lspin2,&
                                              spin_mod
   USE state_utils,                     ONLY: set_psi_1_state_g,&
-                                             set_psi_2_states_g
+                                             set_psi_2_states_g,&
+                                             set_psi_batch_g
   USE symm,                            ONLY: symmi
   USE symtrz_utils,                    ONLY: give_scr_symrho
   USE system,                          ONLY: cntl,&
@@ -105,15 +125,25 @@ MODULE rhoofr_utils
   !$ USE omp_lib, ONLY: omp_get_max_active_levels, omp_get_nested, &
   !$                    omp_set_max_active_levels, omp_set_nested
 #endif
-
+  use machine, only: m_walltime
   USE nvtx_utils
-
+#ifdef _USE_SCRATCHLIBRARY
+  USE scratch_interface,               ONLY: request_scratch,&
+                                             free_scratch
+#endif
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
+#ifdef _INTEL_MKL
+  use mkl_service
+#endif
+  
   IMPLICIT NONE
 
   PRIVATE
 
   PUBLIC :: rhoofr
-  PUBLIC :: give_scr_rhoofr
+  PUBLIC :: rhoofr_batchfft
   !public :: movepsih
 
 CONTAINS
@@ -131,10 +161,12 @@ CONTAINS
     ! == WARNING: ALL WAVEFUNCTIONS C0 HAVE TO BE ORTHOGONAL          ==
     ! ==--------------------------------------------------------------==
 
-    COMPLEX(real_8)                          :: c0(:,:)
-    REAL(real_8), TARGET __CONTIGUOUS        :: rhoe(:,:)
-    COMPLEX(real_8), TARGET __CONTIGUOUS     :: psi(:)
-    INTEGER                                  :: nstate
+    COMPLEX(real_8),INTENT(IN) __CONTIGUOUS  :: c0(:,:)
+    REAL(real_8),TARGET,INTENT(OUT)&
+         __CONTIGUOUS                        :: rhoe(:,:)
+    COMPLEX(real_8),TARGET,INTENT(OUT)&
+         __CONTIGUOUS                        :: psi(:)
+    INTEGER,INTENT(IN)                       :: nstate
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'rhoofr'
     COMPLEX(real_8), PARAMETER               :: zone = (1.0_real_8,0.0_real_8)
@@ -145,9 +177,16 @@ CONTAINS
       POINTER __CONTIGUOUS                   :: psi_p
     COMPLEX(real_8), DIMENSION(:, :), &
       POINTER __CONTIGUOUS                   :: psis
+#ifdef __PARALLEL
+    INTEGER :: device_idx, i, i_stream, ia, iat, ierr, ir, is, is1, &
+      is2, ispin1, ispin2, isub, isub2, isub3, isub4, iwf, n_max_threads, &
+      n_nested_threads, n_streams_per_task, stream_idx, nstates(2,1)
+    type(MPI_COMM)                           :: fft_comm
+#else
     INTEGER :: device_idx, fft_comm, i, i_stream, ia, iat, ierr, ir, is, is1, &
       is2, ispin1, ispin2, isub, isub2, isub3, isub4, iwf, n_max_threads, &
-      n_nested_threads, n_streams_per_task, stream_idx
+      n_nested_threads, n_streams_per_task, stream_idx, nstates(2,1)
+#endif
     LOGICAL                                  :: copy_data_to_device, &
                                                 copy_data_to_host, tfcal
     REAL(real_8)                             :: chksum, coef3, coef4, ral, &
@@ -498,21 +537,27 @@ CONTAINS
     IF (pslo_com%tivan) THEN
        IF (cntl%tlsd) THEN
           ! ALPHA SPIN
-          CALL rhov(nstate,1,spin_mod%nsup,rsumv,psi)
+          nstates(1,1)=1
+          nstates(2,1)=spin_mod%nsup
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
           rsum=rsum+parm%omega*rsumv
           !$omp parallel do private(I)
           DO i=1,fpar%nnr1
              rhoe(i,1)=rhoe(i,1)+REAL(psi(i))
           ENDDO
           ! BETA SPIN
-          CALL rhov(nstate,spin_mod%nsup+1,nstate,rsumv,psi)
+          nstates(1,1)=spin_mod%nsup+1
+          nstates(2,1)=spin_mod%nsup+spin_mod%nsdown
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
           rsum=rsum+parm%omega*rsumv
           !$omp parallel do private(I)
           DO i=1,fpar%nnr1
              rhoe(i,2)=rhoe(i,2)+REAL(psi(i))
           ENDDO
        ELSE
-          CALL rhov(nstate,1,nstate,rsumv,psi)
+          nstates(1,1)=1
+          nstates(2,1)=nstate
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
           rsum=rsum+parm%omega*rsumv
           !$omp parallel do private(I)
           DO i=1,fpar%nnr1
@@ -520,25 +565,9 @@ CONTAINS
           ENDDO
        ENDIF
        ! Vanderbilt Charges
-       IF (paral%parent) THEN
-          ALLOCATE(qa(ions1%nat),STAT=ierr)
-          IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
-               __LINE__,__FILE__)
-          CALL zeroing(qa)!,ions1%nat)
-          CALL augchg(fnl,crge%f,qa,nstate)
-          iat=0
-          DO is=1,ions1%nsp
-             chrg%vdbchg(is)=0._real_8
-             DO ia=1,ions0%na(is)
-                iat=iat+1
-                chrg%vdbchg(is)=chrg%vdbchg(is)+qa(iat)
-             ENDDO
-             chrg%vdbchg(is)=chrg%vdbchg(is)/REAL(ions0%na(is),kind=real_8)
-          ENDDO
-          DEALLOCATE(qa,STAT=ierr)
-          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-               __LINE__,__FILE__)
-       ENDIF
+       !TK This part here is meaningless, only calculated to print at the very first and very last step
+       !VDB Charges are calculated in rhov and newd
+       !optimized and parallelized routine: calc_rho
     ENDIF
 
     ! ALPHA+BETA DENSITY IN RHOE(*,1), BETA DENSITY IN RHOE(*,2)
@@ -605,12 +634,8 @@ CONTAINS
     ! RSUM1=DASUM(NNR1,RHOE(1,1),1)
     ! --> with VDB PP RHOE might be negative in some points
     rsum1=0._real_8
-#if defined(__SR8000)
-    !poption parallel, tlocal(I), psum(RSUM1)
-#else
     !$omp parallel do private(I) shared(fpar,RHOE) &
     !$omp  reduction(+:RSUM1)
-#endif
     DO i=1,fpar%nnr1
        rsum1=rsum1+rhoe(i,1)
     ENDDO
@@ -643,29 +668,6 @@ CONTAINS
     RETURN
   END SUBROUTINE rhoofr
 
-  ! ==================================================================
-  SUBROUTINE give_scr_rhoofr(lrhoofr,tag)
-    ! ==--------------------------------------------------------------==
-    INTEGER                                  :: lrhoofr
-    CHARACTER(len=30)                        :: tag
-
-    INTEGER                                  :: ldg, lmoverho, lrhov, lsymrho
-
-    ldg=0
-    IF (tdgcomm%tdg) ldg=2*ncpw%nhg*clsd%nlsd+100
-    lmoverho=0
-    IF (pslo_com%tivan) THEN ! RHOOFR and RHOOFR_C
-       CALL give_scr_rhov(lrhov,tag)
-       lrhoofr=MAX(ions1%nat,lrhov)! AUGCHG
-    ELSE
-       lrhoofr=0
-    ENDIF
-    CALL give_scr_symrho(lsymrho,tag)
-    IF (ropt_mod%modens) CALL give_scr_moverho(lmoverho,tag)
-    lrhoofr=MAX(lrhoofr,lsymrho,lmoverho)
-    ! ==--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE give_scr_rhoofr
   ! ==================================================================
   SUBROUTINE movepsih(a,itask)
     COMPLEX(real_8)                          :: a(:)
@@ -746,5 +748,569 @@ CONTAINS
     RETURN
   END SUBROUTINE movepsih
   ! ==================================================================
+
+
+  ! ==================================================================
+  SUBROUTINE rhoofr_batchfft(c0,rhoe,psi,nstate)
+    ! ==--------------------------------------------------------------==
+    ! ==                        COMPUTES                              ==
+    ! ==  THE NORMALIZED ELECTRON DENSITY RHOE IN REAL SPACE          ==
+    ! ==  THE KINETIC ENERGY EKIN. IT IS DONE IN RECIPROCAL SPACE     ==
+    ! ==  WHERE THE ASSOCIATED OPERATORS ARE DIAGONAL.                ==
+    ! ==  RHOE IS OBTAINED FOURIER TRANSFORMING THE WFN TO REAL       ==
+    ! ==  SPACE (PSI).                                                ==
+    ! ==--------------------------------------------------------------==
+    ! == WARNING: ALL WAVEFUNCTIONS C0 HAVE TO BE ORTHOGONAL          ==
+    ! ==--------------------------------------------------------------==
+    ! Modified: Tobias Kloeffel, Erlangen
+    ! Date May 2019
+    ! special version of rhoofr to use the batch fft driver
+    ! TODO
+    ! move communication phase into vpsi:
+    ! benefits: reduces memory footprint as only two batches are needed
+    ! in memory; expands the time for the communication phase as also
+    ! the decobination phase of the wf's can take place during
+    ! communication phse
+    ! cons: code complexity will increase, e.g. calling alltoall from here?
+    ! Full performance only with saved arrays or scratch_library
+
+    COMPLEX(real_8) __CONTIGUOUS             :: c0(:,:)
+    REAL(real_8), TARGET __CONTIGUOUS        :: rhoe(:,:)
+    INTEGER                                  :: nstate
+    COMPLEX(real_8), TARGET __CONTIGUOUS     :: psi(:)
+
+    CHARACTER(*), PARAMETER                  :: procedureN = 'rhoofr_batchfft'
+    COMPLEX(real_8), PARAMETER               :: zone = (1.0_real_8,0.0_real_8)
+    COMPLEX(real_8), POINTER __CONTIGUOUS &
+                           , ASYNCHRONOUS    :: wfn_r1(:)
+    REAL(real_8), POINTER __CONTIGUOUS       :: rhoe_p(:,:,:)
+    REAL(real_8), PARAMETER                  :: delta = 1.e-6_real_8, &
+                                                o3 = 0.33333333333333333_real_8
+
+    INTEGER                                  :: i, ierr, ir, is1, is2, iwf, &
+                                                ibatch, isub, isub3, isub4, bsize, &
+                                                first_state, offset_state, nstates(2,1), &
+                                                i_start1, i_start2, i_start3,  me_grp, n_grp, &
+                                                nthreads, nested_threads, methread, count, &
+                                                swap,  int_mod, start_loop, end_loop
+    INTEGER(int_8)                           :: il_wfng(2), il_wfnr(2), il_xf(2)
+    REAL(real_8)                             :: chksum, ral, rbe, rsp, rsum, rsum1, &
+                                                rsum1abs, rsumv, rto, temp(4), inv_omega, temp_time
+    REAL(real_8), ALLOCATABLE                :: coef4(:), coef3(:)
+!    REAL(real_8)                            :: coef4(fft_batchsize), coef3(fft_batchsize)
+    INTEGER, ALLOCATABLE                     :: ispin(:,:)
+!    INTEGER                      :: ispin(2,fft_batchsize)
+
+    IF(cntl%fft_tune_batchsize) THEN
+       CALL tiset(procedureN//'_tuning',isub4)
+    ELSE
+       CALL tiset(procedureN,isub)
+    END IF
+    ! ==--------------------------------------------------------------==
+    CALL kin_energy(c0,nstate,rsum)
+    ! ==--------------------------------------------------------------==
+    ! CASPUR 2/5/04
+    ! Initialize FFT datastructure
+    IF (group%nogrp.GT.1)CALL stopgm(procedureN,&
+         'OLD TASK GROUPS NOT SUPPORTED ANYMORE ',&
+         __LINE__,__FILE__)
+
+    IF (tdgcomm%tdg) CALL stopgm(procedureN,&
+            'TDG IS NOT YET IMPLEMENTED ',&
+            __LINE__,__FILE__)
+    CALL setfftn(0)
+    ! ==--------------------------------------------------------------==
+
+    ! Initialize
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do collapse(2)
+    do is2=1,clsd%nlsd
+       do is1=1,fpar%nnr1
+          rhoe(is1,is2)=cmplx(0.0_real_8,0.0_real_8)
+       end do
+    end do
+#else
+    CALL zeroing(rhoe)!,clsd%nlsd*nnr1)
+#endif
+
+    CALL reshape_inplace(rhoe, (/fpar%kr1*fpar%kr2s,fpar%kr3s,clsd%nlsd/), rhoe_p)
+
+
+    !$ ALLOCATE(locks_inv(fft_numbatches+1,2),STAT=ierr)
+    !$ IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
+    !$      __LINE__,__FILE__)
+
+    ALLOCATE(coef3(fft_batchsize),STAT=ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
+         __LINE__,__FILE__)
+    ALLOCATE(coef4(fft_batchsize),STAT=ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
+         __LINE__,__FILE__)
+    ALLOCATE(ispin(2,fft_batchsize),STAT=ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
+         __LINE__,__FILE__)
+
+    il_wfng(1)=fpar%kr1s*msrays
+    il_wfng(2)=fft_batchsize
+
+    il_wfnr(1)=fpar%kr1*fpar%kr2s*fpar%kr3s*fft_batchsize
+    IF(il_wfnr(1).EQ.0)il_wfnr(1)=fpar%kr2s*fpar%kr3s*fft_batchsize
+    il_wfnr(1)=il_wfnr(1)+MOD(il_wfnr(1),4)
+    il_wfnr(2)=1
+    IF(rsactive)THEN
+       il_wfnr(2)=fft_numbatches
+       IF(fft_residual.GT.0) il_wfnr(2)=fft_numbatches+1
+    END IF
+    il_xf(1)=fpar%nnr1*fft_batchsize
+    IF(il_xf(1).EQ.0) il_xf(1)=maxfft*fft_batchsize
+    il_xf(1)=il_xf(1)+MOD(il_xf(1),4)
+    il_xf(2)=2
+
+    me_grp=parai%cp_inter_me
+    n_grp=parai%cp_nogrp
+    i_start1=0
+    i_start2=part_1d_get_el_in_blk(1,nstate,me_grp,n_grp)-1
+    i_start3=part_1d_get_el_in_blk(1,nstate,me_grp,n_grp)-1
+    inv_omega=1.0_real_8/parm%omega
+    int_mod=2
+    start_loop=1
+    end_loop=fft_numbatches+2
+
+    IF(cntl%overlapp_comm_comp.AND.fft_numbatches.GT.1)THEN
+       nthreads=MIN(2,parai%ncpus)
+       nested_threads=(MAX(parai%ncpus-1,1))
+#if !defined(_INTEL_MKL)
+       CALL stopgm(procedureN, 'Overlapping communication and computation: Behavior of BLAS &
+            routine inside parallel region not checked',&
+            __LINE__,__FILE__)
+#endif
+    ELSE
+       nthreads=1
+       nested_threads=parai%ncpus
+       int_mod=1
+       start_loop=0
+       end_loop=fft_numbatches+1
+       il_xf(2)=1
+    END IF
+
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_wfnr,wfn_r,'wfn_r',ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'cannot allocate wfn_r', &
+         __LINE__,__FILE__)
+    CALL request_scratch(il_wfng,wfn_g,'wfn_g',ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'cannot allocate wfn_g', &
+         __LINE__,__FILE__)
+    CALL request_scratch(il_xf,xf,procedureN//'_xf',ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'cannot allocate xf', &
+         __LINE__,__FILE__)
+    CALL request_scratch(il_xf,yf,procedureN//'_yf',ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'cannot allocate yf', &
+         __LINE__,__FILE__)
+#else
+    IF(ALLOCATED(wfn_r))THEN
+       IF(SIZE(wfn_r,1).LT.il_wfnr(1).OR.SIZE(wfn_r,2).LT.il_wfnr(2))THEN
+          DEALLOCATE(wfn_r,STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'cannot deallocate wfn_r', &
+               __LINE__,__FILE__)
+       END IF
+    END IF
+    IF(.NOT.ALLOCATED(wfn_r))THEN
+       ALLOCATE(wfn_r(il_wfnr(1),il_wfnr(2)),STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'cannot allocate wfn_r', &
+            __LINE__,__FILE__)
+    END IF
+    IF(ALLOCATED(wfn_g))THEN
+       IF(SIZE(wfn_g,1).LT.il_wfng(1).OR.SIZE(wfn_g,2).LT.il_wfng(2))THEN
+          DEALLOCATE(wfn_g,STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'cannot deallocate wfn_g', &
+               __LINE__,__FILE__)
+       END IF
+    END IF
+    IF(.NOT.ALLOCATED(wfn_g))THEN
+       ALLOCATE(wfn_g(il_wfng(1),il_wfng(2)),STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'cannot allocate wfn_g', &
+            __LINE__,__FILE__)
+    END IF
+#endif
+    ! 
+    IF(.NOT.rsactive) wfn_r1=>wfn_r(:,1)
+    IF(cntl%fft_tune_batchsize) temp_time=m_walltime()
+    methread=0
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    comm_buffers_on_host=.FALSE.
+    update_first_to_gpu=.FALSE.
+    update_result_to_host=.FALSE.
+#endif
+    !$ locks_inv=.TRUE.
+    !$OMP parallel IF(nthreads.EQ.2) num_threads(nthreads) &
+    !$omp private(methread,ibatch,bsize,offset_state,swap,count,is1,is2) &
+    !$omp proc_bind(close)
+    !$ methread = omp_get_thread_num()
+    !$ IF(methread.EQ.1)THEN
+    !$    CALL omp_set_max_active_levels(2)
+    !$    CALL omp_set_num_threads(nested_threads)
+#if defined(_HAS_FFT_FFTW3) && !defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$    CALL dfftw_plan_with_nthreads(nested_threads)
+#endif
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$    CALL mkl_set_dynamic(0)
+    !$    ierr = mkl_set_num_threads_local(nested_threads)
+#endif
+    !$ END IF
+    !$OMP barrier
+    
+    !Loop over batches
+    DO ibatch=1,fft_numbatches+2
+       IF(methread.EQ.1.OR.nthreads.EQ.1)THEN
+          !process batches starting from ibatch .eq. 1 until ibatch .eq. fft_numbatches+1
+          IF(ibatch.LE.fft_numbatches+1)THEN
+             IF(ibatch.LE.fft_numbatches)THEN
+                bsize=fft_batchsize
+             ELSE
+                bsize=fft_residual
+             END IF
+             IF(bsize.NE.0)THEN
+                ! Loop over the electronic states of this batch
+                CALL set_psi_batch_g(c0,wfn_g,int(il_wfng(1)),i_start1,bsize,nstate,me_grp,n_grp)
+                ! ==--------------------------------------------------------------==
+                ! ==  Fourier transform the wave functions to real space.         ==
+                ! ==  In the array PSI was used also the fact that the wave       ==
+                ! ==  functions at Gamma are real, to form a complex array (PSI)  ==
+                ! ==  with the wave functions corresponding to two different      ==
+                ! ==  states (i and i+1) as the real and imaginary part. This     ==
+                ! ==  allows to call the FFT routine 1/2 of the times and save    ==
+                ! ==  time.                                                       ==
+                ! ==  Here we operate on a batch of states, containing 2*bsize    ==
+                ! ==  states. To achive better overlapping of the communication   ==
+                ! ==  and communication phase, we operate on two batches at once  ==
+                ! ==  ist revers to the current batch (rsactive) or is identical  ==
+                ! ==  to swap                                                     ==
+                ! ==--------------------------------------------------------------==
+                swap=mod(ibatch,int_mod)+1
+                CALL invfftn_batch(wfn_g,size(wfn_g),bsize,swap,1,ibatch)
+                i_start1=i_start1+bsize*2
+             END IF
+          END IF
+       END IF
+       IF(methread.EQ.0.OR.nthreads.EQ.1)THEN
+          !process batches starting from ibatch .eq. 1 until ibatch .eq. fft_numbatches+1
+          !communication phase
+          IF(ibatch.LE.fft_numbatches+1)THEN
+             IF(ibatch.LE.fft_numbatches)THEN
+                bsize=fft_batchsize
+             ELSE
+                bsize=fft_residual
+             END IF
+             IF(bsize.NE.0)THEN
+                swap=mod(ibatch,int_mod)+1
+                CALL invfftn_batch(wfn_r,int(il_wfnr(1)),bsize,swap,2,ibatch)
+             END IF
+          END IF
+       END IF
+       IF (methread.EQ.1.OR.nthreads.EQ.1)THEN
+          !process batches starting from ibatch .eq. 2 until ibatch .eq. fft_numbatches+2
+          IF(ibatch.GT.start_loop.AND.ibatch.LE.end_loop)THEN
+             IF (ibatch-start_loop.LE.fft_numbatches)THEN
+                bsize=fft_batchsize
+             ELSE
+                bsize=fft_residual
+             END IF
+             IF(bsize.NE.0)THEN
+                swap=mod(ibatch-start_loop,int_mod)+1
+                IF(rsactive) wfn_r1=>wfn_r(:,ibatch-start_loop)
+                CALL invfftn_batch(wfn_r1,int(il_wfnr(1)),bsize,swap,3,ibatch-start_loop)
+                ! Compute the charge density from the wave functions
+                ! in real space
+                ! Decode fft batch, setup (lsd) spin settings                     
+                offset_state=i_start2
+                ispin=1
+                DO count=1,bsize
+                   is1=offset_state+1
+                   is2=offset_state+2
+                   offset_state=offset_state+2
+                   IF (cntl%tlsd) THEN
+                      IF (is1.GT.spin_mod%nsup) THEN
+                         ispin(1,count)=2
+                      END IF
+                      IF (is2.GT.spin_mod%nsup) THEN
+                         ispin(2,count)=2
+                      END IF
+                   END IF
+                   coef3(count)=crge%f(is1,1)*inv_omega
+                   IF(is2.GT.nstate) THEN
+                      coef4(count)=0.0_real_8
+                   ELSE
+                      coef4(count)=crge%f(is2,1)*inv_omega
+                   END IF
+                END DO
+                CALL build_density_sum_batch(coef3,coef4,wfn_r1,rhoe_p,&
+                     fpar%kr1*fpar%kr2s,bsize,fpar%kr3s,ispin,clsd%nlsd)
+                !some extra loop in case of lse
+                IF (lspin2%tlse) THEN
+                   ispin=1
+                   !search for clsd%ialpha/ibeta
+                   coef3=0.0_real_8
+                   coef4=0.0_real_8
+                   offset_state=i_start2
+                   DO count=1,bsize
+                      is1=offset_state+1
+                      is2=offset_state+2
+                      offset_state=offset_state+2
+                      IF (is1.EQ.clsd%ialpha.OR.is1.EQ.clsd%ibeta) THEN
+                         coef3(count)=crge%f(is1,1)/parm%omega
+                      END IF
+                      IF (is2.EQ.clsd%ialpha.OR.is2.EQ.clsd%ibeta)THEN
+                         coef4(count)=crge%f(is2,1)/parm%omega
+                      END IF
+                      IF (is1.EQ.clsd%ialpha) ispin(1,count)=2
+                      IF (is1.EQ.clsd%ibeta)  ispin(1,count)=3
+                      IF (is2.EQ.clsd%ialpha) ispin(2,count)=2
+                      IF (is2.EQ.clsd%ibeta)  ispin(2,count)=3
+                   END DO
+                   !
+                   IF (SUM(coef3).GT.0.0_real_8.OR.SUM(coef4).GT.0.0_real_8) THEN
+                      CALL build_density_sum_batch(coef3,coef4,wfn_r1,rhoe_p,&
+                           fpar%kr1*fpar%kr2s,bsize,fpar%kr3s,ispin,clsd%nlsd)
+                   END IF
+                END IF
+                i_start2=i_start2+bsize*2
+             END IF
+          END IF
+       END IF
+    END DO                     ! End loop over the electronic states
+
+    !    IF(methread.EQ.0.AND.nthreads.EQ.2)THEN
+    !       !process batches starting from ibatch .eq. 1 until ibatch .eq. fft_numbatches+1
+    !       !communication phase
+    !       CALL invfftn_batch_com(2)
+    !    END IF
+
+    !$ IF (methread.EQ.1) THEN
+    !$    CALL omp_set_max_active_levels(1)
+    !$    CALL omp_set_num_threads(parai%ncpus)
+#if defined(_INTEL_MKL) && !defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$    CALL mkl_set_dynamic(1)
+    !$    ierr = mkl_set_num_threads_local(0)
+#endif
+#if defined(_HAS_FFT_FFTW3) && !defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$    CALL dfftw_plan_with_nthreads(parai%ncpus)
+#endif
+    !$ END IF
+
+    !$omp end parallel
+    IF(cntl%fft_tune_batchsize) fft_time_total(fft_tune_num_it)=m_walltime()-temp_time
+    !$ DEALLOCATE(locks_inv,STAT=ierr)
+    !$ IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+    !$      __LINE__,__FILE__)
+    DEALLOCATE(coef3,STAT=ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+         __LINE__,__FILE__)
+    DEALLOCATE(coef4,STAT=ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+         __LINE__,__FILE__)
+    DEALLOCATE(ispin,STAT=ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+         __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_xf,yf,procedureN//'_yf',ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'cannot deallocate yf', &
+         __LINE__,__FILE__)
+    CALL free_scratch(il_xf,xf,procedureN//'_xf',ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'cannot deallocate xf', &
+         __LINE__,__FILE__)
+    CALL free_scratch(il_wfng,wfn_g,'wfn_g',ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'cannot deallocate wfn_g', &
+         __LINE__,__FILE__)
+#endif
+
+    IF(.NOT.rsactive) THEN
+#ifdef _USE_SCRATCHLIBRARY
+       CALL free_scratch(il_wfnr,wfn_r,'wfn_r',ierr)
+#else
+       DEALLOCATE(wfn_r,STAT=ierr)
+#endif
+       IF(ierr/=0) CALL stopgm(procedureN,'cannot deallocate wfn_r', &
+            __LINE__,__FILE__)
+    END IF
+
+    ! ==--------------------------------------------------------------==
+    ! redistribute RHOE over the groups if needed
+    !
+    IF (parai%cp_nogrp.GT.1) THEN
+       CALL tiset(procedureN//'_grps_b',isub3)
+       CALL cp_grp_redist(rhoe,fpar%nnr1,clsd%nlsd)
+       CALL tihalt(procedureN//'_grps_b',isub3)
+    ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    comm_buffers_on_host=.TRUE.
+    update_first_to_gpu=.TRUE.
+    update_result_to_host=.TRUE.
+#endif
+
+
+    ! MOVE DENSITY ACCORDING TO MOVEMENT OF ATOMS
+    IF (ropt_mod%modens) CALL moverho(rhoe,psi)
+    ! CONTRIBUTION OF THE VANDERBILT PP TO RHOE
+    IF (pslo_com%tivan) THEN
+       IF (cntl%tlsd) THEN
+          ! ALPHA SPIN
+          nstates(1,1)=1
+          nstates(2,1)=spin_mod%nsup
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
+          rsum=rsum+parm%omega*rsumv
+          !$omp parallel do private(I)
+          DO i=1,fpar%nnr1
+             rhoe(i,1)=rhoe(i,1)+REAL(psi(i))
+          ENDDO
+          ! BETA SPIN
+          nstates(1,1)=spin_mod%nsup+1
+          nstates(2,1)=spin_mod%nsup+spin_mod%nsdown
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
+          rsum=rsum+parm%omega*rsumv
+          !$omp parallel do private(I)
+          DO i=1,fpar%nnr1
+             rhoe(i,2)=rhoe(i,2)+REAL(psi(i))
+          ENDDO
+       ELSE
+          nstates(1,1)=1
+          nstates(2,1)=nstate
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
+          rsum=rsum+parm%omega*rsumv
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target teams distribute parallel do &
+#else
+          !$omp parallel do &
+#endif
+          !$omp& private(I)
+          DO i=1,fpar%nnr1
+             rhoe(i,1)=rhoe(i,1)+REAL(psi(i))
+          ENDDO
+       ENDIF
+       ! Vanderbilt Charges
+       !TK This part here is meaningless, only calculated to print at the very first and very last step
+       !VDB Charges are calculated in rhov and newd
+       !optimized and parallelized routine: calc_rho
+    ENDIF
+
+    ! ALPHA+BETA DENSITY IN RHOE(*,1), BETA DENSITY IN RHOE(*,2)
+    chrg%csums=0._real_8
+    chrg%csumsabs=0._real_8
+    IF (cntl%tlsd) THEN
+       rsum1=0._real_8
+       rsum1abs=0._real_8
+       !$omp parallel do private(I) shared(fpar,RHOE) &
+       !$omp  reduction(+:RSUM1,RSUM1ABS)
+       DO i=1,fpar%nnr1
+          rsum1 = rsum1 + (rhoe(i,1) - rhoe(i,2))
+          rsum1abs = rsum1abs + ABS(rhoe(i,1) - rhoe(i,2))
+          rhoe(i,1) = rhoe(i,1) + rhoe(i,2)
+       ENDDO
+       chrg%csums=rsum1*parm%omega/REAL(lr1s*lr2s*lr3s,kind=real_8)
+       chrg%csumsabs=rsum1abs*parm%omega/REAL(lr1s*lr2s*lr3s,kind=real_8)
+       ! ALPHA+BETA DENSITY IN RHOE(*,1), BETA DENSITY IN RHOE(*,2) ; M STATE
+       ! ALPHA+BETA DENSITY IN RHOE(*,3), BETA DENSITY IN RHOE(*,4) ; T STATE
+    ELSEIF (lspin2%tlse) THEN
+       IF (lspin2%tcas22) THEN
+          ! Calculate "ground state" density and D-EX DENSITY
+          !$omp parallel do private(I,RTO,RBE,RAL)
+          DO i=1,fpar%nnr1
+             rto=rhoe(i,1)
+             rbe=rhoe(i,2)
+             ral=rhoe(i,3)
+             rhoe(i,6)=rto-rbe+ral
+             rhoe(i,7)=rto+rbe-ral
+          ENDDO
+       ENDIF
+       IF (lspin2%tlsets) THEN
+          !$omp parallel do private(I,RTO,RBE,RAL,RSP)
+          DO i=1,fpar%nnr1
+             rto=rhoe(i,1)
+             rbe=rhoe(i,2)
+             ral=rhoe(i,3)
+             rsp=0.5_real_8*(rto-ral-rbe)
+             rhoe(i,2)=rsp+rbe+o3*ral
+             rhoe(i,3)=rto
+             rhoe(i,4)=rsp+rbe+2._real_8*o3*ral
+          ENDDO
+       ELSE
+          !$omp parallel do private(I,RTO,RBE,RAL,RSP)
+          DO i=1,fpar%nnr1
+             rto=rhoe(i,1)
+             rbe=rhoe(i,2)
+             ral=rhoe(i,3)
+             rsp=0.5_real_8*(rto-ral-rbe)
+             rhoe(i,2)=rsp+rbe
+             rhoe(i,3)=rto
+             rhoe(i,4)=rsp+ral+rbe
+          ENDDO
+       ENDIF
+       IF (lspin2%tross.OR.lspin2%tcas22.OR.lspin2%tpenal) THEN
+          ! WE ALSO NEED THE A*B DENSITY FOR THE EXCHANGE CONTRIBUTION
+          ! OR THE OFF DIAGONAL ELEMENTS IN THE CAS22 METHOD
+          CALL zeroing(rhoe(:,5))!,nnr1)
+          CALL rhoabofr(1,c0(:,clsd%ialpha:clsd%ialpha),c0(:,clsd%ibeta:clsd%ibeta),rhoe(:,5),psi)
+       ENDIF
+    ENDIF
+
+    ! HERE TO CHECK THE INTEGRAL OF THE CHARGE DENSITY
+    ! RSUM1=DASUM(NNR1,RHOE(1,1),1)
+    ! --> with VDB PP RHOE might be negative in some points
+    rsum1=0._real_8
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp&  private(I) shared(fpar,RHOE) reduction(+:RSUM1)
+    DO i=1,fpar%nnr1
+       rsum1=rsum1+rhoe(i,1)
+    ENDDO
+    rsum1=rsum1*parm%omega/REAL(spar%nr1s*spar%nr2s*spar%nr3s,kind=real_8)
+    chrg%csumg=rsum
+    chrg%csumr=rsum1
+
+    temp(1)=chrg%csumg
+    temp(2)=chrg%csumr
+    temp(3)=chrg%csums
+    temp(4)=chrg%csumsabs
+    call mp_sum(temp,4,parai%allgrp)
+    chrg%csumg    = temp(1)
+    chrg%csumr    = temp(2)
+    chrg%csums    = temp(3)
+    chrg%csumsabs = temp(4)
+    
+    IF (paral%parent.AND.ABS(chrg%csumr-chrg%csumg).GT.delta) THEN
+       IF (paral%io_parent)&
+            WRITE(6,'(A,T46,F20.12)') ' IN FOURIER SPACE:', chrg%csumg
+       IF (paral%io_parent)&
+            WRITE(6,'(A,T46,F20.12)') ' IN REAL SPACE:', chrg%csumr
+       IF ((symmi%indpg.NE.0.AND.dual00%cdual.LT.4._real_8).AND.paral%io_parent)&
+            WRITE(6,*) 'YOUR DUAL NUMBER ',dual00%cdual,&
+            ' COULD BE TOO SMALL WITH DENSITY SYMMETRISATION'
+       CALL stopgm(procedureN,'TOTAL DENSITY SUMS ARE NOT EQUAL',&
+            __LINE__,__FILE__)
+    ENDIF
+    ! TAU FUNCTION
+    IF (cntl%ttau) CALL tauofr(c0,psi,nstate)
+    !
+    IF(cntl%fft_tune_batchsize) THEN
+       CALL tihalt(procedureN//'_tuning',isub4)
+    ELSE
+       CALL tihalt(procedureN,isub)
+    END IF
+    ! ==--------------------------------------------------------------==
+    RETURN
+  END SUBROUTINE rhoofr_batchfft
+
+  SUBROUTINE copy(in,out)
+    COMPLEX(real_8), INTENT(IN)              :: in(:)
+    COMPLEX(real_8), INTENT(OUT)             :: out(:)
+
+    !$omp parallel 
+    !$omp workshare
+    out=in
+    !$omp end workshare
+    !$omp end parallel
+  END SUBROUTINE copy
 
 END MODULE rhoofr_utils

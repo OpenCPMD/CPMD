@@ -103,10 +103,6 @@ CONTAINS
        ENDDO
     ENDDO
 #ifdef IS_THREADED
-#ifdef __SR8000
-    !poption parallel, tlocal(IAT,IM)
-    !voption indep(IAT1,III,SCR)
-#endif
     !$omp parallel do private(I,IS,IV,ISA,IAT,IM)
 #endif
     DO i=1,nstate
@@ -124,10 +120,6 @@ CONTAINS
     CALL mp_sum(scr,fnl0,imax,parai%allgrp)
     CALL dcopy(imax,fnl0(1,1,1,1),1,scr,1)
 #ifdef IS_THREADED
-#ifdef __SR8000
-    !poption parallel, tlocal(IAT,IM)
-    !voption indep(IAT1,III,SCR)
-#endif
     !$omp parallel do private(I,IS,IV,ISA,IAT,IM)
 #endif
     DO i=1,nstate
@@ -273,10 +265,17 @@ CONTAINS
   ! ==================================================================
   SUBROUTINE sumfnld(fnlx,isa0,nai,iv,i,ns,nstate,ikk,im,grp)
     ! ==--------------------------------------------------------------==
+#ifdef __PARALLEL
+    USE mpi_f08
+#endif
     INTEGER                                  :: isa0, nai, iv, i, ns, nstate, &
                                                 ikk, im
     REAL(real_8)                             :: fnlx(im,nai,ns)
+#ifdef __PARALLEL
+    type(MPI_COMM)                           :: grp
+#else
     INTEGER                                  :: grp
+#endif
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'sumfnld'
 

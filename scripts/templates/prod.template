@@ -1,11 +1,13 @@
-subroutine mp_prod_${NAME}(data_in,data_out,${ARG_LEN_NAME} comm)
-#ifdef __PARALLEL
-  use mpi
-#endif
+subroutine mp_prod_${NAME}(data_in,data_out,${ARG_LEN_NAME}, comm)
   ! Arguments
-  integer, intent(in) :: ${ARG_LEN_NAME} comm
-  ${TYPE}${KIND}, intent(in) ${DIMENSION} :: data_in
-  ${TYPE}${KIND}, intent(inout) ${DIMENSION} :: data_out
+#ifdef __PARALLEL
+  integer, intent(in) :: ${ARG_LEN_NAME} 
+  type(MPI_COMM), intent(in) :: comm
+#else
+  integer, intent(in) :: ${ARG_LEN_NAME}, comm
+#endif
+  ${TYPE}${KIND}, intent(in), ${DIMENSION} :: data_in
+  ${TYPE}${KIND}, intent(inout), ${DIMENSION} :: data_out
   ! Variables
   character(*),parameter :: procedureN='mp_prod_${NAME}'
 #ifdef __PARALLEL

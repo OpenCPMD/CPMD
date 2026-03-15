@@ -15,12 +15,12 @@ MODULE fft
 
   INTEGER :: naux1,naux2
 
-#if defined(_HAS_CUDA)
-  COMPLEX(real_8), POINTER __CONTIGUOUS :: xf(:,:)
-  COMPLEX(real_8), POINTER __CONTIGUOUS :: yf(:,:)
+#if defined(_HAS_CUDA) || defined(_USE_SCRATCHLIBRARY)
+  COMPLEX(real_8), POINTER __CONTIGUOUS, ASYNCHRONOUS :: xf(:,:)
+  COMPLEX(real_8), POINTER __CONTIGUOUS, ASYNCHRONOUS :: yf(:,:)
 #else
-  COMPLEX(real_8), ALLOCATABLE, TARGET :: xf(:,:)
-  COMPLEX(real_8), ALLOCATABLE, TARGET :: yf(:,:)
+  COMPLEX(real_8), ALLOCATABLE, TARGET, ASYNCHRONOUS :: xf(:,:)
+  COMPLEX(real_8), ALLOCATABLE, TARGET, ASYNCHRONOUS :: yf(:,:)
 #endif
 
   ! ==================================================================
@@ -71,6 +71,18 @@ MODULE fft
   INTEGER, ALLOCATABLE, TARGET :: inzhp(:,:,:)
 
   ! ==================================================================
-
+  ! ==================================================================
+  ! NEW SPARSE BATCH PARALLEL FFT CODE
+  ! ==================================================================
+  INTEGER :: a2a_msgsize, fft_batchsize, fft_numbatches, fft_residual, fft_total, fft_tune_num_it, fft_tune_max_it, fft_min_numbatches
+  LOGICAL :: batch_fft
+#ifdef _USE_SCRATCHLIBRARY
+  COMPLEX(real_8), POINTER, SAVE __CONTIGUOUS, ASYNCHRONOUS   :: wfn_r(:,:),wfn_g(:,:)
+#else
+  COMPLEX(real_8), ALLOCATABLE, SAVE, TARGET, ASYNCHRONOUS  :: wfn_r(:,:),wfn_g(:,:)
+#endif
+  LOGICAL, ALLOCATABLE, ASYNCHRONOUS       :: locks_inv(:,:), locks_fw(:,:)
+  REAL(real_8), ALLOCATABLE                :: fft_time_total(:)
+  INTEGER, ALLOCATABLE                     :: fft_batchsizes(:)
 END MODULE fft
 

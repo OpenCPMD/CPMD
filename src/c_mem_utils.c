@@ -7,7 +7,6 @@ void *cMemPointsToDbl ( double *p, int elemSize, int shift )
 
 size_t cGetMemAddrs ( void *p )
 {
-  size_t *pp = (size_t *) p;
-  return pp;
+  return (size_t) p;
 }
 

@@ -786,8 +786,10 @@ CONTAINS
        ! 
        CALL mp_bcast(prop1%ceig,parai%io_source,parai%cp_grp)
        CALL mp_bcast(condpa%nconduct,parai%io_source,parai%cp_grp)
+       CALL mp_bcast(condpa%iconduct,parai%io_source,parai%cp_grp)
        CALL mp_bcast(condpa%tconduct,parai%io_source,parai%cp_grp)
        CALL mp_bcast(condpa%condstep,parai%io_source,parai%cp_grp)
+       CALL mp_bcast(ipolarise,parai%io_source,parai%cp_grp)
        CALL mp_bcast(tpolarb,parai%io_source,parai%cp_grp)
        CALL mp_bcast(tzeff,parai%io_source,parai%cp_grp)
        ! -ike

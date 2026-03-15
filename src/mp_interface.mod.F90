@@ -5,7 +5,11 @@
 ! ==================================================================
 
 MODULE mp_interface
+  USE, INTRINSIC :: iso_c_binding,     ONLY: c_loc,&
+                                             c_f_pointer,&
+                                             c_ptr
   USE error_handling,                  ONLY: stopgm
+  USE gpu,                             ONLY: comm_buffers_on_host
   USE kinds,                           ONLY: int_1,&
                                              int_4,&
                                              int_8,&
@@ -13,16 +17,24 @@ MODULE mp_interface
                                              real_8
   USE machine,                         ONLY: m_flush,&
                                              m_walltime
-  USE para_global,                     ONLY: para_buff_size,&
-                                             para_stack_buff_size,&
-                                             para_use_mpi_in_place
+  USE para_global,                     ONLY: para_use_mpi_in_place,&
+                                             para_buff,&
+                                             il_para_buff,&
+                                             buff_size_in_bytes
   USE parac,                           ONLY: parai,&
                                              paral
   USE pstat
+  USE reshaper,                        ONLY: reshape_inplace
+#ifdef _USE_SCRATCHLIBRARY
+  USE scratch_interface,               ONLY: request_scratch,&
+                                             free_scratch
+#endif
   USE system,                          ONLY: cnti
   USE zeroing_utils,                   ONLY: zeroing
 
-  !$ USE omp_lib,                        ONLY: omp_in_parallel
+#ifdef __PARALLEL
+    USE mpi_f08
+#endif
 
   IMPLICIT NONE
 
@@ -45,8 +57,10 @@ MODULE mp_interface
   PUBLIC :: mp_sum
   PUBLIC :: mp_prod
   PUBLIC :: mp_max
+  PUBLIC :: mp_min
   PUBLIC :: mp_dims_create
   PUBLIC :: mp_split
+  PUBLIC :: mp_split_type
   PUBLIC :: mp_group
   PUBLIC :: mp_send
   PUBLIC :: mp_recv
@@ -55,6 +69,10 @@ MODULE mp_interface
   PUBLIC :: mp_get_node_env
   PUBLIC :: mp_get_version
   PUBLIC :: mp_get_library_version
+  PUBLIC :: mp_win_alloc_shared_mem
+  PUBLIC :: mp_win_sync
+  PUBLIC :: mp_win_lock_all_shared
+  PUBLIC :: mp_win_unlock_all_shared
   !
   ! interfaces
   !
@@ -197,6 +215,18 @@ MODULE mp_interface
      MODULE PROCEDURE mp_sum_root_complex8_r0
      MODULE PROCEDURE mp_sum_root_complex8_r1
      MODULE PROCEDURE mp_sum_root_complex8_r2
+     MODULE PROCEDURE mp_sum_root_in_place_int4_r1
+     MODULE PROCEDURE mp_sum_root_in_place_int4_r2
+     MODULE PROCEDURE mp_sum_root_in_place_int8_r1
+     MODULE PROCEDURE mp_sum_root_in_place_real8_r1
+     MODULE PROCEDURE mp_sum_root_in_place_real8_r2
+     MODULE PROCEDURE mp_sum_root_in_place_real8_r3
+     MODULE PROCEDURE mp_sum_root_in_place_real8_r4
+     MODULE PROCEDURE mp_sum_root_in_place_real8_r5
+     MODULE PROCEDURE mp_sum_root_in_place_complex8_r1
+     MODULE PROCEDURE mp_sum_root_in_place_complex8_r2
+     MODULE PROCEDURE mp_sum_root_in_place_complex8_r3
+     MODULE PROCEDURE mp_sum_root_in_place_complex8_r4
      MODULE PROCEDURE mp_sum_in_place_int1_r1
      MODULE PROCEDURE mp_sum_in_place_int4_r0
      MODULE PROCEDURE mp_sum_in_place_int4_r1
@@ -219,6 +249,7 @@ MODULE mp_interface
 
   INTERFACE mp_max
      MODULE PROCEDURE mp_max_int4_r0
+     MODULE PROCEDURE mp_max_int8_r0
      MODULE PROCEDURE mp_max_int4_r1
      MODULE PROCEDURE mp_max_real8_r0
      MODULE PROCEDURE mp_max_real8_r1
@@ -226,7 +257,15 @@ MODULE mp_interface
      MODULE PROCEDURE mp_max_complex8_r1
   END INTERFACE mp_max
 
-
+  INTERFACE mp_min
+     MODULE PROCEDURE mp_min_int4_r0
+     MODULE PROCEDURE mp_min_int4_r1
+     MODULE PROCEDURE mp_min_real8_r0
+     MODULE PROCEDURE mp_min_real8_r1
+     MODULE PROCEDURE mp_min_complex8_r0
+     MODULE PROCEDURE mp_min_complex8_r1     
+  END INTERFACE mp_min
+  
   INTERFACE mp_prod
      MODULE PROCEDURE mp_prod_int4_r0
      MODULE PROCEDURE mp_prod_int4_r1
@@ -247,15 +286,29 @@ MODULE mp_interface
 
 
   ! alias for MPI_COMM_WORLD to be used outside this module
+#ifdef __PARALLEL
+  type(MPI_COMM), SAVE, PUBLIC :: mp_comm_world
+#else
   INTEGER, SAVE, PUBLIC :: mp_comm_world
+#endif
   INTEGER, SAVE, PUBLIC :: mp_max_processor_name = HUGE(0)
+#ifdef __PARALLEL
+  type(MPI_COMM), SAVE, PUBLIC :: mp_comm_null
+#else
   INTEGER, SAVE, PUBLIC :: mp_comm_null
+#endif
 
   INTEGER, SAVE, PRIVATE :: mp_int1_in_bytes, mp_int2_in_bytes, mp_int4_in_bytes, mp_int8_in_bytes
   INTEGER, SAVE, PRIVATE :: mp_real_in_bytes, mp_double_in_bytes
   INTEGER, SAVE, PRIVATE :: mp_complex_in_bytes, mp_double_complex_in_bytes
   INTEGER, SAVE, PRIVATE :: mp_char_in_bytes
   INTEGER, SAVE, PRIVATE :: mp_logical_in_bytes
+  !TK, FAU Erlangen Nuernberg, 03.19 shared memory windows
+#ifdef __PARALLEL
+  type(MPI_WIN), SAVE, PRIVATE :: mpi_window(2)
+#else
+  INTEGER, SAVE, PRIVATE :: mpi_window(2)
+#endif
 
 
 CONTAINS
@@ -265,9 +318,6 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! == Initialisation of message passing calls                      ==
     ! ==--------------------------------------------------------------==
-#ifdef __PARALLEL
-    USE mpi
-#endif
     ! Variables
     INTEGER :: i
     INTEGER, PARAMETER :: output_unit       =  6
@@ -302,9 +352,8 @@ CONTAINS
        IF (ierr.NE.0) CALL stopgm('MPI_INIT','IERR.NE.0',& 
             __LINE__,__FILE__)
        ! an external interface has to set mp_comm_world
-       mp_comm_world = MPI_COMM_WORLD
     ENDIF
-    CALL mpi_errhandler_set ( mp_comm_world, MPI_ERRORS_RETURN, ierr )
+    CALL mpi_errhandler_set ( MPI_COMM_WORLD, MPI_ERRORS_RETURN, ierr )
     IF (ierr/=0) CALL stopgm('MPI_INIT','mpi_errhandler_set',&
          __LINE__,__FILE__)
 #else
@@ -317,6 +366,7 @@ CONTAINS
     ENDDO
     CALL mp_set_atomic_type_sizes()
     CALL mp_set_global_consts()
+       mp_comm_world = MPI_COMM_WORLD
   END SUBROUTINE mp_start
 
 
@@ -326,7 +376,6 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! Variables
 #ifdef __PARALLEL
-    USE mpi
     INTEGER :: ierr
 #endif
     CHARACTER(*),PARAMETER::procedureN='mp_end'
@@ -361,6 +410,8 @@ CONTAINS
             cmlen(ipar_gmul)/cmcal(ipar_gmul),cmcal(ipar_gmul)
        WRITE(6,fformat1) ' ALL TO ALL COMM ',&
             cmlen(ipar_aall)/cmcal(ipar_aall),cmcal(ipar_aall)
+       WRITE(6,fformat1) ' ALLGATHERV ',&
+            cmlen(ipar_agav)/cmcal(ipar_agav),cmcal(ipar_agav)
        !   ==------------------------------------------------------------==
        WRITE(6,'(1X,"=",29X,A11,10X,A10,2X,"=")')&
             'PERFORMANCE','TOTAL TIME'
@@ -379,6 +430,9 @@ CONTAINS
        WRITE(6,fformat2) ' ALL TO ALL COMM ',&
             cmlen(ipar_aall)/cmtim(ipar_aall)*1.e-3_real_8,&
             cmtim(ipar_aall)*1.e-3_real_8
+       WRITE(6,fformat2) ' ALLGATHERV ',&
+            cmlen(ipar_agav)/cmtim(ipar_agav)*1.e-3_real_8,&
+            cmtim(ipar_agav)*1.e-3_real_8
        WRITE(6,'(1X,"=",A,17X,A,6X,F10.3,A,2X,"=")')&
             ' SYNCHRONISATION ','      ',cmtim(ipar_sync)*1.e-3_real_8,' SEC'
        WRITE(6,'(1X,64("="))')
@@ -389,10 +443,17 @@ CONTAINS
     ENDIF
 #ifdef __PARALLEL
     !IPHIGENIE/CPMD interface finalizes in IPHIGENIE
+    call mp_sync(parai%cp_grp)
     IF (cnti%iftype.NE.3) THEN
+       call mp_win_dealloc_shared_mem(parai%node_nproc,parai%node_me,parai%node_grp)
+       CALL mpi_comm_free(parai%cp_inter_grp,ierr)
+       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+       CALL mpi_comm_free(parai%node_grp,ierr)
+       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
        CALL mpi_comm_free(parai%cp_grp,ierr)
        CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
        CALL mpi_finalize(ierr)
+       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
        IF (ierr.NE.0) CALL stopgm('MPI_FINALIZE','error in mpi_finalize',& 
             __LINE__,__FILE__)
     ENDIF
@@ -402,9 +463,6 @@ CONTAINS
 
 
   SUBROUTINE mp_mpi_error_assert(ierr,procN,line,file)
-#ifdef __PARALLEL
-    USE mpi
-#endif
     INTEGER, INTENT(in) :: ierr,line
     CHARACTER(*), INTENT(in) :: file,procN
 
@@ -422,11 +480,12 @@ CONTAINS
 
 
   FUNCTION mp_is_comm_null(comm)
-#ifdef __PARALLEL
-    USE mpi
-#endif
     !     arguments
-    INTEGER comm
+#ifdef __PARALLEL
+    type(MPI_COMM) ::  comm
+#else
+    INTEGER :: comm
+#endif
     LOGICAL :: mp_is_comm_null
 #ifdef __PARALLEL
     !     ==--------------------------------------------------------------==
@@ -439,12 +498,14 @@ CONTAINS
 
 
   SUBROUTINE mp_environ(gid,numtask,taskid)
-#ifdef __PARALLEL
-    USE mpi
-#endif
     ! ==--------------------------------------------------------------==
     ! Arguments
+#ifdef __PARALLEL
+    INTEGER :: numtask,taskid
+    type(MPI_COMM) :: gid
+#else
     INTEGER :: gid,numtask,taskid
+#endif
     CHARACTER(*),PARAMETER::procedureN='mp_environ'
 #ifdef __PARALLEL
     ! Variables
@@ -464,12 +525,13 @@ CONTAINS
 
 
   SUBROUTINE mp_comm_free(comm)
-#ifdef __PARALLEL
-    USE mpi
-#endif
     ! ==--------------------------------------------------------------==
     ! Arguments
+#ifdef __PARALLEL
+    type(MPI_COMM) :: comm
+#else
     INTEGER :: comm
+#endif
     ! Variables
     CHARACTER(*),PARAMETER::procedureN='mp_comm_free'
 #ifdef __PARALLEL
@@ -484,12 +546,13 @@ CONTAINS
 
 
   SUBROUTINE mp_comm_dup(comm,new_comm)
-#ifdef __PARALLEL
-    USE mpi
-#endif
     ! ==--------------------------------------------------------------==
     ! Arguments
+#ifdef __PARALLEL
+    type(MPI_COMM) :: comm,new_comm
+#else
     INTEGER :: comm,new_comm
+#endif
     ! Variables
     CHARACTER(*),PARAMETER::procedureN='mp_comm_dup'
 #ifdef __PARALLEL
@@ -506,12 +569,13 @@ CONTAINS
 
 
   SUBROUTINE mp_comm_compare(comm1,comm2)
-#ifdef __PARALLEL
-    USE mpi
-#endif
     ! ==--------------------------------------------------------------==
     ! Arguments
+#ifdef __PARALLEL
+    type(MPI_COMM) :: comm1,comm2
+#else
     INTEGER :: comm1,comm2
+#endif
     ! Variables
     CHARACTER(*),PARAMETER::procedureN='mp_comm_compare'
 #ifdef __PARALLEL
@@ -533,12 +597,13 @@ CONTAINS
 
 
   SUBROUTINE mp_comm_info(comm)
-#ifdef __PARALLEL
-    USE mpi
-#endif
     ! ==--------------------------------------------------------------==
     ! Arguments
+#ifdef __PARALLEL
+    type(MPI_COMM) :: comm
+#else
     INTEGER :: comm
+#endif
     ! Variables
     INTEGER :: numtask,taskid
     CHARACTER(*),PARAMETER::procedureN='mp_comm_info'
@@ -561,9 +626,6 @@ CONTAINS
 
 
   SUBROUTINE mp_get_processor_name ( name )
-#ifdef __PARALLEL
-    USE mpi
-#endif
     ! ==--------------------------------------------------------------==
     ! Arguments
     CHARACTER(*), INTENT(OUT) :: name
@@ -585,12 +647,13 @@ CONTAINS
 
 
   SUBROUTINE mp_task_query(cp_grp)
-#ifdef __PARALLEL
-    USE mpi
-#endif
     ! ==--------------------------------------------------------------==
     ! Arguments
+#ifdef __PARALLEL
+    type(MPI_COMM) :: cp_grp
+#else
     INTEGER :: cp_grp
+#endif
     CHARACTER(*),PARAMETER::procedureN='mp_task_query'
 #ifdef __PARALLEL
     ! Variables
@@ -606,21 +669,33 @@ CONTAINS
   END SUBROUTINE mp_task_query
 
 
-  SUBROUTINE mp_cart(comm,nogrp,npgrp,nolist,nplist,meogrp,mepgrp)
+  SUBROUTINE mp_cart(comm,nogrp,npgrp,meogrp,mepgrp)
     ! ==--------------------------------------------------------------==
     ! == Forms cartesian groups of processors                         ==
     ! ==--------------------------------------------------------------==
+#ifdef __PARALLEL
+    INTEGER                                  :: nogrp, npgrp
+    type(MPI_COMM)                           :: comm, meogrp, mepgrp
+#else
     INTEGER                                  :: comm, nogrp, npgrp, &
-                                                nolist(*), nplist(*), meogrp, &
-                                                mepgrp
-
+                                                meogrp, mepgrp
+#endif
     CHARACTER(*), PARAMETER                  :: procedureN = 'mp_cart'
 
-    INTEGER                                  :: ogr, pgr, world
+#ifdef __PARALLEL
+    type(MPI_GROUP)                          :: world, ogr, pgr
+#else
+    INTEGER                                  :: world, ogr, pgr
+#endif
 
 #ifdef __PARALLEL
     ! Variables
+#ifdef __PARALLEL
+    INTEGER :: i,io,np(2),ierr,ioo,nnodes
+    type(MPI_COMM) :: cart_grp
+#else
     INTEGER :: cart_grp,i,io,np(2),ierr,ioo,nnodes
+#endif
     LOGICAL :: period(2),order,s_col(2),s_row(2)
     INTEGER :: err_msg_len, ierr_err
     ! ==--------------------------------------------------------------==
@@ -657,20 +732,6 @@ CONTAINS
     CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
     CALL mpi_comm_group(meogrp,ogr,ierr)
     CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
-    DO i=1,npgrp
-       CALL mpi_cart_rank(mepgrp,i-1,ioo,ierr)
-       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
-       CALL mpi_group_translate_ranks(pgr,1,ioo,world,io,ierr)
-       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
-       nplist(i)=io
-    ENDDO
-    DO i=1,nogrp
-       CALL mpi_cart_rank(meogrp,i-1,ioo,ierr)
-       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
-       CALL mpi_group_translate_ranks(ogr,1,ioo,world,io,ierr)
-       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
-       nolist(i)=io
-    ENDDO
 #else
     ! ==--------------------------------------------------------------==
     meogrp=0
@@ -681,9 +742,6 @@ CONTAINS
   END SUBROUTINE mp_cart
 
   SUBROUTINE mp_set_global_consts()
-#ifdef __PARALLEL
-    USE mpi
-#endif
     IMPLICIT NONE
 #ifdef __PARALLEL
     mp_max_processor_name = MPI_MAX_PROCESSOR_NAME
@@ -696,9 +754,6 @@ CONTAINS
 
   SUBROUTINE mp_set_atomic_type_sizes()
     ! ==--------------------------------------------------------------==
-#ifdef __PARALLEL
-    USE mpi
-#endif
     IMPLICIT NONE
 #ifdef __PARALLEL
     ! Variables
@@ -736,7 +791,11 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! == SYNCHRONISATION OF ALL PROCESSORS                            ==
     ! ==--------------------------------------------------------------==
+#ifdef __PARALLEL
+    type(MPI_COMM)                           :: gid
+#else
     INTEGER                                  :: gid
+#endif
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'mp_sync'
 
@@ -767,68 +826,111 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! == Wrapper to mpi_allreduce (summation)                         ==
     ! ==--------------------------------------------------------------==
+    INTEGER(int_1), INTENT(INOUT), TARGET    :: DATA(*)
 #ifdef __PARALLEL
-    USE mpi
+    INTEGER, INTENT(IN)                      :: n
+    type(MPI_COMM), INTENT(IN)               :: comm
+#else
+    INTEGER, INTENT(IN)                      :: n, comm
 #endif
-    INTEGER(int_1)                           :: DATA(*)
-    INTEGER                                  :: n, comm
 
     CHARACTER(*), PARAMETER :: procedureN = 'mp_sum_in_place_int1_r1'
 
     ! Variables
+    INTEGER(int_1), POINTER __CONTIGUOUS :: para_buff_user(:), data_ptr(:)
+    TYPE(c_ptr) :: loc_x
 
 #ifdef __PARALLEL
-    INTEGER :: ierr,m,i,stat,buff_size
-    INTEGER(int_1),DIMENSION(:),ALLOCATABLE :: buff
-    INTEGER(int_1),DIMENSION(para_stack_buff_size) :: stack_buff
-
-    INTEGER :: op_sum_i1
+    INTEGER :: ierr,stat,i
+    REAL(real_8) :: tim1,tim2
+    TYPE(MPI_Op), SAVE :: op_sum_i1
+    LOGICAL, SAVE      :: init=.FALSE.
     ! ==--------------------------------------------------------------==
     ! INT*1 not always supported, so we define an op
-    op_sum_i1 = mpi_op_null
-    CALL mpi_op_create(sum_i1,.TRUE.,op_sum_i1,ierr)
-    CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
-    IF (n<=para_stack_buff_size) THEN
-       CALL mpi_allreduce(DATA,stack_buff,n,mpi_integer1,op_sum_i1,&
-            comm,ierr)
+    IF(.NOT.init)THEN
+       op_sum_i1 = mpi_op_null
+       CALL mpi_op_create(sum_i1,.TRUE.,op_sum_i1,ierr)
+       init=.TRUE.
+    END IF
+    cmcal(ipar_gsum)=cmcal(ipar_gsum)+1.0d0
+    cmlen(ipar_gsum)=cmlen(ipar_gsum)+n*mp_int1_in_bytes
+    tim1=m_walltime()
+    IF(para_use_mpi_in_place)THEN
+       CALL mpi_allreduce(MPI_IN_PLACE,data,n,mpi_integer1,&
+            op_sum_i1,comm,ierr)
        CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
-       DATA(1:n)=stack_buff(1:n)
     ELSE
-       IF (para_use_mpi_in_place) THEN
-          CALL mpi_allreduce(mpi_in_place,DATA,n,mpi_integer1,&
-               op_sum_i1,comm,ierr)
-          CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
-       ELSE
-          buff_size=MIN(n,para_buff_size)
-          ALLOCATE(buff(buff_size),stat=stat)
-          IF (stat.NE.0) CALL stopgm(procedureN,'Allocation problem',& 
+#if !defined _USE_SCRATCHLIBRARY
+       IF(.NOT.ALLOCATED(para_buff))THEN
+          ALLOCATE(para_buff(il_para_buff(1)),stat=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'cannot allocate para_buff', &
                __LINE__,__FILE__)
-          DO i=1,n,buff_size
-             m=MIN(buff_size,n-i+1)
-             CALL mpi_allreduce(DATA(i),buff,m,mpi_integer1,&
-                  op_sum_i1,comm,ierr)
-             CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
-             DATA(i:i+m-1)=buff(1:m)
-          ENDDO
-          DEALLOCATE(buff,stat=stat)
-          IF (stat.NE.0) CALL stopgm(procedureN,'Deallocation problem',&
+       END IF
+#endif
+       IF(n*mp_int1_in_bytes.GT.buff_size_in_bytes*il_para_buff(1))THEN
+          il_para_buff(1)=CEILING(REAL(n*mp_int1_in_bytes,real_8)/&
+               buff_size_in_bytes)
+#if !defined _USE_SCRATCHLIBRARY
+          DEALLOCATE(para_buff,stat=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'cannot deallocate para_buff', &
                __LINE__,__FILE__)
-       ENDIF
-    ENDIF
+          ALLOCATE(para_buff(il_para_buff(1)),stat=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'cannot allocate para_buff', &
+               __LINE__,__FILE__)
+#endif
+       END IF
+#ifdef _USE_SCRATCHLIBRARY
+       CALL request_scratch(il_para_buff,para_buff,procedureN//'_para_buff',ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'cannot allocate para_buff', &
+            __LINE__,__FILE__)
+#endif
+       CALL mpi_allreduce(data,para_buff,n,mpi_integer1,&
+            op_sum_i1,comm,ierr)
+       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+       CALL free_scratch(il_para_buff,para_buff,procedureN//'_para_buff',ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'cannot deallocate para_buff', &
+            __LINE__,__FILE__)
+#endif
+       loc_x = C_LOC(para_buff)
+       CALL C_F_POINTER(loc_x, para_buff_user, (/n/))
+       loc_x = C_LOC(data)
+       CALL C_F_POINTER(loc_x, data_ptr, (/n/))
+       !$omp parallel do simd
+       do i=1,n
+          data_ptr(i)=para_buff_user(i)
+       end do
+    END IF
+    tim2=m_walltime()
+    cmtim(ipar_gsum)=cmtim(ipar_gsum)+tim2-tim1
 #endif
   END SUBROUTINE mp_sum_in_place_int1_r1
 
   SUBROUTINE sum_i1(invec,inoutvec,len,TYPE)
+    USE, intrinsic :: iso_c_binding, only : c_ptr, c_f_pointer
     INTEGER                                  :: len
-    INTEGER(int_1)                           :: inoutvec(len), invec(len)
-    INTEGER                                  :: TYPE
+    type(C_PTR), VALUE                       :: inoutvec, invec
+    type(MPI_Datatype)                       :: TYPE
+    INTEGER(int_1), POINTER                  :: invec_f(:), inoutvec_f(:)
 
     INTEGER                                  :: i
+    
+    CALL c_f_pointer(invec,invec_f,(/ len /))
+    CALL c_f_pointer(inoutvec,inoutvec_f,(/ len /))
+    CALL sumi1(invec_f,inoutvec_f,len)
+  END SUBROUTINE sum_i1
+  
+  SUBROUTINE sumi1(in,inout,len)
+    INTEGER, INTENT(IN) :: len
+    INTEGER(int_1), INTENT(IN) :: in(*)
+    INTEGER(int_1), INTENT(INOUT) :: inout(*)
+    INTEGER :: i
 
     DO i=1,len
-       inoutvec(i)=inoutvec(i)+invec(i)
-    ENDDO
-  END SUBROUTINE sum_i1
+       inout(i)=in(i)+inout(i)
+    END DO
+
+  END SUBROUTINE sumi1
 
   SUBROUTINE mp_dims_create(nodes,ndims,dims)
     ! ==--------------------------------------------------------------==
@@ -858,9 +960,13 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! == Splits processors into groups                                ==
     ! ==--------------------------------------------------------------==
+#ifdef __PARALLEL
+    INTEGER                                  :: color, key, newrank
+    type(MPI_COMM)                           :: oldcomm, gid
+#else
     INTEGER                                  :: oldcomm, color, key, gid, &
                                                 newrank
-
+#endif
     CHARACTER(*), PARAMETER                  :: procedureN = 'mp_split'
 
 #ifdef __PARALLEL
@@ -882,17 +988,47 @@ CONTAINS
     RETURN
   END SUBROUTINE mp_split
 
+  SUBROUTINE mp_split_type(key,comm,newcomm)
+#ifdef __PARALLEL
+    INTEGER,INTENT(IN)                       :: key
+    type(MPI_COMM),INTENT(IN)                :: comm
+    type(MPI_COMM),INTENT(OUT)               :: newcomm
+#else
+    INTEGER,INTENT(IN)                       :: key,comm
+    INTEGER,INTENT(OUT)                      :: newcomm
+#endif
+    INTEGER                                  :: ierr
+    CHARACTER(*), PARAMETER                  :: procedureN = 'mp_comm_split_type'
+    ! Author: Tobias Kloeffel, FAU Erlangen Nuernberg, March 2019
+
+#ifdef __PARALLEL
+    CALL mpi_comm_split_type(comm,MPI_COMM_TYPE_SHARED,key,MPI_INFO_NULL,newcomm,ierr)
+    CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#else
+    newcomm=comm
+#endif
+  END SUBROUTINE mp_split_type
+
+
   SUBROUTINE mp_group(gsize,glist,gid,pcomm)
     ! ==--------------------------------------------------------------==
     ! == Forms groups of processors                                   ==
     ! ==--------------------------------------------------------------==
+#ifdef __PARALLEL
+    INTEGER                                  :: gsize, glist(*)
+    type(MPI_COMM)                           :: gid, pcomm
+#else
     INTEGER                                  :: gsize, glist(*), gid, pcomm
-
+#endif
     CHARACTER(*), PARAMETER                  :: procedureN = 'mp_group'
 
 #ifdef __PARALLEL
     ! Variables
+#ifdef __PARALLEL
+    type(MPI_GROUP) :: world,newgroup
+#else
     INTEGER :: world,newgroup
+#endif
     INTEGER :: ierr
     ! ==--------------------------------------------------------------==
     CALL mpi_comm_group(pcomm,world,ierr)
@@ -911,9 +1047,10 @@ CONTAINS
 
   SUBROUTINE mp_get_node_env ( comm, node_numtasks, node_taskid )
 #ifdef __PARALLEL
-    USE mpi
-#endif
+    type(MPI_COMM), INTENT(IN) :: comm
+#else
     INTEGER, INTENT(IN) :: comm
+#endif
     INTEGER, INTENT(OUT) :: node_numtasks, node_taskid
     CHARACTER(*), PARAMETER                  :: procedureN = 'mp_get_node_env'
 #ifdef __PARALLEL
@@ -965,9 +1102,6 @@ CONTAINS
 
 
   SUBROUTINE mp_get_version(version, subversion)
-#ifdef __PARALLEL
-    USE mpi
-#endif
     INTEGER, INTENT(OUT) :: version, subversion
     CHARACTER(*), PARAMETER                  :: procedureN = 'mp_get_version'
 
@@ -988,9 +1122,6 @@ CONTAINS
 
 
   SUBROUTINE mp_get_library_version( version )
-#ifdef __PARALLEL
-    USE mpi
-#endif
     CHARACTER(*), INTENT(OUT) :: version
     CHARACTER(*), PARAMETER                  :: procedureN = 'mp_get_library_version'
 
@@ -1014,10 +1145,206 @@ CONTAINS
 
   END SUBROUTINE mp_get_library_version
 
+  SUBROUTINE mp_win_lock_all_shared(comm)
+    ! ==--------------------------------------------------------------==
+    ! == Wrapper for mpi_win_fence                                    ==
+    ! ==--------------------------------------------------------------==
+    ! Author: Tobias Kloeffel, FAU Erlangen Nuernberg, March 2019
+#ifdef __PARALLEL
+    type(MPI_COMM),INTENT(IN) :: comm
+#else
+    INTEGER,INTENT(IN) :: comm
+#endif
+#ifdef __PARALLEL
+    INTEGER:: index,ierr
+    CHARACTER(*),PARAMETER::procedureN='mp_win_sync'
+
+    IF(comm.EQ.parai%node_grp)THEN
+       index=1
+    ELSEIF(comm.EQ.parai%cp_inter_node_grp)THEN
+       index=2
+    ELSE
+       CALL stopgm(procedureN,'Unsupported mpi communicator',&
+            __LINE__,__FILE__)
+    END IF
+    CALL mpi_win_lock_all(MPI_MODE_NOCHECK,mpi_window(index),ierr)
+    CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#endif
+  END SUBROUTINE mp_win_lock_all_shared
+
+  SUBROUTINE mp_win_unlock_all_shared(comm)
+    ! ==--------------------------------------------------------------==
+    ! == Wrapper for mpi_win_fence                                    ==
+    ! ==--------------------------------------------------------------==
+    ! Author: Tobias Kloeffel, FAU Erlangen Nuernberg, March 2019
+#ifdef __PARALLEL
+    type(MPI_COMM),INTENT(IN) :: comm
+#else
+    INTEGER,INTENT(IN) :: comm
+#endif
+#ifdef __PARALLEL
+    INTEGER:: index,ierr
+    CHARACTER(*),PARAMETER::procedureN='mp_win_sync'
+
+    IF(comm.EQ.parai%node_grp)THEN
+       index=1
+    ELSEIF(comm.EQ.parai%cp_inter_node_grp)THEN
+       index=2
+    ELSE
+       CALL stopgm(procedureN,'Unsupported mpi communicator',&
+            __LINE__,__FILE__)
+    END IF
+    CALL mpi_win_unlock_all(mpi_window(index),ierr)
+    CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+#endif
+  END SUBROUTINE mp_win_unlock_all_shared
+
+  SUBROUTINE mp_win_sync(comm)
+    ! ==--------------------------------------------------------------==
+    ! == Wrapper for mpi_win_fence                                    ==
+    ! ==--------------------------------------------------------------==
+    ! Author: Tobias Kloeffel, FAU Erlangen Nuernberg, March 2019
+#ifdef __PARALLEL
+    type(MPI_COMM),INTENT(IN) :: comm
+#else
+    INTEGER,INTENT(IN) :: comm
+#endif
+#ifdef __PARALLEL
+    INTEGER:: index,ierr
+    CHARACTER(*),PARAMETER::procedureN='mp_win_sync'
+
+    IF(comm.EQ.parai%node_grp)THEN
+       index=1
+    ELSEIF(comm.EQ.parai%cp_inter_node_grp)THEN
+       index=2
+    ELSE
+       CALL stopgm(procedureN,'Unsupported mpi communicator',&
+            __LINE__,__FILE__)
+    END IF
+    CALL mpi_win_sync(mpi_window(index),ierr)
+    CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+    CALL mp_sync(comm)
+#endif
+  END SUBROUTINE mp_win_sync
+
+  
+  SUBROUTINE mp_win_alloc_shared_mem(type,lda,n,baseptr,nproc,mypos,comm)
+    USE, INTRINSIC :: ISO_C_BINDING, ONLY : C_PTR
+    ! ==--------------------------------------------------------------==
+    ! == Return baseptr to shared memory window                       ==
+    ! == Currently two shared memory windows are maintained, one for  ==
+    ! == comm.eq.node_grp (index.eq.1) and one for                    ==
+    ! == comm.eq.cp_inter_node_grp (index.eq.2)                       ==
+    ! == Deallocation for type .eq. A or a, reallocation possible     ==
+    ! ==--------------------------------------------------------------==
+    ! Author: Tobias Kloeffel, FAU Erlangen Nuernberg, March 2019
+#ifdef __PARALLEL
+    INTEGER,INTENT(IN) :: lda,n,nproc,mypos
+    type(MPI_COMM),INTENT(IN) :: comm
+#else
+    INTEGER,INTENT(IN) :: lda,n,nproc,mypos,comm
+#endif
+    CHARACTER(1),INTENT(IN) :: type
+    TYPE(C_PTR),INTENT(OUT) :: baseptr(0:nproc-1)
+#ifdef __PARALLEL
+    INTEGER(int_8), SAVE :: allocated_size(2) = 0
+    INTEGER(int_8) :: requested_size
+    INTEGER(KIND=MPI_ADDRESS_KIND) :: windowsize
+    type(MPI_Info) :: info
+    INTEGER :: proc,ierr,index,displ
+    LOGICAL, SAVE :: alloc(2)=.FALSE.
+    CHARACTER(*),PARAMETER::procedureN='mp_win_alloc_shared_mem'
+
+    IF(type.EQ.'C'.OR.type.EQ.'c')THEN
+       requested_size=lda*n*mp_double_complex_in_bytes
+    ELSEIF(type.EQ.'R'.OR.type.EQ.'r')THEN
+       requested_size=lda*n*mp_double_in_bytes
+    ELSEIF(type.EQ.'D'.OR.type.EQ.'d')THEN
+       DO index=1,size(alloc)
+          IF(alloc(index))THEN
+             CALL MPI_WIN_FREE(mpi_window(index), IERR)
+             CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+             alloc(index)=.FALSE.
+             allocated_size(index)=0
+          END IF
+       END DO
+       RETURN
+    END IF
+
+    IF(comm.EQ.parai%node_grp)THEN
+       index=1
+    ELSEIF(comm.EQ.parai%cp_inter_node_grp)THEN
+       index=2
+    ELSE
+       CALL stopgm(procedureN,'Unsupported mpi communicator',&
+            __LINE__,__FILE__)
+    END IF
+
+    CALL mp_max(requested_size,comm)
+
+    !check if allocated window is big enough...
+    IF (allocated_size(index).LT.requested_size) THEN
+       IF(alloc(index)) THEN
+          CALL MPI_WIN_FREE(mpi_window(index), IERR)
+          CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+          alloc(index)=.FALSE.
+          allocated_size(index)=0
+       END IF
+       CALL MPI_INFO_CREATE(info,ierr)
+       CALL MPI_INFO_SET(INFO, 'same_disp_unit', 'true',ierr)
+       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+       CALL MPI_INFO_SET(INFO, 'alloc_shared_noncontig', 'true',ierr)
+       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+       CALL mpi_info_set(info, 'same_size', 'true',ierr)
+       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+       windowsize=requested_size
+       allocated_size(index)=requested_size
+       displ=8
+       CALL MPI_WIN_allocate_shared(windowsize , displ, info,  &
+            comm, baseptr(mypos), mpi_window(index), ierr)
+       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+       CALL mpi_info_free(info,ierr)
+       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+       alloc(index)=.TRUE.
+    END IF
+    !set baseptrs for all procs
+    DO proc=0,nproc-1
+       CALL mpi_win_shared_query(mpi_window(index), proc, windowsize, &
+            displ, baseptr(proc), ierr)
+       CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+    END DO
+#endif
+  END SUBROUTINE mp_win_alloc_shared_mem
+
+    SUBROUTINE mp_win_dealloc_shared_mem(nproc,mypos,comm)
+    USE, INTRINSIC :: ISO_C_BINDING, ONLY : C_PTR
+    ! ==--------------------------------------------------------------==
+    ! == Return baseptr to shared memory window                       ==
+    ! == Currently two shared memory windows are maintained, one for  ==
+    ! == comm.eq.node_grp (index.eq.1) and one for                    ==
+    ! == comm.eq.cp_inter_node_grp (index.eq.2)                       ==
+    ! == Deallocation for type .eq. A or a, reallocation possible     ==
+    ! ==--------------------------------------------------------------==
+    ! Author: Tobias Kloeffel, FAU Erlangen Nuernberg, March 2019
+#ifdef __PARALLEL
+    INTEGER,INTENT(IN) :: nproc,mypos
+    type(MPI_COMM),INTENT(IN) :: comm
+#else
+    INTEGER,INTENT(IN) :: nproc,mypos,comm
+#endif
+    TYPE(C_PTR) :: baseptr(0:nproc-1)
+#ifdef __PARALLEL
+    CHARACTER(*),PARAMETER::procedureN='mp_win_dealloc_shared_mem'
+
+    CALL mp_win_alloc_shared_mem('d',1,1,baseptr,nproc,mypos,comm)
+#endif
+  END SUBROUTINE mp_win_dealloc_shared_mem
+
   !
   ! include file for the interfaces
   !
 #include "bcast.inc"
+#include "bcast_r0.inc"
 #include "all2all.inc"
 
 #include "send_and_recv.inc"
@@ -1025,14 +1352,19 @@ CONTAINS
 #include "sendrecv.inc"
 
 #include "sum.inc"
+#include "sum_r0.inc"
 #include "sum_root.inc"
-#include "sum_scalar_in_place.inc"
+#include "sum_root_in_place.inc"
 #include "sum_in_place.inc"
+#include "sum_scalar_in_place.inc"
 
 #include "prod.inc"
+#include "prod_r0.inc"
 
 #include "max_scalar.inc"
 #include "max.inc"
+#include "min_scalar.inc"
+#include "min.inc"
 
 
 END MODULE mp_interface

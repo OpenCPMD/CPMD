@@ -6,7 +6,7 @@ C     ==================================================================
      c           IATYP,mm_RAGGIO,
      c           NRPT,NSOLV,nax,cpat,cpsp,NSPm,NAm)
 C     ==--------------------------------------------------------------==
-cmb - Revised on 01 Spetember 2006
+cmb - Revised on 14 March 2024
       use kinds, only: real_4, real_8, int_1, int_2, int_4, int_8
       use error_handling, only: stopgm
        use adat
@@ -48,17 +48,11 @@ c
 c gromos masses are assigned to the atoms
 c solute
 !$OMP parallel do private(i)
-#ifdef __SR11000
-*poption parallel, tlocal(i)
-#endif 
        DO i=1,NRPT
          PMA0(cpsp(i))=WMAS(i)
        ENDDO
 c solvent
 !$OMP parallel do private(i,sn)
-#ifdef __SR11000
-*poption parallel, tlocal(i,sn)
-#endif 
        DO i=NRPT+1,NRPT+NSOLV
          sn=mod(i-1-NRPT,NRAM)+1
          PMA0(cpsp(i))=WMASS(sn)
@@ -66,9 +60,6 @@ c solvent
 c
        PMAT0 =0.0d0
 !$OMP parallel do private(is) reduction(+:PMAT0)
-#ifdef __SR11000
-*poption parallel, tlocal(is), psum(PMAT0)
-#endif 
        do is=1,NSPm
          PMAT0 = PMAT0 + PMA(is)*NAm(is)
          PMA(is)=PMA0(is)*SCMASS
@@ -76,16 +67,10 @@ c
        PMATOT=PMAT0*SCMASS
 !
 !$OMP parallel do private(i)
-#ifdef __SR11000
-*poption parallel, tlocal(i)
-#endif 
        DO i=1,NRPT        !solute atoms
          mm_charge(cpat(i),cpsp(i))=g_to_au*CG(mod(i-1,NRP)+1)
        ENDDO
 !$OMP parallel do private(i,sn)
-#ifdef __SR11000
-*poption parallel, tlocal(i,sn)
-#endif 
        DO i=NRPT+1,NRPT+NSOLV  !sovent charges
          sn=mod(i-1-NRPT,NRAM)+1
          mm_charge(cpat(i),cpsp(i))=g_to_au*CGS(sn)

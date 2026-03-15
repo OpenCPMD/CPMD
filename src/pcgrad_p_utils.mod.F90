@@ -322,7 +322,7 @@ CONTAINS
                   'INTERNAL ERROR: PRECONDITIONER TYPE CHANGED',& 
                   __LINE__,__FILE__)
              vpp2_allocated = 2602
-             ALLOCATE(vpp2(ncpw%ngw,ncpw%ngw/ncpw%ngw),STAT=ierr)
+             ALLOCATE(vpp2(ncpw%ngw,nstate),STAT=ierr)
              IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                   __LINE__,__FILE__)
              CALL zeroing(vpp2)!,ngw*nstate)

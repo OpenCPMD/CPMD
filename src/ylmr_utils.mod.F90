@@ -1,6 +1,3 @@
-#ifdef __SR8000
-!option MP(P(0)), LANGLVL(SAVE(0))
-#endif
 MODULE ylmr_utils
   USE bessm_utils,                     ONLY: bessl
   USE cnst,                            ONLY: fpi

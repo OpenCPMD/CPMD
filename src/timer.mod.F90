@@ -1,5 +1,6 @@
 MODULE timer
   USE envj,                            ONLY: tjlimit
+  USE benc,                            ONLY: ibench
   USE kinds,                           ONLY: int_1,&
                                              int_2,&
                                              int_4,&
@@ -121,7 +122,7 @@ CONTAINS
           ENDIF
           CALL m_flush(6)
 10        FORMAT('#tr: ',i4,' calls: ',i6,&
-               ' time: ',7x,f8.2,1x,i2,a,' >> ',2x,a)
+               ' time: ',7x,f9.2,1x,i2,a,' >> ',2x,a)
        ENDIF
     ENDIF
 
@@ -216,7 +217,7 @@ CONTAINS
           ENDIF
           CALL m_flush(6)
 10        FORMAT('#tr: ',i4,' calls: ',i6,&
-               ' time: ',f7.2,f8.2,1x,i2,a,' << ',2x,a)
+               ' time: ',f7.2,f9.2,1x,i2,a,' << ',2x,a)
        ENDIF
     ENDIF
     tname%trace_depth = tname%trace_depth - 1
@@ -338,6 +339,9 @@ CONTAINS
        ENDDO
        IF (j.EQ.1) THEN
           cpthrs=cpmax/1000._real_8
+          IF(ibench(2).eq.1) THEN
+              cpthrs=0._real_8
+          ENDIF
        ENDIF
        IF (cpmax.LT.cpthrs) THEN
           GOTO 100

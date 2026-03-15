@@ -173,8 +173,11 @@ CONTAINS
     INTEGER, INTENT(IN)                      :: n
     TYPE(cuda_memory_t)                      :: A
     INTEGER, INTENT(IN)                      :: lda
+#if defined(_HAS_CUDA)
     INTEGER, INTENT(OUT)                     :: Lwork
-
+#else
+    INTEGER, INTENT(INOUT)                     :: Lwork
+#endif
     CHARACTER(*), PARAMETER :: procedureN = 'cusolver_dpotrf_buffersize'
 
     INTEGER(C_INT)                           :: c_lda, c_Lwork, c_n, c_uplo

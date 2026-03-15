@@ -85,10 +85,6 @@ CONTAINS
     IF (cntl%tlsd) CALL dcopy(2*fpar%nnr1,v(1,1),1,v(1,2),1)
     IF (func1%mfxcc /= mfxcc_is_skipped.OR.func1%mfxcx /= mfxcx_is_skipped) THEN
        IF (tabx%narray.LT.2.AND..NOT.cntl%tlsd) THEN
-#ifdef __SR8000
-          !poption parallel
-          !poption tlocal(EX,EC,VX,VC,VXC1,EXC1)
-#endif
           !$omp parallel do private(I,ROE,EX,EC,VX,VC,VXC1,EXC1) &
           !$omp reduction(+:SXC,VXC)
           DO i=1,fpar%nnr1
@@ -103,12 +99,6 @@ CONTAINS
           ENDDO
        ELSE
           IF (.NOT.cntl%tlsd) THEN
-#ifdef __SR8000
-             !poption parallel
-             !poption tlocal(EX,EC,VX,VC,VXC1,EXC1)
-             !poption tlocal(ROE)
-             !voption pvfunc(3)
-#endif
              !$omp parallel do private(I,ROE,RATIO,I1,DD,EE) &
              !$omp private(VXC1,EXC1,EX,VX,EC,VC) &
              !$omp reduction(+:SXC,VXC)
@@ -139,10 +129,6 @@ CONTAINS
              ! ==  OUTPUT  V(1..NNR1)   ALPHA POTENTIAL                    ==
              ! ==          V(NNR1+1..2*NNR1)   BETA POTENTIAL              ==
              ! ==----------------------------------------------------------==
-#ifdef __SR8000
-             !poption parallel
-             !poption tlocal(EX,EC,VXA,VCA,VXB,VCB,VXCA,VXCB,EXC)
-#endif
              !$omp parallel do private(IR,ROE,ETA,EX,EC,VXA,VCA,VXCA) &
              !$omp private(VXB,VCB,VXCB,EXC) &
              !$omp reduction(+:SXC,VXC)

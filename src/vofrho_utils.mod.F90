@@ -1,9 +1,12 @@
+#include "cpmd_global.h"
+
 MODULE vofrho_utils
   USE error_handling,                  ONLY: stopgm
   USE forcep_utils,                    ONLY: rhoe_psi_size
   USE isos,                            ONLY: isos1,&
                                              isos3
-  USE kinds,                           ONLY: real_8
+  USE kinds,                           ONLY: real_8,&
+                                             int_8
   USE poin,                            ONLY: potr
   USE spin,                            ONLY: clsd,&
                                              lspin2
@@ -26,7 +29,10 @@ MODULE vofrho_utils
                                              vofrhos
   USE vofrhot_utils,                   ONLY: give_scr_vofrhot,&
                                              vofrhot
-
+#ifdef _USE_SCRATCHLIBRARY
+  USE scratch_interface,               ONLY: request_scratch,&
+                                             free_scratch
+#endif
   IMPLICIT NONE
 
   PRIVATE
@@ -43,20 +49,31 @@ CONTAINS
     ! == RHOE: in  electronic density in real space                   ==
     ! ==       out potential in real space                            ==
     ! ==--------------------------------------------------------------==
-    REAL(real_8)                             :: tau0(:,:,:), fion(:,:,:), &
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: tau0(:,:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:), &
                                                 rhoe(:,:)
-    COMPLEX(real_8)                          :: v(:,:)
-    LOGICAL                                  :: tfor, tstress
+    COMPLEX(real_8),INTENT(INOUT)&
+          __CONTIGUOUS                       :: v(:,:)
+    LOGICAL,INTENT(IN)                       :: tfor, tstress
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'vofrho'
 
+#ifdef _USE_SCRATCHLIBRARY
+    COMPLEX(real_8), POINTER __CONTIGUOUS    :: vtemp(:,:)
+#else
     COMPLEX(real_8), ALLOCATABLE             :: vtemp(:,:)
-    INTEGER                                  :: ierr, il_rhoe_1d, il_rhoe_2d, &
-                                                isub
+#endif
+    INTEGER                                  :: ierr, isub, il_rhoe_1d, il_rhoe_2d
+    INTEGER(int_8)                           :: il_vtemp(2)
 
     CALL tiset(procedureN,isub)
-
-    ALLOCATE(vtemp(ncpw%nhg, clsd%nlsd),STAT=ierr)
+    il_vtemp(1)=ncpw%nhg
+    il_vtemp(2)=clsd%nlsd
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_vtemp,vtemp,procedureN//'_vtemp',ierr)
+#else
+    ALLOCATE(vtemp(il_vtemp(1), il_vtemp(2)),STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
     ! ==--------------------------------------------------------------==
@@ -95,7 +112,11 @@ CONTAINS
     ELSE
        CALL vofrhob(fion,rhoe,v,vtemp,tfor,tstress)
     ENDIF
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_vtemp,vtemp,procedureN//'_vtemp',ierr)
+#else
     DEALLOCATE(vtemp,STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
     ! ==--------------------------------------------------------------==

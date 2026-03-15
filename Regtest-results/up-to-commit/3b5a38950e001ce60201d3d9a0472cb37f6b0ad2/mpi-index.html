@@ -1,0 +1,4100 @@
+<html><head>
+<title>CPQA log</title>
+<style type="text/css">
+body { font-family: sans; font-size: 10pt; }
+td { border: solid 1px #666; text-align: right; padding: 3px 3px; white-space: nowrap; }
+th { border: solid 1px #666; text-align: right; padding: 3px 3px; white-space: nowrap; }
+table { border-collapse: collapse; border: solid 1px black; font-size: 10pt; }
+p.cat { color: #800; }
+.grey { background-color: #AAA; }
+.green { background-color: #AFA; }
+.red { background-color: #FAA; }
+.purple { background-color: #FAF; }
+//tr { border: solid 1px #666; }
+</style>
+</head><body>
+<h1>CPQA log</h1>
+<h2>General info</h2>
+<table>
+<tr><th>Root</th><td>/home/titan/nfcc/nfcc02/cpmd_merge_github/CPMD_public_merge_p1/build/reference-serial</td></tr>
+<tr><th>Arch</th><td>bin</td></tr>
+<tr><th>Version</th><td>x</td></tr>
+<tr><th>NProc</th><td>20</td></tr>
+<tr><th>NProc MPI</th><td>2</td></tr>
+<tr><th>MPI prefix</th><td>srun --exact --cpus-per-task=1 -n 2</td></tr>
+<tr><th>MPI suffix</th><td> </td></tr>
+<tr><th>Reference directory</th><td>ref--bin--x</td></tr>
+<tr><th>Test directory</th><td>tst--bin--x--2023-02-26-Sun--20-58-11</td></tr>
+<tr><th>Number of test jobs</th><td>860</td></tr>
+<tr><th>Total wall time [s]</th><td>650.25</td></tr>
+</table>
+<h2>Summary</h2>
+<table>
+<tr><th>Flag</th><th>Label</th><th>Count</th></tr>
+<tr><td>D</td><td> DIFFERENT</td><td>-</td></tr>
+<tr><td>E</td><td>     ERROR</td><td>10</td></tr>
+<tr><td>F</td><td>    FAILED</td><td>89</td></tr>
+<tr><td>L</td><td>      LEAK</td><td>-</td></tr>
+<tr><td>M</td><td>   MISSING</td><td>89</td></tr>
+<tr><td>N</td><td>       NEW</td><td>89</td></tr>
+<tr><td>O</td><td>        OK</td><td>771</td></tr>
+<tr><td>R</td><td>     RESET</td><td>-</td></tr>
+<tr><td>V</td><td>   VERBOSE</td><td>860</td></tr>
+<tr><td>W</td><td>     WRONG</td><td>-</td></tr>
+<tr><td>&nbsp;</td><td>     TOTAL</td><td>860</td></tr>
+</table>
+<h2>Regressions</h2>
+<h3>SP/libxc/nh3-1/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-1/nh3.out'>SP/libxc/nh3-1/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-06
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_X_PBE
+    100.0% LIBXC GGA_C_PBE
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.0 ON m0665 CANCELLED AT 2023-02-26T20:59:30 ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.0
+
+</pre>
+<h3>QMMM/bio_systems/amber/cnstr/atp_blyp_cpmd_capH_cnstr.inp</h3>
+<p><a href='QMMM/bio_systems/amber/cnstr/atp_blyp_cpmd_capH_cnstr.out'>QMMM/bio_systems/amber/cnstr/atp_blyp_cpmd_capH_cnstr.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.1 ON m0665 CANCELLED AT 2023-02-26T20:59:30 ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: m0665: task 0: Killed
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.1
+srun: error: m0665: task 1: Exited with exit code 231
+
+</pre>
+<h3>QMMM/bio_systems/gromos/linkH/atp_blyp_bo_capH_Gromos.inp</h3>
+<p><a href='QMMM/bio_systems/gromos/linkH/atp_blyp_bo_capH_Gromos.out'>QMMM/bio_systems/gromos/linkH/atp_blyp_bo_capH_Gromos.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.4 ON m0665 CANCELLED AT 2023-02-26T20:59:30 ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: m0665: task 0: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.4
+srun: error: m0665: task 1: Killed
+
+</pre>
+<h3>TD/acetone/ac_sp/ac_sp.inp</h3>
+<p><a href='TD/acetone/ac_sp/ac_sp.out'>TD/acetone/ac_sp/ac_sp.out</a></p>
+<p class="cat">Something went wrong in the CPQA driver script.</p>
+<ol>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: 'TOTAL
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+</ol>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+<li><pre>SCALAR 'STATE=  1   ' 3</pre></li>
+<li><pre>SCALAR 'STATE=  2   ' 3</pre></li>
+<li><pre>SCALAR 'STATE=  3   ' 3</pre></li>
+<li><pre>SCALAR 'STATE=  4   ' 3</pre></li>
+<li><pre>SCALAR 'STATE=  5   ' 3</pre></li>
+<li><pre>SCALAR 'STATE=  6   ' 3</pre></li>
+<li><pre>SCALAR 'STATE=  7   ' 3</pre></li>
+<li><pre>SCALAR 'STATE=  8   ' 3</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA XC THROUGH PADE APPROXIMATION
+    S.GOEDECKER, J.HUTTER, M.TETER PRB 541703 (1996)
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+    CORRELATION ENERGY 
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+slurmstepd: error: *** STEP 2098305.8 ON m0665 CANCELLED AT 2023-02-26T20:59:30 ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: m0665: task 0: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.8
+srun: error: m0665: task 1: Killed
+
+</pre>
+<h3>SP/libxc/h2o-0/test.inp</h3>
+<p><a href='SP/libxc/h2o-0/test.out'>SP/libxc/h2o-0/test.out</a></p>
+<p class="cat">Something went wrong in the CPQA driver script.</p>
+<ol>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: 'TOTAL
+</pre></li>
+</ol>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    100.0% LIBXC HYB_GGA_XC_CAM_B3LYP
+           CP EXCHANGE FUNCTIONALS ARE COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     19.0% SR    EXACT EXCHANGE
+     65.0% LR    EXACT EXCHANGE
+           HFX IS COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+
+ FOR THE RECIPROCAL SPACE IMPLEMENTATION OF CAM, PLEASE REFER TO:
+                                M.P. Bircher and U. Rothlisberger
+              J. Chem. Theory Comput., 2018, 14 (6), pp 3184–3195
+                                    DOI: 10.1021/acs.jctc.8b00069
+
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 2098305.3 ON m0665 CANCELLED AT 2023-02-26T20:59:30 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.3
+
+</pre>
+<h3>BO/libxc/u-5/test.inp</h3>
+<p><a href='BO/libxc/u-5/test.out'>BO/libxc/u-5/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ ION DYNAMICS:      THE TEMPERATURE IS NOT CONTROLLED
+ ASPC WAVEFUNCTION EXTRAPOLATION (MAX. HISTORY)                 6
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+      8.0% LIBXC LDA_X
+     72.0% LIBXC GGA_X_B88
+     81.0% LIBXC GGA_C_LYP
+     19.0% LIBXC LDA_C_VWN_RPA
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+           HFX PARAMETERS ARE NON-DEFAULT
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.495 ON m0665 CANCELLED AT 2023-02-26T21:07:16 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.495
+
+</pre>
+<h3>QMMM/WATER_DIMER_solvent_BO/test.inp</h3>
+<p><a href='QMMM/WATER_DIMER_solvent_BO/test.out'>QMMM/WATER_DIMER_solvent_BO/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 2098305.5 ON m0665 CANCELLED AT 2023-02-26T20:59:30 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.5
+
+</pre>
+<h3>SP/libxc/h2o-1/test.inp</h3>
+<p><a href='SP/libxc/h2o-1/test.out'>SP/libxc/h2o-1/test.out</a></p>
+<p class="cat">Something went wrong in the CPQA driver script.</p>
+<ol>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: 'TOTAL
+</pre></li>
+</ol>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    100.0% LIBXC HYB_GGA_XC_CAM_B3LYP
+           CP EXCHANGE FUNCTIONALS ARE COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     19.0% SR    EXACT EXCHANGE
+     65.0% LR    EXACT EXCHANGE
+           HFX IS COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+
+ FOR THE RECIPROCAL SPACE IMPLEMENTATION OF CAM, PLEASE REFER TO:
+                                M.P. Bircher and U. Rothlisberger
+              J. Chem. Theory Comput., 2018, 14 (6), pp 3184–3195
+                                    DOI: 10.1021/acs.jctc.8b00069
+
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 2098305.6 ON m0665 CANCELLED AT 2023-02-26T20:59:30 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.6
+
+</pre>
+<h3>GEO/libxc/r-0/test.inp</h3>
+<p><a href='GEO/libxc/r-0/test.out'>GEO/libxc/r-0/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-05
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ CONVERGENCE CRITERIA FOR GEOMETRY OPTIMIZATION:     5.000000E-04
+ GEOMETRY OPTIMIZATION BY GDIIS/BFGS      
+   SIZE OF GDIIS MATRIX:                                        2
+ EMPIRICAL INITIAL HESSIAN (DISCO PARAMETRISATION) 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC LDA_X
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.493 ON m0665 CANCELLED AT 2023-02-26T21:07:16 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.493
+
+</pre>
+<h3>QMMM/ACETONE_WATER_mdcp_s0/test.inp</h3>
+<p><a href='QMMM/ACETONE_WATER_mdcp_s0/test.out'>QMMM/ACETONE_WATER_mdcp_s0/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA XC THROUGH PADE APPROXIMATION
+    S.GOEDECKER, J.HUTTER, M.TETER PRB 541703 (1996)
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+    CORRELATION ENERGY 
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.2 ON m0665 CANCELLED AT 2023-02-26T20:59:30 ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: m0665: task 0: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.2
+srun: error: m0665: task 1: Killed
+
+</pre>
+<h3>QMMM/bio_systems/amber/blyp/linkH/atp_blyp_cpmd_capH_split.inp</h3>
+<p><a href='QMMM/bio_systems/amber/blyp/linkH/atp_blyp_cpmd_capH_split.out'>QMMM/bio_systems/amber/blyp/linkH/atp_blyp_cpmd_capH_split.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+slurmstepd: error: *** STEP 2098305.9 ON m0665 CANCELLED AT 2023-02-26T20:59:30 ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: m0665: task 0: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.9
+srun: error: m0665: task 1: Killed
+
+</pre>
+<h3>QMMM/bio_systems/amber/hcth/atp_hcth_bo_capH.inp</h3>
+<p><a href='QMMM/bio_systems/amber/hcth/atp_hcth_bo_capH.out'>QMMM/bio_systems/amber/hcth/atp_hcth_bo_capH.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ =                                                              =
+ ================================================================
+
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA CORRELATION:                                         NONE
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-09
+    HCTH/120 XC FUNCTIONAL  [HCTH: N.C. HANDY ET AL. JCP 109, 6264 (1998)]
+                 
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.7 ON m0665 CANCELLED AT 2023-02-26T20:59:30 ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: m0665: task 0: Killed
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.7
+srun: error: m0665: task 1: Exited with exit code 231
+
+</pre>
+<h3>SP/libxc/nh3-u-2/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-u-2/nh3.out'>SP/libxc/nh3-u-2/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-06
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_XC_XLYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.11 ON m0665 CANCELLED AT 2023-02-26T20:59:32 ***
+srun: error: m0665: task 0: Killed
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.11
+srun: error: m0665: task 1: Exited with exit code 231
+
+</pre>
+<h3>SP/libxc/nh3-u-6/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-u-6/nh3.out'>SP/libxc/nh3-u-6/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-06
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC HYB_GGA_XC_PBEH
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     25.0% HFX   EXACT EXCHANGE
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.10 ON m0665 CANCELLED AT 2023-02-26T20:59:32 ***
+srun: error: m0665: task 0: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.10
+srun: error: m0665: task 1: Killed
+
+</pre>
+<h3>QMMM/ACETONE_WATER_mdbo_s0/test.inp</h3>
+<p><a href='QMMM/ACETONE_WATER_mdbo_s0/test.out'>QMMM/ACETONE_WATER_mdbo_s0/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA XC THROUGH PADE APPROXIMATION
+    S.GOEDECKER, J.HUTTER, M.TETER PRB 541703 (1996)
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+    CORRELATION ENERGY 
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.14 ON m0665 CANCELLED AT 2023-02-26T20:59:32 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.14
+
+</pre>
+<h3>SP/libxc/nh3-u-0/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-u-0/nh3.out'>SP/libxc/nh3-u-0/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ PRINT INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-06
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC LDA_X
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.12 ON m0665 CANCELLED AT 2023-02-26T20:59:32 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.12
+
+</pre>
+<h3>GEO/libxc/u-3/test.inp</h3>
+<p><a href='GEO/libxc/u-3/test.out'>GEO/libxc/u-3/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ CONVERGENCE CRITERIA FOR GEOMETRY OPTIMIZATION:     5.000000E-04
+ GEOMETRY OPTIMIZATION BY GDIIS/BFGS      
+   SIZE OF GDIIS MATRIX:                                        2
+ EMPIRICAL INITIAL HESSIAN (DISCO PARAMETRISATION) 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC HYB_GGA_XC_B3LYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.293 ON m0665 CANCELLED AT 2023-02-26T21:05:37 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.293
+
+</pre>
+<h3>GEO/libxc/u-5/test.inp</h3>
+<p><a href='GEO/libxc/u-5/test.out'>GEO/libxc/u-5/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+   SIZE OF GDIIS MATRIX:                                        2
+ EMPIRICAL INITIAL HESSIAN (DISCO PARAMETRISATION) 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+      8.0% LIBXC LDA_X
+     72.0% LIBXC GGA_X_B88
+     81.0% LIBXC GGA_C_LYP
+     19.0% LIBXC LDA_C_VWN_RPA
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+           HFX PARAMETERS ARE NON-DEFAULT
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.294 ON m0665 CANCELLED AT 2023-02-26T21:05:37 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.294
+
+</pre>
+<h3>GEO/libxc/r-3/test.inp</h3>
+<p><a href='GEO/libxc/r-3/test.out'>GEO/libxc/r-3/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ CONVERGENCE CRITERIA FOR GEOMETRY OPTIMIZATION:     5.000000E-04
+ GEOMETRY OPTIMIZATION BY GDIIS/BFGS      
+   SIZE OF GDIIS MATRIX:                                        2
+ EMPIRICAL INITIAL HESSIAN (DISCO PARAMETRISATION) 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC HYB_GGA_XC_B3LYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.494 ON m0665 CANCELLED AT 2023-02-26T21:07:16 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.494
+
+</pre>
+<h3>SP/libxc/nh3-u-1/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-u-1/nh3.out'>SP/libxc/nh3-u-1/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-06
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_X_PBE
+    100.0% LIBXC GGA_C_PBE
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.15 ON m0665 CANCELLED AT 2023-02-26T20:59:32 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.15
+
+</pre>
+<h3>QMMM/bio_systems/gromos/oecp/atp_blyp_cpmd_oecp_Gromos.inp</h3>
+<p><a href='QMMM/bio_systems/gromos/oecp/atp_blyp_cpmd_oecp_Gromos.out'>QMMM/bio_systems/gromos/oecp/atp_blyp_cpmd_oecp_Gromos.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.16 ON m0665 CANCELLED AT 2023-02-26T20:59:32 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.16
+
+</pre>
+<h3>SP/libxc/nh3-6/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-6/nh3.out'>SP/libxc/nh3-6/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-06
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC HYB_GGA_XC_PBEH
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     25.0% HFX   EXACT EXCHANGE
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.17 ON m0665 CANCELLED AT 2023-02-26T20:59:32 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.17
+
+</pre>
+<h3>QMMM/bio_systems/amber/metadyn/atp_blyp_cpmd_capH_mtd.inp</h3>
+<p><a href='QMMM/bio_systems/amber/metadyn/atp_blyp_cpmd_capH_mtd.out'>QMMM/bio_systems/amber/metadyn/atp_blyp_cpmd_capH_mtd.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.19 ON m0665 CANCELLED AT 2023-02-26T20:59:32 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.19
+
+</pre>
+<h3>QMMM/bio_systems/amber/cnstr/atp_blyp_cpmd_capH_fixonly.inp</h3>
+<p><a href='QMMM/bio_systems/amber/cnstr/atp_blyp_cpmd_capH_fixonly.out'>QMMM/bio_systems/amber/cnstr/atp_blyp_cpmd_capH_fixonly.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.18 ON m0665 CANCELLED AT 2023-02-26T20:59:32 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.18
+
+</pre>
+<h3>SP/libxc/nh3-0/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-0/nh3.out'>SP/libxc/nh3-0/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ PRINT INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-06
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC LDA_X
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+slurmstepd: error: *** STEP 2098305.13 ON m0665 CANCELLED AT 2023-02-26T20:59:32 ***
+srun: error: m0665: task 0: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.13
+srun: error: m0665: task 1: Killed
+
+</pre>
+<h3>BO/libxc/r-3/test.inp</h3>
+<p><a href='BO/libxc/r-3/test.out'>BO/libxc/r-3/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ TIME STEP FOR ELECTRONS:                                 20.6707
+ TIME STEP FOR IONS:                                      20.6707
+ TRAJECTORIES ARE SAVED ON FILE
+ ELECTRON DYNAMICS: THE TEMPERATURE IS NOT CONTROLLED
+ ION DYNAMICS:      THE TEMPERATURE IS NOT CONTROLLED
+ ASPC WAVEFUNCTION EXTRAPOLATION (MAX. HISTORY)                 6
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC HYB_GGA_XC_B3LYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.762 ON m0665 CANCELLED AT 2023-02-26T21:08:40 ***
+slurmstepd: error: *** STEP 2098305.762 ON m0665 CANCELLED AT 2023-02-26T21:08:40 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.762
+
+</pre>
+<h3>SP/libxc/nh3-u-5/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-u-5/nh3.out'>SP/libxc/nh3-u-5/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+      8.0% LIBXC LDA_X
+     72.0% LIBXC GGA_X_B88
+     81.0% LIBXC GGA_C_LYP
+     19.0% LIBXC LDA_C_VWN_RPA
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+           HFX PARAMETERS ARE NON-DEFAULT
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+ ================================================================
+ =               UNKNOWN KEYWORDS IN SECTION &DFT              =
+ = MULTIPLICITY
+ = 1
+ ================================================================
+
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.21 ON m0665 CANCELLED AT 2023-02-26T20:59:33 ***
+srun: error: m0665: task 0: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.21
+srun: error: m0665: task 1: Killed
+
+</pre>
+<h3>QMMM/bio_systems/amber/cnstr/atp_blyp_bo_oecp_cnstr.inp</h3>
+<p><a href='QMMM/bio_systems/amber/cnstr/atp_blyp_bo_oecp_cnstr.out'>QMMM/bio_systems/amber/cnstr/atp_blyp_bo_oecp_cnstr.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.25 ON m0665 CANCELLED AT 2023-02-26T20:59:33 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.25
+
+</pre>
+<h3>QMMM/bio_systems/amber/hcth/atp_hcth_cpmd_capH.inp</h3>
+<p><a href='QMMM/bio_systems/amber/hcth/atp_hcth_cpmd_capH.out'>QMMM/bio_systems/amber/hcth/atp_hcth_cpmd_capH.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ =                                                              =
+ ================================================================
+
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA CORRELATION:                                         NONE
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-09
+    HCTH/120 XC FUNCTIONAL  [HCTH: N.C. HANDY ET AL. JCP 109, 6264 (1998)]
+                 
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.20 ON m0665 CANCELLED AT 2023-02-26T20:59:33 ***
+slurmstepd: error: *** STEP 2098305.20 ON m0665 CANCELLED AT 2023-02-26T20:59:33 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.20
+
+</pre>
+<h3>BO/libxc/r-1/test.inp</h3>
+<p><a href='BO/libxc/r-1/test.out'>BO/libxc/r-1/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY         3 SELF-CONSISTENT STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                 20.6707
+ TIME STEP FOR IONS:                                      20.6707
+ TRAJECTORIES ARE SAVED ON FILE
+ ELECTRON DYNAMICS: THE TEMPERATURE IS NOT CONTROLLED
+ ION DYNAMICS:      THE TEMPERATURE IS NOT CONTROLLED
+ ASPC WAVEFUNCTION EXTRAPOLATION (MAX. HISTORY)                 6
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_X_PBE
+    100.0% LIBXC GGA_C_PBE
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.763 ON m0665 CANCELLED AT 2023-02-26T21:08:40 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.763
+
+</pre>
+<h3>QMMM/bio_systems/amber/metadyn/atp_blyp_bo_oecp_mtd.inp</h3>
+<p><a href='QMMM/bio_systems/amber/metadyn/atp_blyp_bo_oecp_mtd.out'>QMMM/bio_systems/amber/metadyn/atp_blyp_bo_oecp_mtd.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.22 ON m0665 CANCELLED AT 2023-02-26T20:59:33 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.22
+
+</pre>
+<h3>BO/libxc/u-2/test.inp</h3>
+<p><a href='BO/libxc/u-2/test.out'>BO/libxc/u-2/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ PRINT INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY         3 SELF-CONSISTENT STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                 20.6707
+ TIME STEP FOR IONS:                                      20.6707
+ TRAJECTORIES ARE SAVED ON FILE
+ ELECTRON DYNAMICS: THE TEMPERATURE IS NOT CONTROLLED
+ ION DYNAMICS:      THE TEMPERATURE IS NOT CONTROLLED
+ ASPC WAVEFUNCTION EXTRAPOLATION (MAX. HISTORY)                 6
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_XC_XLYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.496 ON m0665 CANCELLED AT 2023-02-26T21:07:16 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.496
+
+</pre>
+<h3>GEO/libxc/r-4/test.inp</h3>
+<p><a href='GEO/libxc/r-4/test.out'>GEO/libxc/r-4/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    100.0% LIBXC HYB_GGA_XC_CAM_B3LYP
+           CP EXCHANGE FUNCTIONALS ARE COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     19.0% SR    EXACT EXCHANGE
+     65.0% LR    EXACT EXCHANGE
+           HFX IS COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+
+ FOR THE RECIPROCAL SPACE IMPLEMENTATION OF CAM, PLEASE REFER TO:
+                                M.P. Bircher and U. Rothlisberger
+              J. Chem. Theory Comput., 2018, 14 (6), pp 3184–3195
+                                    DOI: 10.1021/acs.jctc.8b00069
+
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.497 ON m0665 CANCELLED AT 2023-02-26T21:07:17 ***
+slurmstepd: error: *** STEP 2098305.497 ON m0665 CANCELLED AT 2023-02-26T21:07:17 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.497
+
+</pre>
+<h3>BO/libxc/u-3/test.inp</h3>
+<p><a href='BO/libxc/u-3/test.out'>BO/libxc/u-3/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ TIME STEP FOR ELECTRONS:                                 20.6707
+ TIME STEP FOR IONS:                                      20.6707
+ TRAJECTORIES ARE SAVED ON FILE
+ ELECTRON DYNAMICS: THE TEMPERATURE IS NOT CONTROLLED
+ ION DYNAMICS:      THE TEMPERATURE IS NOT CONTROLLED
+ ASPC WAVEFUNCTION EXTRAPOLATION (MAX. HISTORY)                 6
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC HYB_GGA_XC_B3LYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.498 ON m0665 CANCELLED AT 2023-02-26T21:07:17 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.498
+
+</pre>
+<h3>QMMM/ACETONE_WATER_s0/test.inp</h3>
+<p><a href='QMMM/ACETONE_WATER_s0/test.out'>QMMM/ACETONE_WATER_s0/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA XC THROUGH PADE APPROXIMATION
+    S.GOEDECKER, J.HUTTER, M.TETER PRB 541703 (1996)
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+    CORRELATION ENERGY 
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.23 ON m0665 CANCELLED AT 2023-02-26T20:59:33 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.23
+
+</pre>
+<h3>QMMM/bio_systems/amber/blyp/oecp/atp_blyp_cpmd_oecp.inp</h3>
+<p><a href='QMMM/bio_systems/amber/blyp/oecp/atp_blyp_cpmd_oecp.out'>QMMM/bio_systems/amber/blyp/oecp/atp_blyp_cpmd_oecp.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.26 ON m0665 CANCELLED AT 2023-02-26T20:59:33 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.26
+
+</pre>
+<h3>FORCEMATCH/run1/test.inp</h3>
+<p><a href='FORCEMATCH/run1/test.out'>FORCEMATCH/run1/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'Total force RMS' 7</pre></li>
+<li><pre>SCALAR 'Total force RMS' 8</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.24 ON m0665 CANCELLED AT 2023-02-26T20:59:33 ***
+srun: error: m0665: task 0: Killed
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.24
+srun: error: m0665: task 1: Exited with exit code 231
+
+</pre>
+<h3>TD/acetone/ac_isc_tri/ac_isc.inp</h3>
+<p><a href='TD/acetone/ac_isc_tri/ac_isc.out'>TD/acetone/ac_isc_tri/ac_isc.out</a></p>
+<p class="cat">Something went wrong in the CPQA driver script.</p>
+<ol>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: 'TOTAL
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: Order
+</pre></li>
+</ol>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+<li><pre>SCALAR '2nd Order Perturbation Energy' 5</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA XC THROUGH PADE APPROXIMATION
+    S.GOEDECKER, J.HUTTER, M.TETER PRB 541703 (1996)
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+    CORRELATION ENERGY 
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.27 ON m0665 CANCELLED AT 2023-02-26T20:59:33 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.27
+
+</pre>
+<h3>TD/acetone/ac_tddf_tri/ac_tddft.inp</h3>
+<p><a href='TD/acetone/ac_tddf_tri/ac_tddft.out'>TD/acetone/ac_tddf_tri/ac_tddft.out</a></p>
+<p class="cat">Something went wrong in the CPQA driver script.</p>
+<ol>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: 'TOTAL
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: Order
+</pre></li>
+</ol>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+<li><pre>SCALAR '2nd Order Perturbation Energy' 5</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA XC THROUGH PADE APPROXIMATION
+    S.GOEDECKER, J.HUTTER, M.TETER PRB 541703 (1996)
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+    CORRELATION ENERGY 
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.28 ON m0665 CANCELLED AT 2023-02-26T20:59:33 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.28
+
+</pre>
+<h3>QMMM/bio_systems/amber/cnstr/atp_blyp_bo_capH_cnstr.inp</h3>
+<p><a href='QMMM/bio_systems/amber/cnstr/atp_blyp_bo_capH_cnstr.out'>QMMM/bio_systems/amber/cnstr/atp_blyp_bo_capH_cnstr.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+slurmstepd: error: *** STEP 2098305.29 ON m0665 CANCELLED AT 2023-02-26T20:59:33 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.29
+
+</pre>
+<h3>TD/libxc/n-1/w.inp</h3>
+<p><a href='TD/libxc/n-1/w.out'>TD/libxc/n-1/w.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'CHKSUM\(EIGENVALUES\) =' 2</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-04
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_X_PBE
+    100.0% LIBXC GGA_C_PBE
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.715 ON m0665 CANCELLED AT 2023-02-26T21:08:29 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.715
+
+</pre>
+<h3>TD/libxc/n-5/w.inp</h3>
+<p><a href='TD/libxc/n-5/w.out'>TD/libxc/n-5/w.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'CHKSUM\(EIGENVALUES\) =' 2</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+      8.0% LIBXC LDA_X
+     72.0% LIBXC GGA_X_B88
+     81.0% LIBXC GGA_C_LYP
+     19.0% LIBXC LDA_C_VWN_RPA
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+           HFX PARAMETERS ARE NON-DEFAULT
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.716 ON m0665 CANCELLED AT 2023-02-26T21:08:29 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.716
+
+</pre>
+<h3>QMMM/test-watsurf/watersurf-qmmm.inp</h3>
+<p><a href='QMMM/test-watsurf/watersurf-qmmm.out'>QMMM/test-watsurf/watersurf-qmmm.out</a></p>
+<p class="cat">Something went wrong in the CPQA driver script.</p>
+<ol>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: 'TOTAL
+</pre></li>
+</ol>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+<li><pre>SCALAR 'ChkSum\(DIP\) = ' 2</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-07
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+ APPLY ELECTRIC FIELD:    0.1000E-02  0.0000E+00  0.0000E+00 A.U.
+
+
+ ================================================================
+ =               UNKNOWN KEYWORDS IN SECTION &SYSTEM            =
+ = angstrom
+ = original
+ ================================================================
+
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.31 ON m0665 CANCELLED AT 2023-02-26T20:59:34 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.31
+
+</pre>
+<h3>TD/acetone/ac_isc_sin/ac_isc.inp</h3>
+<p><a href='TD/acetone/ac_isc_sin/ac_isc.out'>TD/acetone/ac_isc_sin/ac_isc.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+<li><pre>SCALAR 'Triplet energies    1' 3</pre></li>
+<li><pre>SCALAR 'Triplet energies    2' 3</pre></li>
+<li><pre>SCALAR 'Triplet energies    3' 3</pre></li>
+<li><pre>SCALAR 'Triplet energies    4' 3</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA XC THROUGH PADE APPROXIMATION
+    S.GOEDECKER, J.HUTTER, M.TETER PRB 541703 (1996)
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+    CORRELATION ENERGY 
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.32 ON m0665 CANCELLED AT 2023-02-26T20:59:34 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.32
+
+</pre>
+<h3>BO/libxc/u-4/test.inp</h3>
+<p><a href='BO/libxc/u-4/test.out'>BO/libxc/u-4/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    100.0% LIBXC HYB_GGA_XC_CAM_B3LYP
+           CP EXCHANGE FUNCTIONALS ARE COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     19.0% SR    EXACT EXCHANGE
+     65.0% LR    EXACT EXCHANGE
+           HFX IS COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+
+ FOR THE RECIPROCAL SPACE IMPLEMENTATION OF CAM, PLEASE REFER TO:
+                                M.P. Bircher and U. Rothlisberger
+              J. Chem. Theory Comput., 2018, 14 (6), pp 3184–3195
+                                    DOI: 10.1021/acs.jctc.8b00069
+
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.499 ON m0665 CANCELLED AT 2023-02-26T21:07:17 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.499
+
+</pre>
+<h3>GEO/libxc/r-2/test.inp</h3>
+<p><a href='GEO/libxc/r-2/test.out'>GEO/libxc/r-2/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-05
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ CONVERGENCE CRITERIA FOR GEOMETRY OPTIMIZATION:     5.000000E-04
+ GEOMETRY OPTIMIZATION BY GDIIS/BFGS      
+   SIZE OF GDIIS MATRIX:                                        2
+ EMPIRICAL INITIAL HESSIAN (DISCO PARAMETRISATION) 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_XC_XLYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.500 ON m0665 CANCELLED AT 2023-02-26T21:07:17 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.500
+
+</pre>
+<h3>BO/libxc/u-0/test.inp</h3>
+<p><a href='BO/libxc/u-0/test.out'>BO/libxc/u-0/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ MAXIMUM NUMBER OF ITERATIONS FOR SC:                     2 STEPS
+ PRINT INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY         3 SELF-CONSISTENT STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                 20.6707
+ TIME STEP FOR IONS:                                      20.6707
+ TRAJECTORIES ARE SAVED ON FILE
+ ELECTRON DYNAMICS: THE TEMPERATURE IS NOT CONTROLLED
+ ION DYNAMICS:      THE TEMPERATURE IS NOT CONTROLLED
+ ASPC WAVEFUNCTION EXTRAPOLATION (MAX. HISTORY)                 6
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC LDA_X
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.501 ON m0665 CANCELLED AT 2023-02-26T21:07:17 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.501
+
+</pre>
+<h3>TD/libxc/n-0/w.inp</h3>
+<p><a href='TD/libxc/n-0/w.out'>TD/libxc/n-0/w.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'CHKSUM\(EIGENVALUES\) =' 2</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ PRINT INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-04
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC LDA_X
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.717 ON m0665 CANCELLED AT 2023-02-26T21:08:29 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.717
+
+</pre>
+<h3>QMMM/bio_systems/amber/blyp/linkH/atp_blyp_bo_capH.inp</h3>
+<p><a href='QMMM/bio_systems/amber/blyp/linkH/atp_blyp_bo_capH.out'>QMMM/bio_systems/amber/blyp/linkH/atp_blyp_bo_capH.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.33 ON m0665 CANCELLED AT 2023-02-26T20:59:34 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.33
+
+</pre>
+<h3>GEO/libxc/r-1/test.inp</h3>
+<p><a href='GEO/libxc/r-1/test.out'>GEO/libxc/r-1/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-05
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ CONVERGENCE CRITERIA FOR GEOMETRY OPTIMIZATION:     5.000000E-04
+ GEOMETRY OPTIMIZATION BY GDIIS/BFGS      
+   SIZE OF GDIIS MATRIX:                                        2
+ EMPIRICAL INITIAL HESSIAN (DISCO PARAMETRISATION) 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_X_PBE
+    100.0% LIBXC GGA_C_PBE
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.502 ON m0665 CANCELLED AT 2023-02-26T21:07:17 ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.502
+
+</pre>
+<h3>QMMM/WATER_DIMER_solute_BO/test.inp</h3>
+<p><a href='QMMM/WATER_DIMER_solute_BO/test.out'>QMMM/WATER_DIMER_solute_BO/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.35 ON m0665 CANCELLED AT 2023-02-26T20:59:34 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.35
+
+</pre>
+<h3>QMMM/bio_systems/amber/cnstr/atp_blyp_cpmd_oecp_cnstr.inp</h3>
+<p><a href='QMMM/bio_systems/amber/cnstr/atp_blyp_cpmd_oecp_cnstr.out'>QMMM/bio_systems/amber/cnstr/atp_blyp_cpmd_oecp_cnstr.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.30 ON m0665 CANCELLED AT 2023-02-26T20:59:34 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.30
+
+</pre>
+<h3>QMMM/bio_systems/gromos/oecp/atp_blyp_bo_oecp_Gromos.inp</h3>
+<p><a href='QMMM/bio_systems/gromos/oecp/atp_blyp_bo_oecp_Gromos.out'>QMMM/bio_systems/gromos/oecp/atp_blyp_bo_oecp_Gromos.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.34 ON m0665 CANCELLED AT 2023-02-26T20:59:34 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.34
+
+</pre>
+<h3>QMMM/bio_systems/gromos/linkH/atp_blyp_cpmd_capH_Gromos.inp</h3>
+<p><a href='QMMM/bio_systems/gromos/linkH/atp_blyp_cpmd_capH_Gromos.out'>QMMM/bio_systems/gromos/linkH/atp_blyp_cpmd_capH_Gromos.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.36 ON m0665 CANCELLED AT 2023-02-26T20:59:34 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.36
+
+</pre>
+<h3>SP/libxc/nh3-5/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-5/nh3.out'>SP/libxc/nh3-5/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+      8.0% LIBXC LDA_X
+     72.0% LIBXC GGA_X_B88
+     81.0% LIBXC GGA_C_LYP
+     19.0% LIBXC LDA_C_VWN_RPA
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+           HFX PARAMETERS ARE NON-DEFAULT
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.37 ON m0665 CANCELLED AT 2023-02-26T20:59:34 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.37
+
+</pre>
+<h3>QMMM/AC_SP2/ac_tsh.inp</h3>
+<p><a href='QMMM/AC_SP2/ac_tsh.out'>QMMM/AC_SP2/ac_tsh.out</a></p>
+<p class="cat">Something went wrong in the CPQA driver script.</p>
+<ol>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: 'TOTAL
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+</ol>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+<li><pre>SCALAR 'RUN ON SURFACE' 3</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA XC THROUGH PADE APPROXIMATION
+    S.GOEDECKER, J.HUTTER, M.TETER PRB 541703 (1996)
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+    CORRELATION ENERGY 
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.57 ON m0665 CANCELLED AT 2023-02-26T20:59:37 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.57
+
+</pre>
+<h3>QMMM/bio_systems/amber/blyp/oecp/atp_blyp_cpmd_oecp_split.inp</h3>
+<p><a href='QMMM/bio_systems/amber/blyp/oecp/atp_blyp_cpmd_oecp_split.out'>QMMM/bio_systems/amber/blyp/oecp/atp_blyp_cpmd_oecp_split.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.38 ON m0665 CANCELLED AT 2023-02-26T20:59:34 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.38
+
+</pre>
+<h3>PROP/KS-ener/libxc/h2o-0/test.inp</h3>
+<p><a href='PROP/KS-ener/libxc/h2o-0/test.out'>PROP/KS-ener/libxc/h2o-0/test.out</a></p>
+<p class="cat">Something went wrong in the CPQA driver script.</p>
+<ol>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+</ol>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'CHEMICAL POTENTIAL = ' 3</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    100.0% LIBXC HYB_GGA_XC_CAM_B3LYP
+           CP EXCHANGE FUNCTIONALS ARE COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     19.0% SR    EXACT EXCHANGE
+     65.0% LR    EXACT EXCHANGE
+           HFX IS COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+
+ FOR THE RECIPROCAL SPACE IMPLEMENTATION OF CAM, PLEASE REFER TO:
+                                M.P. Bircher and U. Rothlisberger
+              J. Chem. Theory Comput., 2018, 14 (6), pp 3184–3195
+                                    DOI: 10.1021/acs.jctc.8b00069
+
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.503 ON m0665 CANCELLED AT 2023-02-26T21:07:18 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.503
+
+</pre>
+<h3>QMMM/bio_systems/amber/blyp/oecp/atp_blyp_bo_oecp.inp</h3>
+<p><a href='QMMM/bio_systems/amber/blyp/oecp/atp_blyp_bo_oecp.out'>QMMM/bio_systems/amber/blyp/oecp/atp_blyp_bo_oecp.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.39 ON m0665 CANCELLED AT 2023-02-26T20:59:34 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.39
+
+</pre>
+<h3>BO/libxc/r-2/test.inp</h3>
+<p><a href='BO/libxc/r-2/test.out'>BO/libxc/r-2/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ PRINT INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY         3 SELF-CONSISTENT STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                 20.6707
+ TIME STEP FOR IONS:                                      20.6707
+ TRAJECTORIES ARE SAVED ON FILE
+ ELECTRON DYNAMICS: THE TEMPERATURE IS NOT CONTROLLED
+ ION DYNAMICS:      THE TEMPERATURE IS NOT CONTROLLED
+ ASPC WAVEFUNCTION EXTRAPOLATION (MAX. HISTORY)                 6
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_XC_XLYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.764 ON m0665 CANCELLED AT 2023-02-26T21:08:40 ***
+slurmstepd: error: *** STEP 2098305.764 ON m0665 CANCELLED AT 2023-02-26T21:08:40 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.764
+
+</pre>
+<h3>GEO/libxc/r-5/test.inp</h3>
+<p><a href='GEO/libxc/r-5/test.out'>GEO/libxc/r-5/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+   SIZE OF GDIIS MATRIX:                                        2
+ EMPIRICAL INITIAL HESSIAN (DISCO PARAMETRISATION) 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+      8.0% LIBXC LDA_X
+     72.0% LIBXC GGA_X_B88
+     81.0% LIBXC GGA_C_LYP
+     19.0% LIBXC LDA_C_VWN_RPA
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+           HFX PARAMETERS ARE NON-DEFAULT
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.504 ON m0665 CANCELLED AT 2023-02-26T21:07:18 ***
+srun: error: m0665: task 0: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.504
+srun: error: m0665: task 1: Killed
+
+</pre>
+<h3>TD/libxc/n-4/w.inp</h3>
+<p><a href='TD/libxc/n-4/w.out'>TD/libxc/n-4/w.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'CHKSUM\(EIGENVALUES\) =' 2</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    100.0% LIBXC HYB_GGA_XC_CAM_B3LYP
+           CP EXCHANGE FUNCTIONALS ARE COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     19.0% SR    EXACT EXCHANGE
+     65.0% LR    EXACT EXCHANGE
+           HFX IS COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+
+ FOR THE RECIPROCAL SPACE IMPLEMENTATION OF CAM, PLEASE REFER TO:
+                                M.P. Bircher and U. Rothlisberger
+              J. Chem. Theory Comput., 2018, 14 (6), pp 3184–3195
+                                    DOI: 10.1021/acs.jctc.8b00069
+
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.718 ON m0665 CANCELLED AT 2023-02-26T21:08:30 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.718
+
+</pre>
+<h3>BO/libxc/u-1/test.inp</h3>
+<p><a href='BO/libxc/u-1/test.out'>BO/libxc/u-1/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY         3 SELF-CONSISTENT STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                 20.6707
+ TIME STEP FOR IONS:                                      20.6707
+ TRAJECTORIES ARE SAVED ON FILE
+ ELECTRON DYNAMICS: THE TEMPERATURE IS NOT CONTROLLED
+ ION DYNAMICS:      THE TEMPERATURE IS NOT CONTROLLED
+ ASPC WAVEFUNCTION EXTRAPOLATION (MAX. HISTORY)                 6
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_X_PBE
+    100.0% LIBXC GGA_C_PBE
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.505 ON m0665 CANCELLED AT 2023-02-26T21:07:18 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.505
+
+</pre>
+<h3>TD/libxc/n-3/w.inp</h3>
+<p><a href='TD/libxc/n-3/w.out'>TD/libxc/n-3/w.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'CHKSUM\(EIGENVALUES\) =' 2</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-04
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC HYB_GGA_XC_B3LYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.720 ON m0665 CANCELLED AT 2023-02-26T21:08:30 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.720
+
+</pre>
+<h3>QMMM/bio_systems/amber/metadyn/atp_blyp_cpmd_oecp_mtd.inp</h3>
+<p><a href='QMMM/bio_systems/amber/metadyn/atp_blyp_cpmd_oecp_mtd.out'>QMMM/bio_systems/amber/metadyn/atp_blyp_cpmd_oecp_mtd.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.40 ON m0665 CANCELLED AT 2023-02-26T20:59:36 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.40
+
+</pre>
+<h3>SP/libxc/nh3-u-4/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-u-4/nh3.out'>SP/libxc/nh3-u-4/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    100.0% LIBXC HYB_GGA_XC_CAM_B3LYP
+           CP EXCHANGE FUNCTIONALS ARE COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     19.0% SR    EXACT EXCHANGE
+     65.0% LR    EXACT EXCHANGE
+           HFX IS COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+
+ FOR THE RECIPROCAL SPACE IMPLEMENTATION OF CAM, PLEASE REFER TO:
+                                M.P. Bircher and U. Rothlisberger
+              J. Chem. Theory Comput., 2018, 14 (6), pp 3184–3195
+                                    DOI: 10.1021/acs.jctc.8b00069
+
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.41 ON m0665 CANCELLED AT 2023-02-26T20:59:35 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.41
+
+</pre>
+<h3>QMMM/AC_SP1/ac_sp.inp</h3>
+<p><a href='QMMM/AC_SP1/ac_sp.out'>QMMM/AC_SP1/ac_sp.out</a></p>
+<p class="cat">Something went wrong in the CPQA driver script.</p>
+<ol>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: 'TOTAL
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+</ol>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+<li><pre>SCALAR 'STATE=  1                               EIGENVALUE=' 3</pre></li>
+<li><pre>SCALAR 'STATE=  2                               EIGENVALUE=' 3</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA XC THROUGH PADE APPROXIMATION
+    S.GOEDECKER, J.HUTTER, M.TETER PRB 541703 (1996)
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+    CORRELATION ENERGY 
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.43 ON m0665 CANCELLED AT 2023-02-26T20:59:36 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.43
+
+</pre>
+<h3>BO/libxc/r-5/test.inp</h3>
+<p><a href='BO/libxc/r-5/test.out'>BO/libxc/r-5/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ ION DYNAMICS:      THE TEMPERATURE IS NOT CONTROLLED
+ ASPC WAVEFUNCTION EXTRAPOLATION (MAX. HISTORY)                 6
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+      8.0% LIBXC LDA_X
+     72.0% LIBXC GGA_X_B88
+     81.0% LIBXC GGA_C_LYP
+     19.0% LIBXC LDA_C_VWN_RPA
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+           HFX PARAMETERS ARE NON-DEFAULT
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.765 ON m0665 CANCELLED AT 2023-02-26T21:08:41 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.765
+
+</pre>
+<h3>GEO/libxc/u-0/test.inp</h3>
+<p><a href='GEO/libxc/u-0/test.out'>GEO/libxc/u-0/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-05
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ CONVERGENCE CRITERIA FOR GEOMETRY OPTIMIZATION:     5.000000E-04
+ GEOMETRY OPTIMIZATION BY GDIIS/BFGS      
+   SIZE OF GDIIS MATRIX:                                        2
+ EMPIRICAL INITIAL HESSIAN (DISCO PARAMETRISATION) 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC LDA_X
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.295 ON m0665 CANCELLED AT 2023-02-26T21:05:38 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.295
+
+</pre>
+<h3>QMMM/WATER_DIMER_solute_WFO/test.inp</h3>
+<p><a href='QMMM/WATER_DIMER_solute_WFO/test.out'>QMMM/WATER_DIMER_solute_WFO/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.42 ON m0665 CANCELLED AT 2023-02-26T20:59:35 ***
+srun: error: m0665: task 0: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.42
+srun: error: m0665: task 1: Killed
+
+</pre>
+<h3>PROP/KS-ener/libxc/h2o-1/test.inp</h3>
+<p><a href='PROP/KS-ener/libxc/h2o-1/test.out'>PROP/KS-ener/libxc/h2o-1/test.out</a></p>
+<p class="cat">Something went wrong in the CPQA driver script.</p>
+<ol>
+<li><pre>Traceback (most recent call last):
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 132, in harvest_file
+    fragment.digest()
+  File "/home/titan/nfcc/nfcc02/cpmd_merge_github/cpqa/src/cpqa/tests.py", line 63, in digest
+    self.value = float(self.lines[0].split()[self.column])
+ValueError: could not convert string to float: SCALAR
+</pre></li>
+</ol>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'CHEMICAL POTENTIAL = ' 3</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    100.0% LIBXC HYB_GGA_XC_CAM_B3LYP
+           CP EXCHANGE FUNCTIONALS ARE COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     19.0% SR    EXACT EXCHANGE
+     65.0% LR    EXACT EXCHANGE
+           HFX IS COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+
+ FOR THE RECIPROCAL SPACE IMPLEMENTATION OF CAM, PLEASE REFER TO:
+                                M.P. Bircher and U. Rothlisberger
+              J. Chem. Theory Comput., 2018, 14 (6), pp 3184–3195
+                                    DOI: 10.1021/acs.jctc.8b00069
+
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.507 ON m0665 CANCELLED AT 2023-02-26T21:07:18 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.507
+
+</pre>
+<h3>QMMM/WATER_DIMER_solvent_WFO/test.inp</h3>
+<p><a href='QMMM/WATER_DIMER_solvent_WFO/test.out'>QMMM/WATER_DIMER_solvent_WFO/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.44 ON m0665 CANCELLED AT 2023-02-26T20:59:36 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.44
+
+</pre>
+<h3>BO/libxc/r-4/test.inp</h3>
+<p><a href='BO/libxc/r-4/test.out'>BO/libxc/r-4/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    100.0% LIBXC HYB_GGA_XC_CAM_B3LYP
+           CP EXCHANGE FUNCTIONALS ARE COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     19.0% SR    EXACT EXCHANGE
+     65.0% LR    EXACT EXCHANGE
+           HFX IS COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+
+ FOR THE RECIPROCAL SPACE IMPLEMENTATION OF CAM, PLEASE REFER TO:
+                                M.P. Bircher and U. Rothlisberger
+              J. Chem. Theory Comput., 2018, 14 (6), pp 3184–3195
+                                    DOI: 10.1021/acs.jctc.8b00069
+
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.766 ON m0665 CANCELLED AT 2023-02-26T21:08:41 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.766
+
+</pre>
+<h3>SP/libxc/nh3-4/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-4/nh3.out'>SP/libxc/nh3-4/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    100.0% LIBXC HYB_GGA_XC_CAM_B3LYP
+           CP EXCHANGE FUNCTIONALS ARE COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     19.0% SR    EXACT EXCHANGE
+     65.0% LR    EXACT EXCHANGE
+           HFX IS COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+
+ FOR THE RECIPROCAL SPACE IMPLEMENTATION OF CAM, PLEASE REFER TO:
+                                M.P. Bircher and U. Rothlisberger
+              J. Chem. Theory Comput., 2018, 14 (6), pp 3184–3195
+                                    DOI: 10.1021/acs.jctc.8b00069
+
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.46 ON m0665 CANCELLED AT 2023-02-26T20:59:36 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.46
+
+</pre>
+<h3>GEO/libxc/u-2/test.inp</h3>
+<p><a href='GEO/libxc/u-2/test.out'>GEO/libxc/u-2/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-05
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ CONVERGENCE CRITERIA FOR GEOMETRY OPTIMIZATION:     5.000000E-04
+ GEOMETRY OPTIMIZATION BY GDIIS/BFGS      
+   SIZE OF GDIIS MATRIX:                                        2
+ EMPIRICAL INITIAL HESSIAN (DISCO PARAMETRISATION) 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_XC_XLYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.296 ON m0665 CANCELLED AT 2023-02-26T21:05:38 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.296
+
+</pre>
+<h3>SP/libxc/nh3-u-3/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-u-3/nh3.out'>SP/libxc/nh3-u-3/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-06
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC HYB_GGA_XC_B3LYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.47 ON m0665 CANCELLED AT 2023-02-26T20:59:36 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.47
+
+</pre>
+<h3>GEO/libxc/u-4/test.inp</h3>
+<p><a href='GEO/libxc/u-4/test.out'>GEO/libxc/u-4/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+    100.0% LIBXC HYB_GGA_XC_CAM_B3LYP
+           CP EXCHANGE FUNCTIONALS ARE COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     19.0% SR    EXACT EXCHANGE
+     65.0% LR    EXACT EXCHANGE
+           HFX IS COULOMB-ATTENUATED (CAM)
+           MU [BOHR]: 0.33000 ; ALPHA: 0.19000 ; BETA: 0.46000
+
+ FOR THE RECIPROCAL SPACE IMPLEMENTATION OF CAM, PLEASE REFER TO:
+                                M.P. Bircher and U. Rothlisberger
+              J. Chem. Theory Comput., 2018, 14 (6), pp 3184–3195
+                                    DOI: 10.1021/acs.jctc.8b00069
+
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+slurmstepd: error: *** STEP 2098305.297 ON m0665 CANCELLED AT 2023-02-26T21:05:38 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.297
+
+</pre>
+<h3>SP/libxc/nh3-2/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-2/nh3.out'>SP/libxc/nh3-2/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-06
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_XC_XLYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.45 ON m0665 CANCELLED AT 2023-02-26T20:59:36 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.45
+
+</pre>
+<h3>QMMM/WATER_DIMER_solute_CP/test.inp</h3>
+<p><a href='QMMM/WATER_DIMER_solute_CP/test.out'>QMMM/WATER_DIMER_solute_CP/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.48 ON m0665 CANCELLED AT 2023-02-26T20:59:36 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.48
+
+</pre>
+<h3>QMMM/WATER_DIMER_VDB/test.inp</h3>
+<p><a href='QMMM/WATER_DIMER_VDB/test.out'>QMMM/WATER_DIMER_VDB/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                              PERDEW & ZUNGER
+       [J.P. PERDEW AND A ZUNGER, PRB 235048 (1981)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                5.00000E-06
+    EXCHANGE ENERGY
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+    CORRELATION ENERGY 
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.49 ON m0665 CANCELLED AT 2023-02-26T20:59:36 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.49
+
+</pre>
+<h3>QMMM/bio_systems/amber/blyp/linkH/atp_blyp_cpmd_capH.inp</h3>
+<p><a href='QMMM/bio_systems/amber/blyp/linkH/atp_blyp_cpmd_capH.out'>QMMM/bio_systems/amber/blyp/linkH/atp_blyp_cpmd_capH.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.50 ON m0665 CANCELLED AT 2023-02-26T20:59:37 ***
+slurmstepd: error: *** STEP 2098305.50 ON m0665 CANCELLED AT 2023-02-26T20:59:37 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.50
+
+</pre>
+<h3>TD/libxc/n-2/w.inp</h3>
+<p><a href='TD/libxc/n-2/w.out'>TD/libxc/n-2/w.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'CHKSUM\(EIGENVALUES\) =' 2</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                  5.0000
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-04
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_XC_XLYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.719 ON m0665 CANCELLED AT 2023-02-26T21:08:30 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.719
+
+</pre>
+<h3>QMMM/bio_systems/amber/metadyn/atp_blyp_bo_capH_mtd.inp</h3>
+<p><a href='QMMM/bio_systems/amber/metadyn/atp_blyp_bo_capH_mtd.out'>QMMM/bio_systems/amber/metadyn/atp_blyp_bo_capH_mtd.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.51 ON m0665 CANCELLED AT 2023-02-26T20:59:37 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.51
+
+</pre>
+<h3>SP/libxc/nh3-3/nh3.inp</h3>
+<p><a href='SP/libxc/nh3-3/nh3.out'>SP/libxc/nh3-3/nh3.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-06
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC HYB_GGA_XC_B3LYP
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+ 
+     20.0% HFX   EXACT EXCHANGE
+
+ USE NEW HFX MODULE                                             T
+ USE BLOCK CYCLIC DISTRIBUTION
+ BLOCK SIZE                                                     2
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.54 ON m0665 CANCELLED AT 2023-02-26T20:59:37 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.54
+
+</pre>
+<h3>QMMM/WATER_DIMER_solvent_CP/test.inp</h3>
+<p><a href='QMMM/WATER_DIMER_solvent_CP/test.out'>QMMM/WATER_DIMER_solvent_CP/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                        SLATER (ALPHA = 0.66667)
+    LDA CORRELATION:                             LEE, YANG & PARR
+       [C.L. LEE, W. YANG, AND R.G. PARR, PRB 37785 (1988)]
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-08
+    EXCHANGE ENERGY
+       [A.D. BECKE, PHYS. REV. A 38, 3098 (1988)]
+       PARAMETER BETA:                                   0.004200
+    CORRELATION ENERGY
+       [LYP: C.L. LEE ET AL. PHYS. REV. B 37, 785 (1988)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.52 ON m0665 CANCELLED AT 2023-02-26T20:59:37 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.52
+
+</pre>
+<h3>QMMM/functionals/bug-hcth-1/test.inp</h3>
+<p><a href='QMMM/functionals/bug-hcth-1/test.out'>QMMM/functionals/bug-hcth-1/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA CORRELATION:                                         NONE
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-09
+    HCTH/120 XC FUNCTIONAL  [HCTH: N.C. HANDY ET AL. JCP 109, 6264 (1998)]
+                 
+ 
+
+ ================================================================
+ =               UNKNOWN KEYWORDS IN SECTION &SYSTEM            =
+ = #orig
+ ================================================================
+
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.53 ON m0665 CANCELLED AT 2023-02-26T20:59:37 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.53
+
+</pre>
+<h3>GEO/libxc/u-1/test.inp</h3>
+<p><a href='GEO/libxc/u-1/test.out'>GEO/libxc/u-1/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ TIME STEP FOR IONS:                                       5.0000
+ CONVERGENCE CRITERIA FOR WAVEFUNCTION OPTIMIZATION:   1.0000E-05
+ WAVEFUNCTION OPTIMIZATION BY PRECONDITIONED DIIS
+ THRESHOLD FOR THE WF-HESSIAN IS                           0.5000
+ MAXIMUM NUMBER OF VECTORS RETAINED FOR DIIS:                  10
+ STEPS UNTIL DIIS RESET ON POOR PROGRESS:                      10
+ FULL ELECTRONIC GRADIENT IS USED 
+ CONVERGENCE CRITERIA FOR GEOMETRY OPTIMIZATION:     5.000000E-04
+ GEOMETRY OPTIMIZATION BY GDIIS/BFGS      
+   SIZE OF GDIIS MATRIX:                                        2
+ EMPIRICAL INITIAL HESSIAN (DISCO PARAMETRISATION) 
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC GGA_X_PBE
+    100.0% LIBXC GGA_C_PBE
+           GC-CUTOFF VALUE FOR GRADIENT SMOOTHING:     1.0000E-08
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.298 ON m0665 CANCELLED AT 2023-02-26T21:05:38 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.298
+
+</pre>
+<h3>QMMM/ACETONE_WATER_mdbo_s0/test_keep_wfn.inp</h3>
+<p><a href='QMMM/ACETONE_WATER_mdbo_s0/test_keep_wfn.out'>QMMM/ACETONE_WATER_mdbo_s0/test_keep_wfn.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ WARNING!
+       NEWCODE AND OLDCODE WILL BE DEPRECATED IN A FUTURE RELEASE
+       PLEASE SWITCH TO THE NEW XC DRIVER AND/OR LIBXC
+       (KEYWORD: XC_DRIVER IN &DFT)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+ EXCHANGE CORRELATION FUNCTIONALS 
+    LDA EXCHANGE:                                            NONE
+    LDA XC THROUGH PADE APPROXIMATION
+    S.GOEDECKER, J.HUTTER, M.TETER PRB 541703 (1996)
+    GRADIENT CORRECTED FUNCTIONAL
+    DENSITY THRESHOLD:                                1.00000E-06
+    EXCHANGE ENERGY
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+    CORRELATION ENERGY 
+       [PBE: J.P. PERDEW ET AL. PRL 77, 3865 (1996)]
+ 
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.55 ON m0665 CANCELLED AT 2023-02-26T20:59:37 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.55
+
+</pre>
+<h3>BO/libxc/r-0/test.inp</h3>
+<p><a href='BO/libxc/r-0/test.out'>BO/libxc/r-0/test.out</a></p>
+<p class="cat">Some values in the output could not be found.</p>
+<ol>
+<li><pre>SCALAR 'TOTAL ENERGY =' 4</pre></li>
+</ol>
+<p class="cat">Test run gave a non-zero return code.</p>
+<p>Last 20 lines of output:</p>
+<pre class="grey">
+ MAXIMUM NUMBER OF ITERATIONS FOR SC:                     2 STEPS
+ PRINT INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY                     10001 STEPS
+ STORE INTERMEDIATE RESULTS EVERY         3 SELF-CONSISTENT STEPS
+ NUMBER OF DISTINCT RESTART FILES:                              1
+ TEMPERATURE IS CALCULATED ASSUMING EXTENDED BULK BEHAVIOR 
+ FICTITIOUS ELECTRON MASS:                               400.0000
+ TIME STEP FOR ELECTRONS:                                 20.6707
+ TIME STEP FOR IONS:                                      20.6707
+ TRAJECTORIES ARE SAVED ON FILE
+ ELECTRON DYNAMICS: THE TEMPERATURE IS NOT CONTROLLED
+ ION DYNAMICS:      THE TEMPERATURE IS NOT CONTROLLED
+ ASPC WAVEFUNCTION EXTRAPOLATION (MAX. HISTORY)                 6
+ SPLINE INTERPOLATION IN G-SPACE FOR PSEUDOPOTENTIAL FUNCTIONS
+    NUMBER OF SPLINE POINTS:                                 5000
+ 
+ EXCHANGE-CORRELATION FUNCTIONALS:
+ 
+    100.0% LIBXC LDA_X
+
+</pre>
+<p class="cat">Test run gave some standard error.</p>
+<p>Last 20 lines of standard error:</p>
+<pre class="grey">
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+Abort(999) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 0)
+Abort(999) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1
+In: PMI_Abort(999, application called MPI_Abort(MPI_COMM_WORLD, 999) - process 1)
+slurmstepd: error: *** STEP 2098305.767 ON m0665 CANCELLED AT 2023-02-26T21:08:41 ***
+srun: error: m0665: tasks 0-1: Exited with exit code 231
+srun: launch/slurm: _step_signal: Terminating StepId=2098305.767
+
+</pre>
+</body></html>

@@ -62,13 +62,10 @@ MODULE sdlinres_utils
   USE poin,                            ONLY: potr,&
                                              rhoo
   USE rho1ofr_utils,                   ONLY: rho1ofr
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr,&
-                                             rhoofr
+  USE rhoofr_utils,                    ONLY: rhoofr
   USE rmas,                            ONLY: rmass
-  USE rnlsm_2d_utils,                  ONLY: give_scr_rnlsm_2d,&
-                                             rnlsm_2d
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_2d_utils,                  ONLY: rnlsm_2d
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE ropt,                            ONLY: infw,&
                                              iteropt,&
                                              ropt_mod
@@ -371,7 +368,7 @@ CONTAINS
          __LINE__,__FILE__)
     ! NUCLEAR GRADIENT
     CALL forcedr(c0(:,:,1),c2,sc0,rhoe,psi,tau0,fion,eigv,&
-         crge%n,1,.FALSE.,.TRUE.)
+         crge%n,1,.FALSE.,.TRUE.,.TRUE.)
     CALL dscal(3*maxsys%nax*maxsys%nsx,-1.0_real_8,fion(1,1,1),1)
     time2=m_walltime()
     tcpu=(time2-time1)*0.001_real_8
@@ -761,7 +758,7 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
 
     INTEGER :: lcanon, lcopot, lfnonloc_p, lforces, linitrun, lnl_res, &
-      lopt_lr, lortho, lrhoofr, lrnlsm, lrnlsm_2d, lsymmat, lupdate, nstate
+      lopt_lr, lortho, lsymmat, lupdate, nstate
 
     nstate=crge%n
     linitrun=0
@@ -771,9 +768,6 @@ CONTAINS
     lupdate=0
     lcanon=0
     lsymmat=0
-    lrhoofr=0
-    lrnlsm=0
-    lrnlsm_2d=0
     lopt_lr=0
     lfnonloc_p=0
     ! 
@@ -784,15 +778,12 @@ CONTAINS
     CALL give_scr_updwf(lupdate,tag,nstate,.FALSE.)
     CALL give_scr_canon(lcanon,tag,nstate)
     CALL give_scr_symmat(lsymmat,tag)
-    CALL give_scr_rhoofr(lrhoofr,tag)
     CALL give_scr_nl_res(lnl_res,nstate,tag)
-    CALL give_scr_rnlsm(lrnlsm,tag,nstate,.TRUE.)
-    CALL give_scr_rnlsm_2d(lrnlsm_2d,tag,nstate)
     CALL give_scr_opt_lr(lopt_lr,"PHONON",tag)
     ! 
     lsecder=MAX(9*ions1%nat*ions1%nat+9*ions1%nat,linitrun,lforces,lcopot,&
-         lortho,lupdate,lcanon,lsymmat,lnl_res,lrhoofr,lrnlsm,&
-         lrnlsm_2d,lopt_lr,lfnonloc_p)
+         lortho,lupdate,lcanon,lsymmat,lnl_res,&
+         lopt_lr,lfnonloc_p)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE give_scr_sdlinres

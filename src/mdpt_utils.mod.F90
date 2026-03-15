@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE mdpt_utils
   USE atwf,                            ONLY: atwp
   USE bsym,                            ONLY: bsfac
@@ -125,7 +127,7 @@ CONTAINS
              ncm=2*nkpt%ngwk*MAX(nstate,(cnti%nkry_max+1)*cnti%nkry_block)+8
           ELSEIF (cntl%diis) THEN
              ncm=(nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt+&
-                  ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)/4
+                  ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)
           ELSE
              ncm=2*nkpt%ngwk*MAX(nstate,cnti%nkry_max*cnti%nkry_block)+8
           ENDIF
@@ -145,7 +147,7 @@ CONTAINS
              ncm=8
           ELSE IF (cntl%diis) THEN
              ncm=(nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt+&
-                  ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)/4+100
+                  ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)+100
           ELSE IF (cntl%pcg) THEN
              ncm=2*nkpt%ngwk*nstate*nkpt%nkpnt+8
           ELSEIF (cntl%tmdeh) THEN
@@ -402,7 +404,18 @@ CONTAINS
          //'IMPLEMENTED FOR THE REQUIRED MD TYPE',& 
          __LINE__,__FILE__)
     !
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:c0) IF(ALLOCATED(c0))
+    !$omp target enter data map(alloc:cm)  IF(ALLOCATED(cm))
+    !$omp target enter data map(alloc:c1)  IF(ALLOCATED(c1))
+    !$omp target enter data map(alloc:c2)  IF(ALLOCATED(c2))
+    !$omp target enter data map(alloc:sc0)  IF(ALLOCATED(sc0))
+    !$omp target enter data map(alloc:gamx)  IF(ALLOCATED(gamx))
+    !$omp target enter data map(alloc:gamy)  IF(ALLOCATED(gamy))
+    !$omp target enter data map(alloc:vpp) IF(ALLOCATED(vpp))
+#endif
     IF (tclas) THEN
+
        IF (tkpts%tkpnt)CALL stopgm('MDPT','K-POINTS NOT IMPLEMENTED',& 
             __LINE__,__FILE__)
        IF (cntl%tddft) CALL stopgm('MDPT','TDDFT.AND.TCLAS NOT POSSIBLE',& 
@@ -462,6 +475,16 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:c0) IF(ALLOCATED(c0))
+    !$omp target exit data map(delete:cm)  IF(ALLOCATED(cm))
+    !$omp target exit data map(delete:c1)  IF(ALLOCATED(c1))
+    !$omp target exit data map(delete:c2)  IF(ALLOCATED(c2))
+    !$omp target exit data map(delete:sc0)  IF(ALLOCATED(sc0))
+    !$omp target exit data map(delete:gamx)  IF(ALLOCATED(gamx))
+    !$omp target exit data map(delete:gamy)  IF(ALLOCATED(gamy))
+    !$omp target exit data map(delete:vpp) IF(ALLOCATED(vpp))
+#endif
 500 CONTINUE
     ! ==--------------------------------------------------------------==
     ! ==--------------------------------------------------------------==

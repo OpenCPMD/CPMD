@@ -1,18 +1,45 @@
-subroutine mp_all2all_${NAME}(data_in, data_out, ${ARG_LEN_NAME} comm )
-#ifdef __PARALLEL
-  use mpi
-#endif
+subroutine mp_all2all_${NAME}(data_in, data_out, ${ARG_LEN_NAME}, comm )
   ! Arguments
-  integer, intent(in) :: ${ARG_LEN_NAME} comm
-  ${TYPE}${KIND}, intent(inout) ${DIMENSION} :: data_out, data_in
-  ! Variables
-  integer :: ierr
-  character(*),parameter :: procedureN='mp_all2all_${NAME}'
 #ifdef __PARALLEL
-
-  CALL mpi_alltoall(data_in,${MPI_LEN},${MPI_TYPE},data_out,${MPI_LEN},${MPI_TYPE},comm,ierr)
-  call mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+  integer, intent(in) :: ${ARG_LEN_NAME}
+  type(MPI_COMM), intent(in) ::  comm
 #else
-  data_out${COPY_ARG}=data_in${COPY_ARG}
+  integer, intent(in) :: ${ARG_LEN_NAME}, comm
+#endif
+#if defined(_HAS_GPU_AWARE_MPI) || !defined(_HAS_OMP_TARGET_OFFLOAD)
+  ${TYPE}${KIND}, intent(in) ${DIMENSION} ::  data_in
+#else
+  ${TYPE}${KIND}, intent(inout) ${DIMENSION} ::  data_in
+#endif
+  ${TYPE}${KIND}, intent(out) ${DIMENSION} :: data_out
+  ! Variables
+  integer :: ierr,nnodes
+  character(*),parameter :: procedureN='mp_all2all_${NAME}'
+  real(real_8) :: tim1,tim2
+#ifdef __PARALLEL  
+  call mpi_comm_size ( comm, nnodes, ierr )
+  cmcal(ipar_aall)=cmcal(ipar_aall)+1.0d0
+  cmlen(ipar_aall)=cmlen(ipar_aall)+${MPI_LEN}*nnodes*${SIZE_IN_BYTES}
+  tim1=m_walltime()     
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp target data use_device_addr(data_in,data_out) if(.NOT.comm_buffers_on_host)
+#else
+  !$omp target update from(data_in(1:nnodes*${MPI_LEN})) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  CALL mpi_alltoall(data_in,${MPI_LEN},${MPI_TYPE},data_out,${MPI_LEN},${MPI_TYPE},comm,ierr)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+#if defined(_HAS_GPU_AWARE_MPI)
+  !$omp end target data
+#else
+  !$omp target update to(data_out(1:nnodes*${MPI_LEN})) if(.not.comm_buffers_on_host)
+#endif
+#endif
+  CALL mp_mpi_error_assert(ierr,procedureN,__LINE__,__FILE__)
+  tim2=m_walltime()
+  cmtim(ipar_aall)=cmtim(ipar_aall)+tim2-tim1
+#else
+  data_out(${COPY_ARG})=data_in(${COPY_ARG})
 #endif
 end subroutine mp_all2all_${NAME}

@@ -1,7 +1,3 @@
-#ifdef __SR8000
-!option MP(P(0)), LANGLVL(SAVE(0))
-#endif
-
 MODULE gfft_utils
   USE error_handling,                  ONLY: stopgm
   USE kinds,                           ONLY: int_1,&
@@ -164,9 +160,6 @@ END MODULE gfft_utils
                 ia=1
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
                 DO 4001,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -202,10 +195,6 @@ END MODULE gfft_utils
                 zout(2,j,nout2) = r + s
                 zout(2,j,nout4) = r - s
 4001                CONTINUE
-#ifdef __SR8000 
-!poption indep(zout) 
-!voption pvfunc(3) 
-#endif 
                 DO 4000,ia=2,after
                 ias=ia-1
                 IF (2*ias.eq.after) THEN
@@ -263,9 +252,6 @@ END MODULE gfft_utils
                         ci4=trig(2,itrig)
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                         DO 4020,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -313,9 +299,6 @@ END MODULE gfft_utils
                 ia=1
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                 DO 4101,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -351,18 +334,11 @@ END MODULE gfft_utils
                 zout(2,j,nout2) = r - s
                 zout(2,j,nout4) = r + s
 4101                CONTINUE
-#ifdef __SR8000 
-!poption indep(zout)
-!voption pvfunc(3)
-#endif 
                 DO 4100,ia=2,after
                 ias=ia-1
                 IF (2*ias.eq.after) THEN
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
                         DO 4110,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -415,9 +391,6 @@ END MODULE gfft_utils
                         ci4=trig(2,itrig)
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
                         DO 4120,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -467,9 +440,6 @@ END MODULE gfft_utils
                 ia=1
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
                         DO 8120,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -561,9 +531,6 @@ END MODULE gfft_utils
                 ia=1
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
                         DO 8121,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -658,9 +625,6 @@ END MODULE gfft_utils
         ia=1
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
         DO 3001,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb
@@ -688,19 +652,12 @@ END MODULE gfft_utils
         zout(1,j,nout3) = r1 + s2
         zout(2,j,nout3) = s1 - r2
 3001        CONTINUE
-#ifdef __SR8000 
-!poption indep(zout)
-!voption pvfunc(3)
-#endif 
         DO 3000,ia=2,after
         ias=ia-1
         IF (4*ias.eq.3*after) THEN
         IF (isign.eq.1) THEN
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef ___SR8000 
-!poption indep(zout)
-#endif 
                 DO 3010,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -731,9 +688,6 @@ END MODULE gfft_utils
         ELSE
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
                 DO 3020,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -766,9 +720,6 @@ END MODULE gfft_utils
         IF (isign.eq.1) THEN
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
                 DO 3030,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -801,9 +752,6 @@ END MODULE gfft_utils
         ELSE
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
                 DO 3040,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -844,9 +792,6 @@ END MODULE gfft_utils
         ci3=trig(2,itrig)
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
         DO 3090,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb
@@ -892,9 +837,6 @@ END MODULE gfft_utils
         ia=1
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
         DO 5001,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb
@@ -944,10 +886,6 @@ END MODULE gfft_utils
         zout(2,j,nout3) = r + s
         zout(2,j,nout4) = r - s
 5001        CONTINUE
-#ifdef __SR8000 
-!poption indep(zout)
-!voption pvfunc(3)
-#endif 
         DO 5000,ia=2,after
         ias=ia-1
         IF (8*ias.eq.5*after) THEN
@@ -1010,9 +948,6 @@ END MODULE gfft_utils
                 ELSE
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
                         DO 5020,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -1084,9 +1019,6 @@ END MODULE gfft_utils
                 ci5=trig(2,itrig)
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
                 DO 5100,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -1153,9 +1085,6 @@ END MODULE gfft_utils
         ia=1
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout)
-#endif 
         DO 6120,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb
@@ -1266,10 +1195,6 @@ END MODULE gfft_utils
          ia=1
          nin1=ia-after
          nout1=ia-atn
-#ifdef __SR8000
-!poption indep(zout)
-!voption pvfunc(3)
-#endif 
                 DO 4001,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -1305,10 +1230,6 @@ END MODULE gfft_utils
                 zout(2,j,nout2) = r + s
                 zout(2,j,nout4) = r - s
 4001                CONTINUE
-#ifdef __SR8000
-!poption indep(zout) 
-!voption pvfunc(3) 
-#endif 
                 DO 4000,ia=2,after
                 ias=ia-1
                 IF (2*ias.eq.after) THEN
@@ -1413,9 +1334,6 @@ END MODULE gfft_utils
                 ia=1
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000
-!poption indep(zout) 
-#endif 
                 DO 4101,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -1451,10 +1369,6 @@ END MODULE gfft_utils
                 zout(2,j,nout2) = r - s
                 zout(2,j,nout4) = r + s
 4101                CONTINUE
-#ifdef __SR8000 
-!poption indep(zout) 
-!voption pvfunc(3) 
-#endif 
                 DO 4100,ia=2,after
                 ias=ia-1
                 IF (2*ias.eq.after) THEN
@@ -1561,9 +1475,6 @@ END MODULE gfft_utils
                 ia=1
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                         DO 8120,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -1655,9 +1566,6 @@ END MODULE gfft_utils
                 ia=1
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                         DO 8121,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -1752,9 +1660,6 @@ END MODULE gfft_utils
         ia=1
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
         DO 3001,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb
@@ -1782,10 +1687,6 @@ END MODULE gfft_utils
         zout(1,j,nout3) = r1 + s2
         zout(2,j,nout3) = s1 - r2
 3001        CONTINUE
-#ifdef __SR8000 
-!poption indep(zout) 
-!voption pvfunc(3) 
-#endif 
         DO 3000,ia=2,after
         ias=ia-1
         IF (4*ias.eq.3*after) THEN
@@ -1854,9 +1755,6 @@ END MODULE gfft_utils
         IF (isign.eq.1) THEN
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                 DO 3030,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -1889,9 +1787,6 @@ END MODULE gfft_utils
         ELSE
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                 DO 3040,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -1932,9 +1827,6 @@ END MODULE gfft_utils
         ci3=trig(2,itrig)
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
         DO 3090,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb
@@ -1980,9 +1872,6 @@ END MODULE gfft_utils
         ia=1
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
         DO 5001,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb
@@ -2032,10 +1921,6 @@ END MODULE gfft_utils
         zout(2,j,nout3) = r + s
         zout(2,j,nout4) = r - s
 5001        CONTINUE
-#ifdef __SR8000 
-!poption indep(zout) 
-!voption pvfunc(3) 
-#endif 
         DO 5000,ia=2,after
         ias=ia-1
         IF (8*ias.eq.5*after) THEN
@@ -2169,9 +2054,6 @@ END MODULE gfft_utils
                 ci5=trig(2,itrig)
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                 DO 5100,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -2238,9 +2120,6 @@ END MODULE gfft_utils
         ia=1
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000
-!poption indep(zout) 
-#endif 
         DO 6120,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb
@@ -2347,9 +2226,6 @@ END MODULE gfft_utils
                 ia=1
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                 DO 4001,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -2385,10 +2261,6 @@ END MODULE gfft_utils
                 zout(2,nout2,j) = r + s
                 zout(2,nout4,j) = r - s
 4001                CONTINUE
-#ifdef __SR8000 
-!poption indep(zout) 
-!voption pvfunc(3) 
-#endif 
                 DO 4000,ia=2,after
                 ias=ia-1
                 IF (2*ias.eq.after) THEN
@@ -2446,9 +2318,6 @@ END MODULE gfft_utils
                         ci4=trig(2,itrig)
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                         DO 4020,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -2496,9 +2365,6 @@ END MODULE gfft_utils
                 ia=1
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                 DO 4101,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -2534,10 +2400,6 @@ END MODULE gfft_utils
                 zout(2,nout2,j) = r - s
                 zout(2,nout4,j) = r + s
 4101                CONTINUE
-#ifdef __SR8000 
-!poption indep(zout) 
-!voption pvfunc(3) 
-#endif 
                 DO 4100,ia=2,after
                 ias=ia-1
                 IF (2*ias.eq.after) THEN
@@ -2595,9 +2457,6 @@ END MODULE gfft_utils
                         ci4=trig(2,itrig)
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                         DO 4120,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -2648,9 +2507,6 @@ END MODULE gfft_utils
                 ia=1
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                         DO 8120,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -2742,9 +2598,6 @@ END MODULE gfft_utils
                 ia=1
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                         DO 8121,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -2839,9 +2692,6 @@ END MODULE gfft_utils
         ia=1
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
         DO 3001,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb
@@ -2869,19 +2719,12 @@ END MODULE gfft_utils
         zout(1,nout3,j) = r1 + s2
         zout(2,nout3,j) = s1 - r2
 3001        CONTINUE
-#ifdef __SR8000 
-!poption indep(zout) 
-!voption pvfunc(3) 
-#endif 
         DO 3000,ia=2,after
         ias=ia-1
         IF (4*ias.eq.3*after) THEN
         IF (isign.eq.1) THEN
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                 DO 3010,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -2912,9 +2755,6 @@ END MODULE gfft_utils
         ELSE
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                 DO 3020,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -2947,9 +2787,6 @@ END MODULE gfft_utils
         IF (isign.eq.1) THEN
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                 DO 3030,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -2982,9 +2819,6 @@ END MODULE gfft_utils
         ELSE
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                 DO 3040,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -3025,9 +2859,6 @@ END MODULE gfft_utils
         ci3=trig(2,itrig)
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
         DO 3090,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb
@@ -3073,9 +2904,6 @@ END MODULE gfft_utils
         ia=1
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
         DO 5001,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb
@@ -3125,10 +2953,6 @@ END MODULE gfft_utils
         zout(2,nout3,j) = r + s
         zout(2,nout4,j) = r - s
 5001        CONTINUE
-#ifdef __SR8000 
-!poption indep(zout) 
-!voption pvfunc(3) 
-#endif 
         DO 5000,ia=2,after
         ias=ia-1
         IF (8*ias.eq.5*after) THEN
@@ -3191,9 +3015,6 @@ END MODULE gfft_utils
                 ELSE
                         nin1=ia-after
                         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                         DO 5020,ib=1,before
                         nin1=nin1+after
                         nin2=nin1+atb
@@ -3265,9 +3086,6 @@ END MODULE gfft_utils
                 ci5=trig(2,itrig)
                 nin1=ia-after
                 nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
                 DO 5100,ib=1,before
                 nin1=nin1+after
                 nin2=nin1+atb
@@ -3334,9 +3152,6 @@ END MODULE gfft_utils
         ia=1
         nin1=ia-after
         nout1=ia-atn
-#ifdef __SR8000 
-!poption indep(zout) 
-#endif 
         DO 6120,ib=1,before
         nin1=nin1+after
         nin2=nin1+atb

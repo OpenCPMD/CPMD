@@ -213,7 +213,7 @@ contains
 !      write(unit,*)
       write (unit,'(a,t55,f10.5)') "beta =1/kT (Ha) ", self%beta
       write (unit,'(a          )') "        (T of variable atom number keyword)"
-      write (unit,'(a,t55,e10.4)') "gamma = Lambda/PBCVolume",self%gammaParameter
+      write (unit,'(a,t55,e11.4)') "gamma = Lambda/PBCVolume",self%gammaParameter
       write (unit,'(a          )') "        (Lambda: free wavelength of exess species in system 1)"
       write (unit,'(a,t55,f10.5)') "-kT ln gamma (Ha)", -1._real_8/self%beta*dlog(self%gammaParameter)
       write(unit,*)

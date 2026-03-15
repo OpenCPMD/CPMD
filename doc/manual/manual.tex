@@ -3238,6 +3238,10 @@ with {\bf{PERT\_AMPLI}} (in \&PTDDFT).}
    Default is BLOCK\_CYCLIC. The distribution is read from the next line.
 }
 
+\spekeyword{PHFX}{}{}{}{\&DFT}
+ \desc{Set the amount of HFX in the next line. The numerical value must be between 0 (no HFX) and 1 (100\% of HFX. For HSE06 the standard valus is 0.25 if this keyword and related numerical value ios not is not selected. Warning: PHFX is incompatible with XC_DRIVER. Use NEWCODE instead.
+}
+
 \keyword{HFX SCREENING}{\{WFC,DIAG,EPS\_INT,RECOMPUTE\_TWO\_INT\_LIST\_EVERY\}}{}{}{\&DFT}
   \desc{Read value from the next line. \\
         Perform the calculation of exact exchange using Wannier functions.

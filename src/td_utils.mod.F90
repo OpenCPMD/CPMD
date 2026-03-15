@@ -52,7 +52,6 @@ MODULE td_utils
   USE rhoofr_c_utils,                  ONLY: rhoofr_c
   USE rhopri_utils,                    ONLY: rhopri_eh
   USE rnlrh_utils,                     ONLY: rnlrhg
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm
   USE ropt,                            ONLY: infi
   USE spin,                            ONLY: clsd,&
                                              lspin2,&
@@ -393,7 +392,7 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
     COMPLEX(real_8)                          :: cpr, cpx, cpy, cpz
     COMPLEX(real_8), ALLOCATABLE             :: auxc(:)
-    INTEGER                                  :: i, ierr, lrnlsm, nstate
+    INTEGER                                  :: i, ierr, nstate
     LOGICAL                                  :: debug, update_d, update_p
     REAL(real_8)                             :: b, d, d1, d2, dt, dydt(2), p, &
                                                 y(2), ynew(2)
@@ -408,8 +407,6 @@ CONTAINS
     ALLOCATE(rhoe(fpar%nnr1,1),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
-    CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
-    lrnlsm=lrnlsm+100
     ! 
     debug   =.FALSE.
     update_p=.FALSE.

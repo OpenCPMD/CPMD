@@ -47,7 +47,7 @@ CONTAINS
 ! real(8), allocatable :: FNL(:)
 ! real(8), allocatable :: DFNL(:)
 
-    CALL csmat(s12,c1k,fnl,nstate,1)
+    CALL csmat(s12,c1k,nstate,1,full=.TRUE.,store_nonort=.FALSE.,only_parent=.FALSE.)
 
     k = 0
     DO j = 1,nstate

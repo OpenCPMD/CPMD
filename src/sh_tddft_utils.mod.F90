@@ -1523,7 +1523,7 @@ CONTAINS
                   OPEN(unit=50,file=filen_f_xf,status='UNKNOWN',position='APPEND')
           ENDIF
           IF (paral%io_parent)&
-               WRITE(50,'(10000(E15.9,1X))') xfmqc%f_nli
+               WRITE(50,'(10000(E16.9,1X))') xfmqc%f_nli
           IF (paral%io_parent)&
                CLOSE(50)
        ENDIF
@@ -1544,7 +1544,7 @@ CONTAINS
              DO i1=1,tshi%nroot_sh+1 !nstatse
                 DO i2=1,3 !x,y,z
                    ! each line contains 6(natoms) terms
-                   WRITE(50,'(50(E15.9,1X))') xfmqc%fion_state(i2,:,:,i1)
+                   WRITE(50,'(50(E16.9,1X))') xfmqc%fion_state(i2,:,:,i1)
                 ENDDO
              ENDDO
           ENDIF
@@ -1566,13 +1566,13 @@ CONTAINS
           IF (paral%io_parent) THEN
              !             DO i1=1,6 !off-diagonal non-adiabatic couplings
              !                   DO i2=1,3 ! x,y,z
-             !                          WRITE(50,'(50(E15.9,1X))') xfmqc%nacv(i2,:,:,i1)
+             !                          WRITE(50,'(50(E16.9,1X))') xfmqc%nacv(i2,:,:,i1)
              icount=0
              DO i=1,tshi%nroot_sh+1
                 DO j=i+1,tshi%nroot_sh+1
                    icount=icount+1
                    DO i2=1,3
-                      WRITE(50,'(500(E15.9,1X))')                      &
+                      WRITE(50,'(500(E16.9,1X))')                      &
                            2.0d0*dreal(c_sh(1,j)*dconjg(c_sh(1,i))) *       & ! TODO: MIN: c_sh(1 or c_sh(2 ??
                            (xfmqc%eigv(i)-xfmqc%eigv(j)) *      &
                            xfmqc%nacv(i2,:,:,icount)
@@ -1601,9 +1601,9 @@ CONTAINS
              DO i1=1,3 ! x,y,z
                 DO i2=1,maxsys%nax
                    DO i3=1,maxsys%nsx
-                      !          WRITE(50,'(100(E15.9,1X))') xfmqc%fa_ni(i2,1,1),xfmqc%fa_ni(i2,1,2), &
+                      !          WRITE(50,'(100(E16.9,1X))') xfmqc%fa_ni(i2,1,1),xfmqc%fa_ni(i2,1,2), &
                       !             xfmqc%fa_ni(i2,1,3),xfmqc%fa_ni(i2,2,3),xfmqc%fa_ni(i2,3,3),xfmqc%fa_ni(i2,4,3)
-                      WRITE(50,'(100(E15.9,1X))') xfmqc%fa_ni(i1,i2,i3)
+                      WRITE(50,'(100(E16.9,1X))') xfmqc%fa_ni(i1,i2,i3)
                    ENDDO
                 ENDDO
              ENDDO
@@ -1807,11 +1807,11 @@ CONTAINS
                   BACKSPACE(50)
           ENDIF
           IF (paral%io_parent)&
-               READ(50,'(10000(E15.9,1X))') xfmqc%f_nli
+               READ(50,'(10000(E16.9,1X))') xfmqc%f_nli
           ![FEDE
           !IF (paral%io_parent) THEN
           !  WRITE(6,*) 'Im Here'
-          !  WRITE(6,'(100000(E15.9,1X))') xfmqc%f_nli
+          !  WRITE(6,'(100000(E16.9,1X))') xfmqc%f_nli
           !END IF
           !FEDE]
           IF (paral%io_parent)&

@@ -63,9 +63,6 @@ CONTAINS
              ! MAKE USE OF THE SPECIAL STRUCTURE OF CI
              IF (ABS(cir).GT.0.5_real_8) THEN
                 ! CI IS REAL
-#ifdef __SR8000
-                !poption parallel, tlocal(IA,IG,ER,EI,T)
-#endif 
                 !$OMP parallel do private(IA,IG,ER,EI,T) __COLLAPSE2
                 DO ia=1,ions0%na(is)
                    !mb              isa=isa0+ia
@@ -80,9 +77,6 @@ CONTAINS
                 ENDDO
              ELSE
                 ! CI IS IMAGINARY
-#ifdef __SR8000
-                !poption parallel, tlocal(IA,IG,ER,EI,T)
-#endif 
                 !$omp parallel do private(IA,IG,ER,EI,T) __COLLAPSE2
                 DO ia=1,ions0%na(is)
                    !mb              isa=isa0+ia
@@ -120,9 +114,6 @@ CONTAINS
              CALL mp_sum(dai,imagp*maxsys%nax*nstate,parai%allgrp)
 #ifdef __VECTOR 
              IF (imagp.EQ.1) THEN
-#ifdef __SR8000
-                !poption parallel, tlocal(I,IA,II)
-#endif 
                 !$omp parallel do private(I,IA,II)
                 DO i=parap%nst12(parai%mepos,1),parap%nst12(parai%mepos,2)
                    ii=i-parap%nst12(parai%mepos,1)+1
@@ -131,9 +122,6 @@ CONTAINS
                    ENDDO
                 ENDDO
              ELSE
-#ifdef __SR8000
-                !poption parallel, tlocal(I,IA,II)
-#endif 
                 !$omp parallel do private(I,IA,II)
                 DO i=parap%nst12(parai%mepos,1),parap%nst12(parai%mepos,2)
                    ii=i-parap%nst12(parai%mepos,1)+1

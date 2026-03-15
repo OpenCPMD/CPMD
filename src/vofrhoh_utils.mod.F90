@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE vofrhoh_utils
   USE cppt,                            ONLY: gk,&
                                              hipz,&
@@ -59,10 +61,12 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! EHR[
     ! EHR]
-    REAL(real_8)                             :: tau0(:,:,:), fion(:,:,:)
-    REAL(real_8), INTENT(in)                 :: rhoe(:)
-    COMPLEX(real_8)                          :: v(:), vtemp(:)
-    LOGICAL                                  :: tfor
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: tau0(:,:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:)
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: rhoe(:)
+    COMPLEX(real_8),INTENT(INOUT)&
+         __CONTIGUOUS                        :: v(:), vtemp(:)
+    LOGICAL,INTENT(IN)                       :: tfor
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'vofrhoh'
 

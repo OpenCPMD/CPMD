@@ -6,7 +6,7 @@ C     ==================================================================
       use kinds, only: real_4, real_8, int_1, int_2, int_4, int_8
       use error_handling, only: stopgm
 C     ==--------------------------------------------------------------==
-cmb - Revised on 12 June 2006
+cmb - Revised on 14 March 2024
 
       use mp_interface, only: mp_sum
       use system
@@ -77,12 +77,6 @@ c   Locals
 !$OMP+ private(RHOE_gr) 
 !$OMP+ reduction(+:ch_ais,dp_ai1,dp_ai2,dp_ai3)
 !$OMP+ reduction(+:qp_a11,qp_a22,qp_a33,qp_a12,qp_a23,qp_a13)
-#ifdef __SR11000
-*poption parallel
-*poption tlocal(ijk,ix,iy,iz,rx,ry,rz,rsq,ix2,RHOE_gr)
-*poption psum(ch_ais,dp_ai1,dp_ai2,dp_ai3)
-*poption psum(qp_a11,qp_a22,qp_a33,qp_a12,qp_a23,qp_a13)
-#endif 
       DO ijk=1,nr3ve
         ix=ixs+MOD(ijk-1,nr1ve)
         iy=1+INT(MOD(ijk-1,nr2ve)/nr1ve)

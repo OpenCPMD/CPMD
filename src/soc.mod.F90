@@ -1515,7 +1515,7 @@ CONTAINS
 
     CALL soc_dodipole(rhoe,pos,dipole)
 
-    IF (paral%io_parent) WRITE(6,'(A10,4(1X,E12.6))') 'dipole ',&
+    IF (paral%io_parent) WRITE(6,'(A10,4(1X,E13.6))') 'dipole ',&
          norm_l,dipole(1),dipole(2),dipole(3)
 
     DEALLOCATE(pos,STAT=ierr)

@@ -143,7 +143,7 @@ SUBROUTINE pwtoao(nw,ierror,nstate,nkpoint,c0,tau0,icompr,irecord)
   DO is=1,ions1%nsp
      DO ia=1,ions0%na(is)
         iat=iat+1
-        CALL loadc(catom(1,iaorb),foc,nkpt%ngwk,ncpw%ngw,atwp%nattot-iaorb+1,&
+        CALL loadc(catom(1:,iaorb:),foc,nkpt%ngwk,ncpw%ngw,atwp%nattot-iaorb+1,&
              SIZE(foc),is,iat,natst)
         DO ixx=iaorb,iaorb+natst-1
            sfc=dotp(ncpw%ngw,catom(:,ixx),catom(:,ixx))
@@ -1175,8 +1175,13 @@ SUBROUTINE wrwfns(nw,nstate_to_write,ierror,c,ca,cr,icmp,mapw,&
      IF (cntl%use_mpi_io) THEN
         ! start at 0 (so -1)
         fpos_wfn_beg=fpos_wfn_beg-1
+#ifdef __PARALLEL
+        IF (my_io_parent) CALL file_open(file_name,'X','X',&
+             'READWRITE',.TRUE.,.TRUE.,parai%cp_inter_grp%MPI_VAL,nw_para)
+#else
         IF (my_io_parent) CALL file_open(file_name,'X','X',&
              'READWRITE',.TRUE.,.TRUE.,parai%cp_inter_grp,nw_para)
+#endif
      ELSE
         IF (.NOT.paral%io_parent.AND.my_io_parent) THEN
            nw_para=666
@@ -1301,8 +1306,13 @@ SUBROUTINE rdwfns(nr,nstate_to_read,c,ca,cr,icmp,mapw,ngwks0,&
      IF (cntl%use_mpi_io) THEN
         ! start at 0 (so -1)
         fpos_wfn_beg=fpos_wfn_beg-1
+#ifdef __PARALLEL
+        IF (my_io_parent) CALL file_open(file_name,'X','X',&
+             'READ',.TRUE.,.TRUE.,parai%cp_inter_grp%MPI_VAL,nr_para)
+#else
         IF (my_io_parent) CALL file_open(file_name,'X','X',&
              'READ',.TRUE.,.TRUE.,parai%cp_inter_grp,nr_para)
+#endif
      ELSE
         IF (.NOT.paral%io_parent.AND.my_io_parent) THEN
            nr_para=666

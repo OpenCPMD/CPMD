@@ -18,7 +18,6 @@ MODULE npt_md_utils
                                              give_scr_copot
   USE csize_utils,                     ONLY: csize
   USE ddipo_utils,                     ONLY: give_scr_ddipo
-  USE deort_utils,                     ONLY: give_scr_deort
   USE detdof_utils,                    ONLY: detdof
   USE dispp_utils,                     ONLY: dispp
   USE dynit_utils,                     ONLY: dynit
@@ -52,8 +51,7 @@ MODULE npt_md_utils
                                              veps
   USE mm_extrap,                       ONLY: cold, nnow, numcold
   USE mp_interface,                    ONLY: mp_bcast
-  USE newcell_utils,                   ONLY: give_scr_newcell,&
-                                             newcell
+  USE newcell_utils,                   ONLY: newcell
   USE nlcc,                            ONLY: corel
   USE norm,                            ONLY: cnorm,&
                                              gemax,&
@@ -299,7 +297,7 @@ CONTAINS
        IF (geq0) CALL zclean(c0,nstate,ncpw%ngw)
     ENDIF
     CALL forcedr(c0(:,:,1),c2,sc0,rhoe,psi,tau0,fion,eigv,&
-         nstate,1,.FALSE.,.TRUE.)
+         nstate,1,.FALSE.,.TRUE.,.TRUE.)
     CALL totstr
     CALL freqs(nstate,.FALSE.)
     ! Check orthogonality condition for wavefunction velocities
@@ -429,7 +427,7 @@ CONTAINS
        ENDIF
        ! CALCULATE THE FORCES
        CALL forcedr(c0(:,:,1),c2,sc0,rhoe,psi,taup,fion,eigv,&
-            nstate,1,.FALSE.,.TRUE.)
+            nstate,1,.FALSE.,.TRUE.,.TRUE.)
        CALL totstr
        ! ==================================================================
        ! Damped Dynamics
@@ -605,7 +603,7 @@ CONTAINS
     INTEGER                                  :: lnpt_md
     CHARACTER(len=30)                        :: tag
 
-    INTEGER :: lcopot, lddipo, ldeort, lforcedr, linitrun, lnewcell, lortho, &
+    INTEGER :: lcopot, lddipo, lforcedr, linitrun, lortho, &
       lposupa, lquenbo, lrhopri, lrortv, nstate
 
     nstate=crge%n
@@ -613,23 +611,20 @@ CONTAINS
     lcopot=0
     lortho=0
     lquenbo=0
-    ldeort=0
     lrhopri=0
     linitrun=0
     CALL give_scr_initrun(linitrun,tag)
     IF (corel%tinlc) CALL give_scr_copot(lcopot,tag)
     IF (cntl%trane) CALL give_scr_ortho(lortho,tag,nstate)
     IF (cntl%quenchb) CALL give_scr_quenbo(lquenbo,tag)
-    IF (pslo_com%tivan) CALL give_scr_deort(ldeort,tag,nstate)
     CALL give_scr_forcedr(lforcedr,tag,nstate,.FALSE.,.TRUE.)
     CALL give_scr_rortv(lrortv,tag,nstate)
-    CALL give_scr_newcell(lnewcell,tag)
     CALL give_scr_posupa(lposupa,tag,nstate)
     IF (rout1%rhoout) CALL give_scr_rhopri(lrhopri,tag,nstate)
     IF (vdwl%vdwd) CALL give_scr_ddipo(lddipo,tag)
-    lnpt_md=MAX(lcopot,lortho,lquenbo,ldeort,lforcedr,&
+    lnpt_md=MAX(lcopot,lortho,lquenbo,lforcedr,&
          lrortv,lposupa,lrhopri,linitrun,&
-         lnewcell,lddipo)
+         lddipo)
     lnpt_md=lnpt_md+10000
     ! ==--------------------------------------------------------------==
     RETURN

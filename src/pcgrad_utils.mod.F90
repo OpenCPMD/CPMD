@@ -5,8 +5,6 @@ MODULE pcgrad_utils
                                              mm_revert
   USE mm_input,                        ONLY: lqmmm
   USE ortho_utils,                     ONLY: give_scr_ortho
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm
   USE rscpot_utils,                    ONLY: give_scr_rscpot
   USE system,                          ONLY: cntl,&
                                              fpar,&
@@ -47,14 +45,13 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
     INTEGER                                  :: nstate
 
-    INTEGER                                  :: lforcedr, lrhoofr
+    INTEGER                                  :: lforcedr
 
 ! ==--------------------------------------------------------------==
 
     CALL give_scr_xetot(llinesr,tag,nstate)
     CALL give_scr_forcedr(lforcedr,tag,nstate,.TRUE.,.FALSE.)
-    CALL give_scr_rhoofr(lrhoofr,tag)
-    llinesr=MAX(llinesr,lforcedr,lrhoofr)
+    llinesr=MAX(llinesr,lforcedr)
     IF (lqmmm%qmmm)THEN
        llinesr=MAX(llinesr,fpar%kr1*fpar%kr2s*fpar%kr3s)
        llinesr=MAX(llinesr,maxsys%nax*maxsys%nsx*3)
@@ -70,18 +67,16 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
     INTEGER                                  :: nstate
 
-    INTEGER                                  :: lortho, lrnlsm, lrscpot
+    INTEGER                                  :: lortho, lrscpot
 
     IF (cntl%nonort.AND.(.NOT.cntl%quenchb)) THEN
        lortho=0
-       lrnlsm=0
        lrscpot=0
     ELSE
        CALL give_scr_ortho(lortho,tag,nstate)
-       CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
        CALL give_scr_rscpot(lrscpot,tag,.FALSE.)
     ENDIF
-    lxetot=MAX(lortho,lrnlsm,lrscpot)
+    lxetot=MAX(lortho,lrscpot)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE give_scr_xetot

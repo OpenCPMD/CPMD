@@ -20,8 +20,7 @@ MODULE mulliken_utils
   USE pslo,                            ONLY: pslo_com
   USE setbasis_utils,                  ONLY: loadc
   USE sfac,                            ONLY: fnl
-  USE summat_utils,                    ONLY: give_scr_summat,&
-                                             summat
+  USE summat_utils,                    ONLY: summat
   USE system,                          ONLY: cntl,&
                                              ncpw
   USE timer,                           ONLY: tihalt,&
@@ -282,12 +281,11 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
     INTEGER                                  :: nstate
 
-    INTEGER                                  :: lmax, lsum, n2
+    INTEGER                                  :: lmax, n2
 
-    CALL give_scr_summat(lsum,tag,nstate)
     n2=atwp%nattot*atwp%nattot
     lmax=2*n2+4*atwp%nattot
-    lmulliken=MAX(lsum,lmax,atwp%nattot*prop2%numorb)
+    lmulliken=MAX(lmax,atwp%nattot*prop2%numorb)
     tag = 'MAX(LSUM,LMAX,NATTOT*NUMORB)'
     ! ==--------------------------------------------------------------==
     RETURN

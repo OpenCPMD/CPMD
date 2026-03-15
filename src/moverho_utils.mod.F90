@@ -172,31 +172,19 @@ CONTAINS
              ei20=CONJG(eig1(2,nh2))
              ei30=CONJG(eig1(3,nh3))
              !$omp parallel do private(I)
-#ifdef __SR8000
-             !poption parallel, tlocal(I)
-#endif 
              DO i=1,2*spar%nr1s-1
                 eig1(1,i)=eig1(1,i)*ei10
              ENDDO
              !$omp parallel do private(J)
-#ifdef __SR8000
-             !poption parallel, tlocal(J)
-#endif 
              DO j=1,2*spar%nr2s-1
                 eig1(2,j)=eig1(2,j)*ei20
              ENDDO
              !$omp parallel do private(K)
-#ifdef __SR8000
-             !poption parallel, tlocal(K)
-#endif 
              DO k=1,2*spar%nr3s-1
                 eig1(3,k)=eig1(3,k)*ei30
              ENDDO
              isa=isa0+ia
              !$omp parallel do private(IG)
-#ifdef __SR8000
-             !poption parallel, tlocal(IG)
-#endif 
              DO ig=1,ncpw%nhg
                 tsfac(ig)=tsfac(ig)+&
                      ei1(isa,inyh(1,ig))*ei2(isa,inyh(2,ig))*&

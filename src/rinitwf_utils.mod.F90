@@ -2,7 +2,6 @@ MODULE rinitwf_utils
   USE atomwf_utils,                    ONLY: give_scr_atomwf
   USE copot_utils,                     ONLY: give_scr_copot
   USE forcedr_utils,                   ONLY: give_scr_forcedr
-  USE newcell_utils,                   ONLY: give_scr_newcell
   USE ortho_utils,                     ONLY: give_scr_ortho
   USE system,                          ONLY: cnti,&
                                              cntl
@@ -46,17 +45,11 @@ CONTAINS
 
     CHARACTER(*), PARAMETER :: procedureN = 'give_scr_rinitwf'
 
-    INTEGER                                  :: isub, lnewcell, lother
+    INTEGER                                  :: isub, lother
 
     CALL tiset(procedureN,isub)
     lrinitwf=0
-    lnewcell=0
     lother=0
-    IF (cntl%tprcp.OR.cntl%tpres) THEN
-       CALL give_scr_newcell(lnewcell,tag)
-    ELSE
-       lnewcell=0
-    ENDIF
     IF(cnti%inwfun.EQ.1.OR.cnti%inwfun.EQ.3) THEN
        CALL give_scr_randwf(lother,tag,nstate)
     ELSEIF (cnti%inwfun.EQ.2) THEN
@@ -64,7 +57,7 @@ CONTAINS
     ELSE
        lother=0
     ENDIF
-    lrinitwf=MAX(lnewcell,lother)
+    lrinitwf=lother
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN

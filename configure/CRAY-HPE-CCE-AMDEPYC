@@ -1,0 +1,49 @@
+#INFO#
+#INFO# Configuration to build a parallel executable for a HPE-Cray
+#INFO# AMD EPYC 7713 under CRAY Fortran compiler.
+#INFO# Modules: craype-x86-trento, craype-network-ofi, cce/15.0.1, cray-dsmml/0.2.2, cray-libsci/23.02.1.1
+#INFO#  libfabric/1.15.2.0, perftools-base/23.02.0, craype/2.7.19, cray-mpich/8.1.24, PrgEnv-cray/8.3.3
+#INFO#
+#INFO# cpmd compiles with cce:
+#INFO#    8.1.7
+#INFO#    8.1.9
+#INFO#    8.2.0
+#INFO# Persistent pointer bug: error: incompatible pointer to integer conversion returning 'size_t *'
+#INFO# Clang build error still present in cce ver. 15.0.1
+#INFO# To link the Cray SciLib:
+#INFO# ‐L $LIBSCI_BASE_DIR/cray/83/sandybridge/lib ‐l sci_cray_mpi ‐l sci_cray
+#INFO#
+#INFO# M. Boero (Strasbourg-Nagoya 2023)
+#INFO#
+     FC='mpif90'
+     CC='mpicc'
+     LD='mpif90'
+     NVCC=''
+     CPP='cpp -P -traditional'
+     CPPFLAGS='-D__Linux  -D__HAS_FFT_DEFAULT -D__PARALLEL -D__HASNT_F08_ISO_FORTRAN_ENV \
+               -D__HAS_BF_STREAM_IO'
+     CPPFLAGS_GROMOS='-DEWALD -DEWATCUT -DHAT_SHAPE -DUNPACKED_GRID \
+               -D__Linux  -D__HAS_FFT_DEFAULT -D__PARALLEL -D__HASNT_F08_ISO_FORTRAN_ENV \
+               -D__HAS_BF_STREAM_IO'
+     FFLAGS_GROMOS='  $(FFLAGS)'
+     FFLAGS_GROMOS_MODULES='  $(FFLAGS)'
+     AR='ar -r'
+     RANLIB='ranlib'
+     if [ $debug ]; then
+       FFLAGS='-e m'
+       CFLAGS=''
+     else
+       FFLAGS='-e m -O2 -Oipa1 -emf -ffree -homp'
+       CFLAGS=''
+     fi
+     if [ $omp ]; then
+       FFLAGS=${FFLAGS}' -fopenmp -fopenmp-simd'
+       OMP3_DISABLED='false'
+#       LIBS=' ‐lsci_cray_mpi ‐lsci_cray -lcray-libsci -lm'
+       LIBS=' ‐lsci_cray_mpi ‐lsci_cray -lm'
+     else
+       echo "Non-OMP settings not available!"
+       exit 1
+       LIBS=''
+     fi
+     LFLAGS=''${LIBS}

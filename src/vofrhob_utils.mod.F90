@@ -1,7 +1,9 @@
-
 #include "cpmd_global.h"
 
 MODULE vofrhob_utils
+  USE ace_hfx,                         ONLY: grad_scdm, &
+                                             rho_scdm, &
+                                             hfx_scdm_status
   USE cofor_utils,                     ONLY: cofor
   USE corec_utils,                     ONLY: corec
   USE cppt,                            ONLY: indz,&
@@ -13,6 +15,7 @@ MODULE vofrhob_utils
   USE ener,                            ONLY: ener_com
   USE error_handling,                  ONLY: stopgm
   USE extpotmod,                       ONLY: extpot
+  USE gpu
   USE fft_maxfft,                      ONLY: maxfftn
   USE fftmain_utils,                   ONLY: fwfftn,&
                                              invfftn
@@ -22,11 +25,11 @@ MODULE vofrhob_utils
   USE geq0mod,                         ONLY: geq0
   USE graden_utils,                    ONLY: graden
   USE isos,                            ONLY: isos3
-  USE kinds,                           ONLY: real_8
+  USE kinds,                           ONLY: real_8,&
+                                             int_8
   USE linres,                          ONLY: lrf4
   USE meta_localizespin_utils,         ONLY: localizespin
-  USE newd_utils,                      ONLY: give_scr_newd,&
-                                             newd
+  USE newd_utils,                      ONLY: newd
   USE nlcc,                            ONLY: corel,&
                                              corer,&
                                              vnlt
@@ -66,7 +69,10 @@ MODULE vofrhob_utils
   USE utils,                           ONLY: zgthr
   USE xcener_utils,                    ONLY: xcener
   USE zeroing_utils,                   ONLY: zeroing
-
+#ifdef _USE_SCRATCHLIBRARY
+  USE scratch_interface,               ONLY: request_scratch,&
+                                             free_scratch
+#endif
   IMPLICIT NONE
 
   PRIVATE
@@ -87,21 +93,30 @@ CONTAINS
     ! == RHOE:  in electronic density in real space                   ==
     ! ==       out total electronic potential in real space           ==
     ! ==--------------------------------------------------------------==
-    REAL(real_8)                             :: fion(:,:,:), rhoe(:,:)
-    COMPLEX(real_8)                          :: v(:,:), vtemp(:,:)
-    LOGICAL                                  :: tfor, tstress
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: rhoe(:,:)
+    COMPLEX(real_8),INTENT(INOUT)&
+         __CONTIGUOUS                        :: v(:,:), vtemp(:,:)
+    LOGICAL,INTENT(IN)                       :: tfor, tstress
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'vofrhob'
 
-    COMPLEX(real_8), ALLOCATABLE             :: vtmp(:,:)
     COMPLEX(real_8), POINTER                 :: dqg_1d(:)
-    INTEGER                                  :: ierr, ig, il_grad, il_rhoval, &
-                                                il_vpt1, il_vpt2, il_vtmp, &
-                                                ir, isub, kk, nnrs
+    INTEGER                                  :: ierr, ig, ir, isub, kk, nnrs, &
+                                                nstates(2,1)
+    INTEGER(int_8)                           :: il_grad(2), il_rhoval(2), il_rvtmp(2),&
+                                                il_vpt1(1), il_vpt2(1), il_vtmp(2)
     LOGICAL                                  :: debug
     REAL(real_8)                             :: sgcc, sgcx, sxc, vgc
+#ifdef _USE_SCRATCHLIBRARY
+    COMPLEX(real_8), POINTER __CONTIGUOUS    :: vtmp(:,:)
+    REAL(real_8), POINTER __CONTIGUOUS       :: grad(:,:), rhoval(:,:), &
+                                                rvtmp(:,:), vpt1(:), vpt2(:)
+#else
+    COMPLEX(real_8), ALLOCATABLE             :: vtmp(:,:)
     REAL(real_8), ALLOCATABLE                :: grad(:,:), rhoval(:,:), &
                                                 rvtmp(:,:), vpt1(:), vpt2(:)
+#endif
     REAL(real_8), DIMENSION(:, :, :), &
       POINTER                                :: fnla, fnladown, fnlaup
 
@@ -113,36 +128,61 @@ CONTAINS
     CALL setfftn(0)
     ! SCR partition.
     debug=.FALSE.
-    il_vtmp = MAX(fpar%nnr1,ncpw%nhg*2)*clsd%nlsx      ! GCENER and COREC
+    il_vtmp(1) = ncpw%nhg
+    il_vtmp(2) = MAX(fpar%nnr1,ncpw%nhg*2)*clsd%nlsx/ncpw%nhg      ! GCENER and COREC
     IF (cntl%tgc) THEN
-       il_grad=fpar%nnr1*clsd%nlsd*4   ! GRADEN
+       il_grad(1)=fpar%nnr1
+       il_grad(2)=clsd%nlsd*4   ! GRADEN
     ELSE
-       il_grad=0
+       il_grad(1)=fpar%nnr1
+       il_grad(2)=0
     ENDIF
     IF (corel%tinlc) THEN
-       il_rhoval=fpar%nnr1*clsd%nlsd   ! XCENER
+       il_rhoval(1)=fpar%nnr1
+       il_rhoval(2)=clsd%nlsd   ! XCENER
     ELSE
-       il_rhoval=0
+       il_rhoval(1)=fpar%nnr1
+       il_rhoval(2)=0   ! XCENER
     ENDIF
     IF (cntl%tpotential) THEN
-       il_vpt1=fpar%nnr1*clsd%nlsd
-       il_vpt2=fpar%nnr1*clsd%nlsd
+       il_vpt1(1)=fpar%nnr1*clsd%nlsd
+       il_vpt2(1)=fpar%nnr1*clsd%nlsd
     ELSE
-       il_vpt1=0
-       il_vpt2=0
+       il_vpt1(1)=0
+       il_vpt2(1)=0
     ENDIF
-    ALLOCATE(rvtmp(fpar%nnr1,4),STAT=ierr)!clsd%nlsx),STAT=ierr)
+    il_rvtmp(1)=fpar%nnr1
+    il_rvtmp(2)=4
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_rvtmp,rvtmp,procedureN//'_rvtmp',ierr)
+#else
+    ALLOCATE(rvtmp(il_rvtmp(1),il_rvtmp(2)),STAT=ierr)!clsd%nlsx),STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
-    ALLOCATE(vtmp(ncpw%nhg, il_vtmp/ncpw%nhg),STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_vtmp,vtmp,procedureN//'_vtmp',ierr)
+#else
+    ALLOCATE(vtmp(il_vtmp(1), il_vtmp(2)),STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__) ! ! TODO il_vtmp should take into account that vtmp is complex
-    ALLOCATE(grad(fpar%nnr1, il_grad/fpar%nnr1),STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_grad,grad,procedureN//'_grad',ierr)
+#else
+    ALLOCATE(grad(il_grad(1), il_grad(2)),STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
-    ALLOCATE(rhoval(fpar%nnr1, il_rhoval/fpar%nnr1),STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
-         __LINE__,__FILE__)
+    IF(corel%tinlc)THEN
+#ifdef _USE_SCRATCHLIBRARY
+       CALL request_scratch(il_rhoval,rhoval,procedureN//'_rhoval',ierr)
+#else
+       ALLOCATE(rhoval(il_rhoval(1), il_rhoval(2)),STAT=ierr)
+#endif
+       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
+            __LINE__,__FILE__)
+    END IF
     ! ==--------------------------------------------------------------==
     ! == ADD CORE CHARGE TO RHOE                                      ==
     ! ==--------------------------------------------------------------==
@@ -154,23 +194,51 @@ CONTAINS
     ! ==-------------------------------------------------------------==
     ! == VTEMP (Potential in G-Space) -FFT-> V(R)                     ==
     ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu=.false.
+    update_second_to_gpu=.false.
+    update_third_to_gpu=.false.
+    update_result_to_host=.false.
+    comm_buffers_on_host=.false.
+    !$omp target teams distribute parallel do private(ig)
+    DO ig=1,fpar%nnr1
+       v(ig,1)=CMPLX(0.0_real_8,0.0_real_8)
+    END DO
+#else
     CALL zeroing(v)
+#endif
 #ifdef __NEC
     !CDIR NODEP
-#endif
-#ifdef __SR8000
-    !poption parallel
 #endif
 #if defined(_vpp_) || defined(__PRIMERGY) || defined(__PRIMEHPC)
     !ocl novrec(v)
 #endif
-    !$omp parallel do private(IG)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(IG)
     DO ig=1,ncpw%nhg
        v(indz(ig),1) = CONJG(vtemp(ig,1))
        v(nzh(ig),1)  = vtemp(ig,1)
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target
+#endif
     IF (geq0) v(nzh(1),1) = vtemp(1,1)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp end target
+#endif
     CALL invfftn(v(:,1),.FALSE.,parai%allgrp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu=.true.
+    update_second_to_gpu=.true.
+    update_third_to_gpu=.true.
+    update_result_to_host=.true.
+    comm_buffers_on_host=.true.
+#endif
+
     ! ==--------------------------------------------------------------==
     ! == ADD EXTERNAL POTENTIAL TO V                                  ==
     ! ==--------------------------------------------------------------==
@@ -191,9 +259,6 @@ CONTAINS
     IF ((cntl%texpot.OR.textfld).AND.corel%tinlc) THEN
        CALL fwfftn(v(:,1),.FALSE.,parai%allgrp)
        !$omp parallel do private(IG) shared(V)
-#ifdef __SR8000
-       !poption parallel
-#endif
 #ifdef _vpp_
        !OCL NOALIAS
 #endif
@@ -216,11 +281,17 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! == COMPUTE EXCHANGE AND CORRELATION ENERGY (EXC)                ==
     ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(rhoe,v)
+#endif
     IF (corel%tinlc) THEN
        CALL xcener(sxc,ener_com%vxc,rhoval,rhoe,v)
     ELSE
        CALL xcener(sxc,ener_com%vxc,rhoe,rhoe,v)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(v)
+#endif
     sgcx = 0.0_real_8
     sgcc = 0.0_real_8
     vgc  = 0.0_real_8
@@ -242,12 +313,43 @@ CONTAINS
              rhoe(ir,1)=rhoe(ir,1)-rhoe(ir,2)
           ENDDO
           CALL graden(rhoe(:,1),v,grad(:,1),vtmp)
+          !
+          IF(HFX_SCDM_STATUS)THEN
+            rho_scdm(:,1) = rhoe(:,1)
+            grad_scdm(:,1) = grad(:,1)
+          END IF
+          !
           CALL graden(rhoe(:,2),v,grad(:,5),vtmp)
+          !
+          IF(HFX_SCDM_STATUS)THEN
+            rho_scdm(:,2) = rhoe(:,2)
+            grad_scdm(:,2) = grad(:,5)
+          END IF
        ELSE
           IF (tstress.OR.cntl%tdiag) CALL dcopy(2*fpar%nnr1,v(1,1),1,dqg,1)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          update_first_to_gpu=.false.
+          update_second_to_gpu=.false.
+          update_third_to_gpu=.false.
+          update_result_to_host=.false.
+          comm_buffers_on_host=.false.
+#endif
           CALL fwfftn(v(:,1),.FALSE.,parai%allgrp)
           CALL zgthr(ncpw%nhg,v,vtemp,nzh)
           CALL graden(rhoe,v,grad,vtmp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update from(v,vtmp,grad)
+          update_first_to_gpu=.true.
+          update_second_to_gpu=.true.
+          update_third_to_gpu=.true.
+          update_result_to_host=.true.
+          comm_buffers_on_host=.true.
+#endif
+          !
+          IF(HFX_SCDM_STATUS)THEN
+            rho_scdm(:,1) = rhoe(:,1)
+            grad_scdm(:,1) = grad(:,1)
+          END IF
        ENDIF
        ! ==--------------------------------------------------------------==
        ! == GRADIENT CORRECTION TO THE EXCHANGE ENERGY (EGCX)            ==
@@ -261,14 +363,36 @@ CONTAINS
                __LINE__,__FILE__)
           IF (pslo_com%tivan) CALL stopgm(procedureN,'NO VDB PP WITH TPOTENTIAL',& 
                __LINE__,__FILE__)
-          ALLOCATE(vpt1(il_vpt1),STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+          CALL request_scratch(il_vpt1,vpt1,procedureN//'_vpt1',ierr)
+#else
+          ALLOCATE(vpt1(il_vpt1(1)),STAT=ierr)
+#endif
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
                __LINE__,__FILE__)
-          ALLOCATE(vpt2(il_vpt2),STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+          CALL request_scratch(il_vpt2,vpt2,procedureN//'_vpt2',ierr)
+#else
+          ALLOCATE(vpt2(il_vpt2(1)),STAT=ierr)
+#endif
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
+               __LINE__,__FILE__)
+          CALL vpotential(rhoe,grad,v,vtemp,rvtmp,vpt1,vpt2)
+#ifdef _USE_SCRATCHLIBRARY
+          CALL free_scratch(il_vpt2,vpt2,procedureN//'_vpt2',ierr)
+#else
+          DEALLOCATE(vpt2,STAT=ierr)
+#endif
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+               __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+          CALL free_scratch(il_vpt1,vpt1,procedureN//'_vpt1',ierr)
+#else
+          DEALLOCATE(vpt1,STAT=ierr)
+#endif
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
                __LINE__,__FILE__)
 
-          CALL vpotential(rhoe,grad,v,vtemp,rvtmp,vpt1,vpt2)
        ELSEIF (cntl%tlsd) THEN
           ! IF(TSTRESS) CALL STOPGM('VOFRHOB','NO STRESS WITH LSD AND GC')
           CALL gclsd(sgcx,sgcc,rhoe,v,vtemp,rvtmp,grad,tstress)
@@ -321,9 +445,6 @@ CONTAINS
 #else
                 !$omp parallel do private(IR) reduction(+:VGC) schedule(static)
 #endif
-#ifdef __SR8000
-                !poption parallel, tlocal(IR), psum(VGC)
-#endif 
                 DO ir=1,fpar%nnr1
                    vgc=vgc+rhoval(ir,1)*REAL(dqg_1d(ir))
                 ENDDO
@@ -333,9 +454,6 @@ CONTAINS
 #else
                 !$omp parallel do private(IR) reduction(+:VGC) schedule(static)
 #endif
-#ifdef __SR8000
-                !poption parallel, tlocal(IR), psum(VGC)
-#endif 
                 DO ir=1,fpar%nnr1
                    vgc=vgc+rhoe(ir,1)*REAL(dqg_1d(ir))
                 ENDDO
@@ -345,9 +463,6 @@ CONTAINS
                 !$omp parallel do private(IR) reduction(+:VGC)
 #else
                 !$omp parallel do private(IR) reduction(+:VGC) schedule(static)
-#endif
-#ifdef __SR8000
-                !poption parallel, tlocal(IR), psum(VGC)
 #endif
                 DO ir=1,fpar%nnr1
                    vgc=vgc+tau(ir,1)*vtau(ir,1)
@@ -371,27 +486,46 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! == RELEASE TEMPORARY ARRAYS FROM SCRATCH SPACE                  ==
     ! ==--------------------------------------------------------------==
-    DEALLOCATE(rvtmp,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-         __LINE__,__FILE__)
-    DEALLOCATE(vtmp,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-         __LINE__,__FILE__)
+    IF(corel%tinlc)THEN
+#ifdef _USE_SCRATCHLIBRARY
+       CALL free_scratch(il_rhoval,rhoval,procedureN//'_rhoval',ierr)
+#else
+       DEALLOCATE(rhoval,STAT=ierr)
+#endif
+       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+            __LINE__,__FILE__)
+    END IF
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_grad,grad,procedureN//'_grad',ierr)
+#else
     DEALLOCATE(grad,STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
-    DEALLOCATE(rhoval,STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_vtmp,vtmp,procedureN//'_vtmp',ierr)
+#else
+    DEALLOCATE(vtmp,STAT=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+         __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_rvtmp,rvtmp,procedureN//'_rvtmp',ierr)
+#else
+    DEALLOCATE(rvtmp,STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
          __LINE__,__FILE__)
     ! ==--------------------------------------------------------------==
     ! == V CONTAINS THE TOTAL POTENTIAL IN R-SPACE                    ==
     ! == MOVE IT TO RHOE                                              ==
     ! ==--------------------------------------------------------------==
-#if defined (__VECTOR)
-    !$omp parallel do private(IR)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
 #else
-    !$omp parallel do private(IR) schedule(static)
+    !$omp parallel do &
 #endif
+    !$omp& private(IR)
     DO ir=1,fpar%nnr1
        rhoe(ir,1)=REAL(v(ir,1))
     ENDDO
@@ -418,8 +552,22 @@ CONTAINS
        ! == TRANSF. TOTAL POTENTIAL IN G-SPACE                           ==
        ! == PUT THE TOTAL POTENTIAL IN G-SPACE INTO VTEMP                ==
        ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       update_first_to_gpu=.false.
+       update_second_to_gpu=.false.
+       update_third_to_gpu=.false.
+       update_result_to_host=.false.
+       comm_buffers_on_host=.false.
+#endif
        CALL fwfftn(v(:,1),.FALSE.,parai%allgrp)
        CALL zgthr(ncpw%nhg,v,vtemp,nzh)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       update_first_to_gpu=.true.
+       update_second_to_gpu=.true.
+       update_third_to_gpu=.true.
+       update_result_to_host=.true.
+       comm_buffers_on_host=.true.
+#endif
        IF (cntl%tlsd) THEN
           CALL fwfftn(v(:,2),.FALSE.,parai%allgrp)
           CALL zgthr(ncpw%nhg,v(:,2),vtemp(:,2),nzh)
@@ -433,19 +581,16 @@ CONTAINS
        ! == FORCE ON IONS DUE TO THE "VANDERBILT CHARGE"                 ==
        ! ==--------------------------------------------------------------==
        IF (cntl%tlsd) THEN
-          fnlaup => fnl(1,:,:,1:spin_mod%nsup,1)
-          CALL newd(fnlaup,deeq(:,:,:,1),crge%f(1,1),vtemp(:,1),fion,&
-               spin_mod%nsup,tfor)
-          !         CALL newd(fnl(:,:,:,spin_mod%nsup+1,1),deeq(:,:,:,2),crge%f(spin_mod%nsup+1,1),&
-          !              vtemp(:,2),fion,spin_mod%nsdown,tfor)
-          !         CALL newd(fnl(:,:,:,1,1),deeq(:,:,:,1),crge%f(1,1),vtemp(:,1),fion,&
-          !              spin_mod%nsup,tfor)
-          fnladown => fnl(1,:,:,spin_mod%nsup+1:spin_mod%nsup+spin_mod%nsdown,1)
-          CALL newd(fnladown,deeq(:,:,:,2),crge%f(spin_mod%nsup+1,1),&
-               vtemp(:,2),fion,spin_mod%nsdown,tfor)
+          nstates(1,1)=1
+          nstates(2,1)=spin_mod%nsup
+          CALL newd(deeq(:,:,:,1),crge%f,vtemp(:,1),fion,tfor,nstates,.FALSE.)
+          nstates(1,1)=spin_mod%nsup+1
+          nstates(2,1)=spin_mod%nsup+spin_mod%nsdown
+          CALL newd(deeq(:,:,:,2),crge%f,vtemp(:,2),fion,tfor,nstates,.FALSE.)
        ELSE
-          fnla => fnl(1,:,:,:,1)
-          CALL newd(fnla,deeq,crge%f,vtemp,fion,crge%n,tfor)
+          nstates(1,1)=1
+          nstates(2,1)=crge%n
+          CALL newd(deeq(:,:,:,1),crge%f,vtemp,fion,tfor,nstates,.FALSE.)
        ENDIF
     ENDIF
     ! ==--------------------------------------------------------------==
@@ -475,7 +620,7 @@ CONTAINS
     INTEGER                                  :: lvofrhob
     CHARACTER(len=30)                        :: tag
 
-    INTEGER                                  :: lnewd, ltgc, ltinlc, lvtmp
+    INTEGER                                  :: ltgc, ltinlc, lvtmp
 
     IF (cntl%tgc) THEN
        ltgc=fpar%nnr1*clsd%nlsd*4      ! GRADEN
@@ -492,10 +637,6 @@ CONTAINS
        lvtmp=lvtmp+2*fpar%nnr1*clsd%nlsd
     ENDIF
     lvofrhob = lvtmp+ltgc+ltinlc ! GCENER and COREC
-    IF (pslo_com%tivan) THEN
-       CALL give_scr_newd(lnewd,tag)
-       lvofrhob=MAX(lvofrhob,lnewd)
-    ENDIF
     lvofrhob = lvofrhob + 100  ! For boundary checks in SCRPTR
     tag='MAX(NNR1,NHG*2)*NLSX+.....'
     ! ==--------------------------------------------------------------==

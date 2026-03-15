@@ -1,19 +1,25 @@
+#include "cpmd_global.h"
+
 MODULE rortv_utils
-  USE crotwf_utils,                    ONLY: crotwf,&
-                                             give_scr_crotwf
-  USE dotp_utils,                      ONLY: dotp
+  USE cp_grp_utils,                    ONLY: cp_grp_get_sizes,&
+                                             cp_grp_redist_array_f
+  USE crotwf_utils,                    ONLY: crotwf
+  USE dotp_utils,                      ONLY: dotp_c2_cp
   USE error_handling,                  ONLY: stopgm
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE harm,                            ONLY: dtan2w,&
                                              xmu
   USE jrotation_utils,                 ONLY: set_orbdist
-  USE kinds,                           ONLY: real_8
+  USE kinds,                           ONLY: real_8,&
+                                             int_8
   USE linalg_utils,                    ONLY: symm_da
   USE mp_interface,                    ONLY: mp_sum
   USE nort,                            ONLY: nort_com
   USE ovlap_utils,                     ONLY: ovlap
-  USE parac,                           ONLY: parai
+  USE parac,                           ONLY: parai,paral
   USE rotate_utils,                    ONLY: rotate
+  USE reshaper,                        ONLY: reshape_inplace
   USE spin,                            ONLY: spin_mod
   USE system,                          ONLY: cnti,&
                                              cntl,&
@@ -21,9 +27,18 @@ MODULE rortv_utils
                                              ncpw,&
                                              parap,&
                                              paraw
+  USE timer,                           ONLY: tihalt,&
+                                             tiset
   USE tpar,                            ONLY: dtb2me
 !!use ovlap_utils, only : ovlap2
   USE zeroing_utils,                   ONLY: zeroing
+#ifdef _USE_SCRATCHLIBRARY
+  USE scratch_interface,               ONLY: request_scratch,&
+                                             free_scratch
+#endif
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
 
   IMPLICIT NONE
 
@@ -36,29 +51,63 @@ MODULE rortv_utils
 CONTAINS
 
   ! ==================================================================
-  SUBROUTINE rortv(c0,cm,c2,sc0,gamy,nstate)
+  SUBROUTINE rortv(c0,cm,c2,sc0,gamy,nstate,use_cp_grps)
     ! ==--------------------------------------------------------------==
-    COMPLEX(real_8)                          :: c2(ncpw%ngw,*), &
-                                                sc0(ncpw%ngw,*)
-    INTEGER                                  :: nstate
-    REAL(real_8)                             :: gamy(nstate,nstate)
-    COMPLEX(real_8)                          :: cm(ncpw%ngw,nstate), &
+    INTEGER,INTENT(IN)                       :: nstate
+    COMPLEX(real_8),INTENT(INOUT)            :: c2(ncpw%ngw,*),&
+                                                cm(ncpw%ngw,nstate), &
                                                 c0(ncpw%ngw,nstate)
+    COMPLEX(real_8),INTENT(OUT)              :: sc0(ncpw%ngw,*)
+    REAL(real_8),INTENT(OUT)                 :: gamy(nstate,nstate)
+    LOGICAL,INTENT(IN),OPTIONAL              :: use_cp_grps
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'rortv'
 
-    INTEGER                                  :: i, ierr, ig, ip, j, nstx, nx
+#ifdef __PARALLEL
+    INTEGER                                  :: i, ig, ip, j, nstx, nx,&
+                                                ngw_local, ibeg_c0, iend_c0, &
+                                                isub, ierr
+    type(MPI_COMM)                           :: gid
+#else
+    INTEGER                                  :: i, ig, ip, j, nstx, nx,&
+                                                ngw_local, ibeg_c0, iend_c0, &
+                                                isub, ierr, gid
+#endif
+    INTEGER(int_8)                           :: il_yi_n(1)
+    LOGICAL                                  :: geq0_local,cp_active
     REAL(real_8)                             :: ai, bi, pf4, s2, yi
     REAL(real_8), ALLOCATABLE                :: a1mat(:,:), a2mat(:,:)
-
+    REAL(real_8), POINTER __CONTIGUOUS       :: c0_r(:,:),cm_r(:,:)
+#ifdef _USE_SCRATCHLIBRARY
+    REAL(real_8), POINTER __CONTIGUOUS       :: yi_n(:)
+#else
+    REAL(real_8), ALLOCATABLE                :: yi_n(:)
+#endif
+    CALL tiset(procedureN,isub)
+    IF(PRESENT(use_cp_grps))THEN
+       cp_active=use_cp_grps
+    ELSE
+       cp_active=.FALSE.
+    END IF
+    IF(cp_active)THEN
+       CALL cp_grp_get_sizes(ngw_l=ngw_local,geq0_l=geq0_local,&
+         first_g=ibeg_c0,last_g=iend_c0)
+       gid=parai%cp_grp
+    ELSE
+       ngw_local=ncpw%ngw
+       geq0_local=geq0
+       ibeg_c0=1
+       iend_c0=ncpw%ngw
+       gid=parai%allgrp
+    END IF
     IF (cntl%nonort) THEN
        ! Norm constraints
-       DO i=1,nstate
-          IF (cntl%tharm.OR.cntl%tmass) THEN
+       IF (cntl%tharm.OR.cntl%tmass) THEN
+          DO i=1,nstate
              s2=0.0_real_8
              IF (cntl%tharm) THEN
                 !$omp parallel do private(IG,PF4,AI,BI) reduction(+:S2)
-                DO ig=1,ncpw%ngw
+                DO ig=ibeg_c0,iend_c0
                    pf4=2.0_real_8*dtan2w(ig)/dtb2me
                    ai=REAL(c0(ig,i))
                    bi=AIMAG(c0(ig,i))
@@ -66,45 +115,71 @@ CONTAINS
                 ENDDO
              ELSE
                 !$omp parallel do private(IG,PF4,AI,BI) reduction(+:S2)
-                DO ig=1,ncpw%ngw
+                DO ig=ibeg_c0,iend_c0
                    pf4=2.0_real_8*cntr%emass/xmu(ig)
                    ai=REAL(c0(ig,i))
                    bi=AIMAG(c0(ig,i))
                    s2=s2+pf4*(ai*ai+bi*bi)
                 ENDDO
              ENDIF
-             CALL mp_sum(s2,parai%allgrp)
-             IF (geq0) THEN
+             CALL mp_sum(s2,gid)
+             !TK this does not make sense, probably it should be shifted up into the loops
+             !computing s2
+             IF (geq0_local) THEN
                 IF (cntl%tharm) THEN
                    pf4=dtan2w(1)/dtb2me
                 ELSE
                    pf4=cntr%emass/xmu(1)
                 ENDIF
              ENDIF
-             yi=-dotp(ncpw%ngw,cm(:,i),c0(:,i))/s2
-             CALL mp_sum(yi,parai%allgrp)
+             yi=-dotp_c2_cp(ngw_local,cm(ibeg_c0,i),c0(ibeg_c0,i),geq0_local)/s2
+             CALL mp_sum(yi,gid)
              IF (cntl%tharm) THEN
                 !$omp parallel do private(IG,PF4)
-                DO ig=1,ncpw%ngw
+                DO ig=ibeg_c0,iend_c0
                    pf4=dtan2w(ig)/dtb2me
                    cm(ig,i)=cm(ig,i)+pf4*yi*c0(ig,i)
                 ENDDO
              ELSE
                 !$omp parallel do private(IG,PF4)
-                DO ig=1,ncpw%ngw
+                DO ig=ibeg_c0,iend_c0
                    pf4=cntr%emass/xmu(ig)
                    cm(ig,i)=cm(ig,i)+pf4*yi*c0(ig,i)
                 ENDDO
              ENDIF
-          ELSE
-             yi=-dotp(ncpw%ngw,cm(:,i),c0(:,i))
-             CALL mp_sum(yi,parai%allgrp)
-             CALL daxpy(2*ncpw%ngw,yi,c0(1,i),1,cm(1,i),1)
-          ENDIF
-       ENDDO
+          END DO
+       ELSE
+          il_yi_n(1)=nstate
+#ifdef _USE_SCRATCHLIBRARY
+          CALL request_scratch(il_yi_n,yi_n,procedureN//'_yi_n',ierr)
+#else
+          ALLOCATE(yi_n(il_yi_n(1)),STAT=ierr)
+#endif
+          IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
+               __LINE__,__FILE__)
+          CALL reshape_inplace(c0,(/ncpw%ngw*2,nstate/),c0_r)
+          CALL reshape_inplace(cm,(/ncpw%ngw*2,nstate/),cm_r)
+          CALL calc_yi(cm_r,c0_r,yi_n,ibeg_c0*2-1,iend_c0*2,nstate,geq0_local)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          comm_buffers_on_host=.FALSE.
+#endif
+          CALL mp_sum(yi_n,nstate,gid)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          comm_buffers_on_host=.TRUE.
+#endif
+          CALL update_cm(cm_r,c0_r,yi_n,ibeg_c0*2-1,iend_c0*2,nstate)
+
+#ifdef _USE_SCRATCHLIBRARY
+          CALL free_scratch(il_yi_n,yi_n,procedureN//'_yi_n',ierr)
+#else
+          DEALLOCATE(yi_n,STAT=ierr)
+#endif
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+               __LINE__,__FILE__)
+       END IF
        ! UNITARY ROTATION?
        IF (nort_com%scond.GT.nort_com%slimit) THEN
-          CALL crotwf(c0,cm,c2,sc0,nstate,gamy)
+          CALL crotwf(c0,cm,c2,sc0,nstate,gamy,cp_active)
        ENDIF
     ELSE
        ! Overlap constraints
@@ -161,11 +236,70 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+    CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE rortv
   ! ==================================================================
-#if defined(__VECTOR) && (! (__SR8000))
+  SUBROUTINE calc_yi(cm_r,c0_r,yi_n,ibeg_c0,iend_c0,nstate,geq0_local)
+    ! ==--------------------------------------------------------------==
+    REAL(real_8),INTENT(IN), CONTIGUOUS     :: c0_r(:,:), cm_r(:,:)
+    REAL(real_8),INTENT(OUT), CONTIGUOUS    :: yi_n(:)
+    INTEGER,INTENT(IN)                       :: nstate, ibeg_c0, iend_c0
+    LOGICAL,INTENT(IN)                       :: geq0_local
+
+    INTEGER                                  :: i,ig
+    REAL(real_8)                             :: yi
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(i,yi)
+    DO i=1,nstate
+       IF(geq0_local)THEN
+          yi=c0_r(ibeg_c0,i)*cm_r(ibeg_c0,i)*0.5_real_8
+       ELSE
+          yi=c0_r(ibeg_c0,i)*cm_r(ibeg_c0,i)
+          yi=yi+c0_r(ibeg_c0+1,i)*cm_r(ibeg_c0+1,i)
+       END IF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp parallel do simd &
+#else
+       !$omp simd &
+#endif
+       !$omp& reduction(+:yi)
+       do ig=ibeg_c0+2,iend_c0
+          yi=yi+c0_r(ig,i)*cm_r(ig,i)
+       END DO
+       yi_n(i)=yi*(-2.0_real_8)
+    END DO
+
+  END SUBROUTINE calc_yi
+  ! ==================================================================
+  SUBROUTINE update_cm(cm_r,c0_r,yi_n,ibeg_c0,iend_c0,nstate)
+    ! ==--------------------------------------------------------------==
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: yi_n(:), c0_r(:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: cm_r(:,:)
+    INTEGER,INTENT(IN)                       :: nstate, ibeg_c0, iend_c0
+
+    INTEGER                                  :: i,ig
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do simd collapse(2)&
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(i,ig)
+    DO i=1,nstate
+       DO ig=ibeg_c0,iend_c0
+          cm_r(ig,i)=cm_r(ig,i)+yi_n(i)*c0_r(ig,i)
+       END DO
+    END DO
+
+  END SUBROUTINE update_cm
+#if defined(__VECTOR) 
   ! ==================================================================
   SUBROUTINE rvharm(c0,cm,gamy,nstate)
     ! ==--------------------------------------------------------------==
@@ -799,10 +933,6 @@ CONTAINS
     CALL zeroing(s2)!,nstate*nstate)
     !$omp parallel do private(I,J,IG,JMAX,PF4,AI,BI,AJ,BJ) &
     !$omp  schedule(static,1)
-#ifdef __SR8000
-    !poption parallel
-    !poption tlocal(I,J,IG,JMAX,PF4,AI,BI,AJ,BJ), cyclic
-#endif
     DO i=1,nstate
        jmax=nstate
        IF (cntl%tlsd.AND.i.LE.spin_mod%nsup) jmax=spin_mod%nsup
@@ -864,9 +994,6 @@ CONTAINS
          nstate,0.0_real_8,s3,nstate)
     dgmax=0.0_real_8
     !$omp parallel do private(I,J,DGAM) reduction(max:DGMAX)
-#ifdef __SR8000
-    !poption parallel, tlocal(I,J,DGAM), max(DGMAX)
-#endif
     DO i=1,nstate
        DO j=1,nstate
           gamy(i,j)=-0.5_real_8*(s1(i,j)+s1(j,i)+s3(i,j)+s3(j,i))
@@ -880,9 +1007,6 @@ CONTAINS
     ! Apply the constraint
     IF (cntl%tharm) THEN
        !$omp parallel do private(I,J,IG,GIJ,PF4)
-#ifdef __SR8000
-       !poption parallel, tlocal(I,J,IG,GIJ,PF4)
-#endif
        DO i=1,nstate
           DO j=1,nstate
              gij=gamy(i,j)
@@ -894,9 +1018,6 @@ CONTAINS
        ENDDO
     ELSE
        !$omp parallel do private(I,J,IG,GIJ,PF4)
-#ifdef __SR8000
-       !poption parallel, tlocal(I,J,IG,GIJ,PF4)
-#endif
        DO i=1,nstate
           DO j=1,nstate
              gij=gamy(i,j)
@@ -938,7 +1059,6 @@ CONTAINS
 
     IF (cntl%nonort) THEN
        IF (nort_com%scond.GT.nort_com%slimit) THEN
-          CALL give_scr_crotwf(lrortv,tag,nstate)
        ELSE
           lrortv=0
        ENDIF

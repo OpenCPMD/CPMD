@@ -392,7 +392,7 @@ CONTAINS
        ELSEIF (ABS(gloc_re%dif_fun) .LT. 1.e-10_real_8) THEN
           IF (paral%io_parent) THEN
              IF (paral%io_parent)&
-                  WRITE(6,'(/,A,1PE12.6)') '     OFUN-OFUN0 = ',&
+                  WRITE(6,'(/,A,1PE13.6)') '     OFUN-OFUN0 = ',&
                   gloc_re%dif_fun
              IF (paral%io_parent)&
                   WRITE(6,'(A,/)') '   G_LOC_UPDATE: CONVERGENCE'
@@ -404,7 +404,7 @@ CONTAINS
     ENDDO                    ! IREP
 
 500 CONTINUE
-    IF (paral%io_parent .AND. soft_com%exsoft) WRITE(6,'(A,1E12.6)')&
+    IF (paral%io_parent .AND. soft_com%exsoft) WRITE(6,'(A,1E13.6)')&
          ' G_LOC_EXP_SUM|SOFTWERE EXIT (OFUNC)',gloc_re%ofun
     IF (paral%io_parent .AND. irep .EQ. maxrep) WRITE(6,'(A,I10)')&
          ' G_LOC_EXP_SUM| MAXREP REACHED ',maxrep

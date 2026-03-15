@@ -1,10 +1,10 @@
+#include "cpmd_global.h"
+
 MODULE rnlsm_utils
   USE kinds,                           ONLY: real_8
   USE nlps,                            ONLY: nlm
-  USE rnlsm1_utils,                    ONLY: give_scr_rnlsm1,&
-                                             rnlsm1
-  USE rnlsm2_utils,                    ONLY: give_scr_rnlsm2,&
-                                             rnlsm2
+  USE rnlsm1_utils,                    ONLY: rnlsm1
+  USE rnlsm2_utils,                    ONLY: rnlsm2
   USE rnlsmd_utils,                    ONLY: rnlsmd
   USE system,                          ONLY: cntl
   USE timer,                           ONLY: tihalt,&
@@ -15,20 +15,21 @@ MODULE rnlsm_utils
   PRIVATE
 
   PUBLIC :: rnlsm
-  PUBLIC :: give_scr_rnlsm
 
 CONTAINS
 
   ! ==================================================================
-  SUBROUTINE rnlsm(c0,nstate,ikpt,ikind,tfor)
+  SUBROUTINE rnlsm(c0,nstate,ikpt,ikind,tfor,only_dfnl,unpack_dfnl_fnl)
     ! ==--------------------------------------------------------------==
 
-    COMPLEX(real_8)                          :: c0(:,:)
-    INTEGER                                  :: nstate, ikpt, ikind
-    LOGICAL                                  :: tfor
+    COMPLEX(real_8),INTENT(IN) __CONTIGUOUS  :: c0(:,:)
+    INTEGER,INTENT(IN)                       :: nstate, ikpt, ikind
+    LOGICAL,INTENT(IN)                       :: tfor
+    LOGICAL,INTENT(IN),OPTIONAL              :: only_dfnl, unpack_dfnl_fnl
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'rnlsm'
 
+    LOGICAL                                  :: dfnl, unpack
     INTEGER                                  :: isub
 
 ! ==--------------------------------------------------------------==
@@ -37,37 +38,26 @@ CONTAINS
     IF (nlm.EQ.0) RETURN
     CALL tiset(procedureN,isub)
     ! ==--------------------------------------------------------------==
+    IF(PRESENT(only_dfnl))THEN
+       dfnl=only_dfnl
+    ELSE
+       dfnl=.FALSE.
+    END IF
+    IF(PRESENT(unpack_dfnl_fnl))THEN
+       unpack=unpack_dfnl_fnl
+    ELSE
+       unpack=.TRUE.
+    END IF
     IF (cntl%tfdist) THEN
        CALL rnlsmd(c0,nstate,ikind)
     ELSE
-       CALL rnlsm1(c0,nstate,ikind)
+       IF(.NOT.dfnl) CALL rnlsm1(c0,nstate,ikind,fnl_unpack=unpack)
     ENDIF
-    IF (tfor) CALL rnlsm2(c0,nstate,ikpt,ikind)
+    IF (tfor) CALL rnlsm2(c0,nstate,ikpt,ikind,dfnl_unpack=unpack)
     ! ==--------------------------------------------------------------==
     CALL tihalt(procedureN,isub)
 
   END SUBROUTINE rnlsm
-  ! ==================================================================
-  SUBROUTINE give_scr_rnlsm(lrnlsm,tag,nstate,tfor)
-    ! ==--------------------------------------------------------------==
-    INTEGER                                  :: lrnlsm
-    CHARACTER(len=30)                        :: tag
-    INTEGER                                  :: nstate
-    LOGICAL                                  :: tfor
-
-    INTEGER                                  :: lrnlsm1, lrnlsm2
-
-    CALL give_scr_rnlsm1(lrnlsm1,tag,nstate)
-    IF (tfor) THEN
-       CALL give_scr_rnlsm2(lrnlsm2,tag,nstate)
-    ELSE
-       lrnlsm2=0
-    ENDIF
-    lrnlsm=MAX(lrnlsm1,lrnlsm2)
-    tag   ='MAX(LRNLSM1,LRNLSM2)'
-    ! ==--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE give_scr_rnlsm
   ! ==================================================================
 
 

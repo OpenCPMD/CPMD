@@ -15,6 +15,7 @@ MODULE lr_upd_utils
   USE mp_interface,                    ONLY: mp_sum
   USE norm,                            ONLY: cnorm,&
                                              gemax
+  USE odiis_utils,                     ONLY: odiis
   USE parac,                           ONLY: parai
   USE ropt,                            ONLY: ropt_mod
   USE soft,                            ONLY: soft_com

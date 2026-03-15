@@ -9,7 +9,7 @@
      .              q_mm,q_mm_eff,nn_atom,nn_sp,TAU_mi,mm_FION,v_mm,
      .              r_t,r_n,q_partition,q_esp,e_excl,EXTF,EXTF_l)
 !     ==--------------------------------------------------------------==
-!cmb - Revised on 25 October 2013
+!cmb - Revised on 14 March 2024
       use kinds, only: real_4, real_8, int_1, int_2, int_4, int_8
       use error_handling, only: stopgm
       use system
@@ -200,10 +200,6 @@ C FIXME: this should have some allocatables here.
 
       deltaq=0.d0
 !$OMP parallel do private(ie,iqe) reduction(+:deltaq)
-#ifdef __SR11000
-*poption parallel, tlocal(ie,iqe)
-*poption psum(deltaq)
-#endif
       DO ie=1,cgrest_i%n_cg
         iqe=atom_qm_cg_l(ie)
         deltaq=deltaq+q_esp(iqe)
@@ -220,9 +216,6 @@ C FIXME: this should have some allocatables here.
         phi(iq)=phi_tmp*k_cg ! cmb- access only once mem loc
       ENDDO
 !$OMP parallel do private(im)
-#ifdef __SR11000
-*poption parallel, tlocal(im)
-#endif
       do im=1,nn_sr
         q_mm_eff(im)=q_mm_eff(im)*k_cg
       enddo
@@ -281,9 +274,6 @@ C FIXME: this should have some allocatables here.
           ENDDO
         endif
 !$OMP parallel do private(i)
-#ifdef __SR11000
-*poption parallel, tlocal(i)
-#endif
         do i=1,fpar%kr1*fpar%kr2s*fpar%kr3s
           EXTF(i,1,1)=EXTF(i,1,1)-k_cg*EXTF_l(i,1,1)
         enddo

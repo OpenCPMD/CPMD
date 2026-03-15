@@ -41,10 +41,12 @@ MODULE rv30_utils
   USE metr,                            ONLY: metr_com
   USE mm_dimmod,                       ONLY: clsaabox
   USE mm_extrap,                       ONLY: cold,&
+                                             scold,&
                                              nnow,&
                                              numcold
   USE mp_interface,                    ONLY: mp_bcast,&
-                                             mp_sum
+                                             mp_sum,&
+                                             mp_sync
   USE mw,                              ONLY: mwi,&
                                              tmw
   USE nose,                            ONLY: &
@@ -193,6 +195,7 @@ CONTAINS
             ' RESTART INFORMATION READ ON FILE ',filnam(ia:ie)
        CLOSE(nr)
     ENDIF
+    call mp_sync(parai%cp_grp)
     ! ==--------------------------------------------------------------==
     CALL tihalt(proceduren,isub)
     ! ==--------------------------------------------------------------==
@@ -2167,6 +2170,10 @@ CONTAINS
                 IF (irecord.LT.0) THEN
                    CALL r_wfnio(nr,cold(1,1,1,i),nstate,info,tkpnt0,&
                         n0,nkpts0,'C0',fpos)
+                   IF(ALLOCATED(scold))THEN
+                      CALL r_wfnio(nr,scold(1,1,1,i),nstate,info,tkpnt0,&
+                           n0,nkpts0,'SC0',fpos)
+                   END IF
                 ELSE
                    info=1
                 ENDIF

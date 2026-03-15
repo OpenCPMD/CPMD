@@ -4,6 +4,9 @@ MODULE linalg_utils
   USE mp_interface,                    ONLY: mp_sendrecv
   USE system,                          ONLY: parap
   USE zeroing_utils,                   ONLY: zeroing
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
 
   IMPLICIT NONE
 
@@ -27,9 +30,14 @@ CONTAINS
     INTEGER                                  :: ldr, nstate
     REAL(real_8)                             :: cmat(nstate,*), &
                                                 bmat(nstate,*), amat(nstate,*)
+#ifdef __PARALLEL
+    INTEGER                                  :: nproc, mepos, ndd1(0:*), &
+                                                ndd2(0:*)
+    type(MPI_COMM)                           :: grp
+#else
     INTEGER                                  :: nproc, mepos, ndd1(0:*), &
                                                 ndd2(0:*), grp
-
+#endif
     INTEGER                                  :: i1, ip, ipp, ir2, msglen, n, &
                                                 norb, norbx
 
@@ -98,8 +106,14 @@ CONTAINS
   SUBROUTINE trans_da(tmat,n,ndd1,ndd2,nx,me,nproc,grp)
     INTEGER                                  :: n
     REAL(real_8)                             :: tmat(n,*)
+#ifdef __PARALLEL
+    INTEGER                                  :: ndd1(0:*), ndd2(0:*), nx, me, &
+                                                nproc
+    type(MPI_COMM)                           :: grp
+#else
     INTEGER                                  :: ndd1(0:*), ndd2(0:*), nx, me, &
                                                 nproc, grp
+#endif
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'trans_da'
 
@@ -152,7 +166,12 @@ CONTAINS
     REAL(real_8)                             :: tmat(n,*)
     INTEGER                                  :: ndd1(0:*), ndd2(0:*), nx
     REAL(real_8)                             :: bmat(nx,nx), amat(nx,nx)
+#ifdef __PARALLEL
+    INTEGER                                  :: my, npr
+    type(MPI_COMM)                           :: grp
+#else
     INTEGER                                  :: my, npr, grp
+#endif
 
     INTEGER                                  :: i, ip, j, len, m, nl
 

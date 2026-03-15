@@ -57,12 +57,7 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
          __LINE__,__FILE__)
     CALL zeroing(psiab)!,maxfft)
-#ifdef __SR8000
-    !poption parallel
-#endif
-#ifndef __SR11000
     !$omp parallel do private(IG)
-#endif
     DO ig=1,ncpw%ngw
        psiab(nzhs(ig))=c0(ig,clsd%ialpha)+uimag*c0(ig,clsd%ibeta)
        psiab(indzs(ig))=CONJG(c0(ig,clsd%ialpha))+&
@@ -71,17 +66,11 @@ CONTAINS
     IF (geq0) psiab(nzhs(1))=c0(1,clsd%ialpha)+uimag*c0(1,clsd%ibeta)
     CALL  invfftn(psiab,.TRUE.,parai%allgrp)
     IF (lspin2%troot) THEN
-#ifdef __SR8000
-       !poption parallel
-#endif
        !$omp parallel do private(IR)
        DO ir=1,fpar%nnr1
           psi(ir)=vpot(ir,1)*psiab(ir)
        ENDDO
     ELSE
-#ifdef __SR8000
-       !poption parallel
-#endif
        !$omp parallel do private(IR)
        DO ir=1,fpar%nnr1
           psi(ir)=vpot(ir,2)*REAL(psiab(ir))&
@@ -94,10 +83,6 @@ CONTAINS
        fia=f(clsd%ialpha)
        fib=f(clsd%ibeta)
        IF (tekin) THEN
-#ifdef __SR8000
-          !poption parallel
-          !voption indep(NZHS,INDZS,C2)
-#endif
           DO ig=1,ncpw%ngw
              ff=-fh*parm%tpiba2*hg(ig)
              fp=psi(nzhs(ig))+psi(indzs(ig))
@@ -108,10 +93,6 @@ CONTAINS
                   -fh*CMPLX(AIMAG(fp),-REAL(fm),kind=real_8))
           ENDDO
        ELSE
-#ifdef __SR8000
-          !poption parallel
-          !voption indep(NZHS,INDZS,C2)
-#endif
           DO ig=1,ncpw%ngw
              fp=psi(nzhs(ig))+psi(indzs(ig))
              fm=psi(nzhs(ig))-psi(indzs(ig))
@@ -123,10 +104,6 @@ CONTAINS
        ENDIF
     ELSE
        IF (tekin) THEN
-#ifdef __SR8000
-          !poption parallel
-          !voption indep(NZHS,INDZS,C2)
-#endif
           DO ig=1,ncpw%ngw
              ff=-fh*parm%tpiba2*hg(ig)
              fp=psi(nzhs(ig))+psi(indzs(ig))
@@ -137,10 +114,6 @@ CONTAINS
                   -fh*CMPLX(AIMAG(fp),-REAL(fm),kind=real_8)
           ENDDO
        ELSE
-#ifdef __SR8000
-          !poption parallel
-          !voption indep(NZHS,INDZS,C2)
-#endif
           DO ig=1,ncpw%ngw
              fp=psi(nzhs(ig))+psi(indzs(ig))
              fm=psi(nzhs(ig))-psi(indzs(ig))
@@ -161,19 +134,12 @@ CONTAINS
        ALLOCATE(kvab(2,nstate),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
-#ifdef __SR8000
-       !poption parallel
-#endif
        !$omp parallel do private(IR)
        DO ir=1,fpar%nnr1
           psi(ir)=vpot(ir,2)*REAL(psiab(ir))&
                +uimag*vpot(ir,3)*AIMAG(psiab(ir))
        ENDDO
        CALL  fwfftn(psi,.TRUE.,parai%allgrp)
-#ifdef __SR8000
-       !poption parallel
-       !voption indep(NZHS,INDZS,VAA,VBB)
-#endif
        !$omp parallel do private(IG,FP,FM)
        DO ig=1,ncpw%ngw
           fp=-0.5_real_8*(psi(nzhs(ig))+psi(indzs(ig)))
@@ -214,9 +180,6 @@ CONTAINS
     ELSEIF (lspin2%tross) THEN
        ! Special code for exchange contribution of singly occupied states
        ! for the open shell (biradical) singlet method
-#ifdef __SR8000
-       !poption parallel
-#endif
        !$omp parallel do private(IR)
        DO ir=1,fpar%nnr1
           psi(ir)=psiab(ir)*vpot(ir,4)
@@ -224,9 +187,6 @@ CONTAINS
        CALL  fwfftn(psi,.TRUE.,parai%allgrp)
        ! In the following loop states are interchanged
        ! a contributes to b and b to a
-#ifdef __SR8000
-       !poption parallel
-#endif
        DO ig=1,ncpw%ngw
           fp=0.5_real_8*(psi(nzhs(ig))+psi(indzs(ig)))
           fm=0.5_real_8*(psi(nzhs(ig))-psi(indzs(ig)))
@@ -247,9 +207,6 @@ CONTAINS
        ENDDO
        ! now the contribution |a> = V*|b>
        !CDIR NODEP
-#ifdef __SR8000
-       !poption parallel
-#endif
        DO ig=1,ncpw%ngw
           psi(nzhs(ig))=c0(ig,clsd%ialpha)+uimag*c0(ig,clsd%ibeta)
           psi(indzs(ig))=CONJG(c0(ig,clsd%ialpha))+&
@@ -257,9 +214,6 @@ CONTAINS
        ENDDO
        IF (geq0) psi(nzhs(1))=c0(1,clsd%ialpha)+uimag*c0(1,clsd%ibeta)
        CALL  invfftn(psi,.TRUE.,parai%allgrp)
-#ifdef __SR8000
-       !voption indep(PSI,VPOT)
-#endif
        !$omp parallel do private(IR)
        DO ir=1,fpar%nnr1
           psi(ir)=psi(ir)*vpot(ir,4)
@@ -267,9 +221,6 @@ CONTAINS
        CALL  fwfftn(psi,.TRUE.,parai%allgrp)
        ! In the following loop states are interchanged
        ! a contributes to b and b to a
-#ifdef __SR8000
-       !poption parallel
-#endif
        DO ig=1,ncpw%ngw
           fp=0.5_real_8*(psi(nzhs(ig))+psi(indzs(ig)))
           fm=0.5_real_8*(psi(nzhs(ig))-psi(indzs(ig)))
@@ -286,9 +237,6 @@ CONTAINS
        CALL  fwfftn(psi,.TRUE.,parai%allgrp)
        ! In the following loop states are interchanged
        ! a contributes to b and b to a
-#ifdef __SR8000
-       !poption parallel
-#endif
        DO ig=1,ncpw%ngw
           g2=0.25_real_8*parm%tpiba2*hg(ig)
           fp=0.5_real_8*(psi(nzhs(ig))+psi(indzs(ig)))

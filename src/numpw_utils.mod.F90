@@ -114,9 +114,6 @@ CONTAINS
                    t=REAL(i,kind=real_8)*gvec_com%b1(ir)+REAL(j,kind=real_8)*gvec_com%b2(ir)+REAL(k,kind=real_8)*gvec_com%b3(ir)
                    g2=g2+t*t
                 ENDDO
-#ifdef __SR8000 
-                ! soption nopredicate 
-#endif 
                 IF (g2.GE.glow.AND.g2.LT.ghigh) THEN
                    ig=ig+1
                    IF (tnhgwish) tabg2(ig)=g2

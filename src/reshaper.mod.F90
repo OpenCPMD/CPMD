@@ -1,4 +1,7 @@
 MODULE reshaper
+  USE, INTRINSIC :: iso_c_binding,     ONLY: c_loc,&
+                                             c_f_pointer,&
+                                             c_ptr
   USE kinds,                           ONLY: int_1,&
                                              int_2,&
                                              int_4,&
@@ -13,20 +16,25 @@ MODULE reshaper
 
      MODULE PROCEDURE reshape_inplace_c2_c2
      MODULE PROCEDURE reshape_inplace_c2_r3
+     MODULE PROCEDURE reshape_inplace_c2_r4
      MODULE PROCEDURE reshape_inplace_c2_c1
      MODULE PROCEDURE reshape_inplace_c3_c1
      MODULE PROCEDURE reshape_inplace_c1_c3
      MODULE PROCEDURE reshape_inplace_c2_c3
      MODULE PROCEDURE reshape_inplace_c3_c2
+     MODULE PROCEDURE reshape_inplace_c2_c4
 
      MODULE PROCEDURE reshape_inplace_c1_r1
      MODULE PROCEDURE reshape_inplace_c2_r2
+     MODULE PROCEDURE reshape_inplace_c4_r4
      MODULE PROCEDURE reshape_inplace_c2_r1
      MODULE PROCEDURE reshape_inplace_c1_r2
 
      MODULE PROCEDURE reshape_inplace_r1_c1
      MODULE PROCEDURE reshape_inplace_r3_r2
      MODULE PROCEDURE reshape_inplace_r2_r3
+     MODULE PROCEDURE reshape_inplace_r5_r3
+     MODULE PROCEDURE reshape_inplace_r6_r4
      MODULE PROCEDURE reshape_inplace_r3_r4
      MODULE PROCEDURE reshape_inplace_r2_r1
      MODULE PROCEDURE reshape_inplace_r2_c1
@@ -57,7 +65,6 @@ MODULE reshaper
 CONTAINS
 
   SUBROUTINE type_cast_i8_i4(src, size_src, dst)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     INTEGER(int_8), TARGET, INTENT(in) :: src(*)
     INTEGER, INTENT(in) :: size_src
@@ -70,7 +77,6 @@ CONTAINS
   END SUBROUTINE type_cast_i8_i4
 
   SUBROUTINE type_cast_i8_i2(src, size_src, dst)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     INTEGER(int_8), TARGET, INTENT(in) :: src(*)
     INTEGER, INTENT(in) :: size_src
@@ -83,7 +89,6 @@ CONTAINS
   END SUBROUTINE type_cast_i8_i2
 
   SUBROUTINE type_cast_i8_i1(src, size_src, dst)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     INTEGER(int_8), TARGET, INTENT(in) :: src(*)
     INTEGER, INTENT(in) :: size_src
@@ -96,7 +101,6 @@ CONTAINS
   END SUBROUTINE type_cast_i8_i1
 
   SUBROUTINE type_cast_r1_c1(src, size_src, dst)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     REAL(real_8), TARGET, INTENT(in) :: src(*)
     INTEGER, INTENT(in) :: size_src
@@ -109,7 +113,6 @@ CONTAINS
   END SUBROUTINE type_cast_r1_c1
 
   SUBROUTINE type_cast_c1_r1(src, size_src, dst)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: src(*)
     INTEGER, INTENT(in) :: size_src
@@ -122,7 +125,6 @@ CONTAINS
   END SUBROUTINE type_cast_c1_r1
 
   SUBROUTINE type_cast_c8_c4(src, size_src, dst)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: src(*)
     INTEGER, INTENT(in) :: size_src
@@ -135,7 +137,6 @@ CONTAINS
   END SUBROUTINE type_cast_c8_c4
 
   SUBROUTINE reshape_inplace_c2_c2(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,*) ! 1 is dummy dimension
     INTEGER, INTENT(in) :: new_shape(:)
@@ -148,7 +149,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_c2_c2
 
   SUBROUTINE reshape_inplace_c2_c1(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,*) ! 1 is dummy dimension
     INTEGER, INTENT(in) :: new_shape(:)
@@ -161,7 +161,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_c2_c1
 
   SUBROUTINE reshape_inplace_c41_c82(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,*) ! 1 is dummy dimension
     INTEGER, INTENT(in) :: new_shape(:)
@@ -174,7 +173,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_c41_c82
 
   SUBROUTINE reshape_inplace_c41_c81(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -187,7 +185,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_c41_c81
 
   SUBROUTINE reshape_inplace_c3_c1(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,1,*) ! 1 is dummy dimension
     INTEGER, INTENT(in) :: new_shape(:)
@@ -200,7 +197,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_c3_c1
 
   SUBROUTINE reshape_inplace_r3_c3(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     REAL(real_8), TARGET, INTENT(in) :: tgt_x(1,1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -213,7 +209,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_r3_c3
 
   SUBROUTINE reshape_inplace_c2_r3(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -225,8 +220,19 @@ CONTAINS
     CALL C_F_POINTER(loc_x, ptr_x, new_shape)
   END SUBROUTINE reshape_inplace_c2_r3
 
+  SUBROUTINE reshape_inplace_c2_r4(tgt_x, new_shape, ptr_x)
+    IMPLICIT NONE
+    COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,*)
+    INTEGER, INTENT(in) :: new_shape(:)
+    REAL(real_8), POINTER, INTENT(out) :: ptr_x(:,:,:,:)
+
+    TYPE(c_ptr) :: loc_x
+
+    loc_x = C_LOC(tgt_x)
+    CALL C_F_POINTER(loc_x, ptr_x, new_shape)
+  END SUBROUTINE reshape_inplace_c2_r4
+
   SUBROUTINE reshape_inplace_c2_c3(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -238,8 +244,19 @@ CONTAINS
     CALL C_F_POINTER(loc_x, ptr_x, new_shape)
   END SUBROUTINE reshape_inplace_c2_c3
 
+  SUBROUTINE reshape_inplace_c2_c4(tgt_x, new_shape, ptr_x)
+    IMPLICIT NONE
+    COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,*)
+    INTEGER, INTENT(in) :: new_shape(:)
+    COMPLEX(real_8), POINTER, INTENT(out) :: ptr_x(:,:,:,:)
+
+    TYPE(c_ptr) :: loc_x
+
+    loc_x = C_LOC(tgt_x)
+    CALL C_F_POINTER(loc_x, ptr_x, new_shape)
+  END SUBROUTINE reshape_inplace_c2_c4
+
   SUBROUTINE reshape_inplace_c3_c2(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -252,7 +269,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_c3_c2
 
   SUBROUTINE reshape_inplace_c1_r1(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -265,7 +281,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_c1_r1
 
   SUBROUTINE reshape_inplace_i1_r1(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     INTEGER, TARGET, INTENT(in) :: tgt_x(*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -278,7 +293,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_i1_r1
 
   SUBROUTINE reshape_inplace_i2_i1(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     INTEGER, TARGET, INTENT(in) :: tgt_x(1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -291,7 +305,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_i2_i1
 
   SUBROUTINE reshape_inplace_c1_r2(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -304,7 +317,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_c1_r2
 
   SUBROUTINE reshape_inplace_c1_c3(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -317,7 +329,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_c1_c3
 
   SUBROUTINE reshape_inplace_r1_c1(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     REAL(real_8), TARGET, INTENT(in) :: tgt_x(*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -330,7 +341,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_r1_c1
 
   SUBROUTINE reshape_inplace_c2_r2(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -343,7 +353,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_c2_r2
 
   SUBROUTINE reshape_inplace_c2_r1(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -356,7 +365,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_c2_r1
 
   SUBROUTINE reshape_inplace_r2_r3(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     REAL(real_8), TARGET, INTENT(in) :: tgt_x(1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -369,7 +377,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_r2_r3
 
   SUBROUTINE reshape_inplace_r3_r4(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     REAL(real_8), TARGET, INTENT(in) :: tgt_x(1,1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -382,7 +389,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_r3_r4
 
   SUBROUTINE reshape_inplace_r3_r2(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     REAL(real_8), TARGET, INTENT(in) :: tgt_x(1,1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -394,8 +400,31 @@ CONTAINS
     CALL C_F_POINTER(loc_x, ptr_x, new_shape)
   END SUBROUTINE reshape_inplace_r3_r2
 
+  SUBROUTINE reshape_inplace_r5_r3(tgt_x, new_shape, ptr_x)
+    IMPLICIT NONE
+    REAL(real_8), TARGET, INTENT(in) :: tgt_x(1,1,1,1,*)
+    INTEGER, INTENT(in) :: new_shape(:)
+    REAL(real_8), POINTER, INTENT(out) :: ptr_x(:,:,:)
+
+    TYPE(c_ptr) :: loc_x
+
+    loc_x = C_LOC(tgt_x)
+    CALL C_F_POINTER(loc_x, ptr_x, new_shape)
+  END SUBROUTINE reshape_inplace_r5_r3
+
+  SUBROUTINE reshape_inplace_r6_r4(tgt_x, new_shape, ptr_x)
+    IMPLICIT NONE
+    REAL(real_8), TARGET, INTENT(in) :: tgt_x(1,1,1,1,1,*)
+    INTEGER, INTENT(in) :: new_shape(:)
+    REAL(real_8), POINTER, INTENT(out) :: ptr_x(:,:,:,:)
+
+    TYPE(c_ptr) :: loc_x
+
+    loc_x = C_LOC(tgt_x)
+    CALL C_F_POINTER(loc_x, ptr_x, new_shape)
+  END SUBROUTINE reshape_inplace_r6_r4
+
   SUBROUTINE reshape_inplace_r2_r1(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     REAL(real_8), TARGET, INTENT(in) :: tgt_x(1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -408,7 +437,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_r2_r1
 
   SUBROUTINE reshape_inplace_r2_c1(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     REAL(real_8), TARGET, INTENT(in) :: tgt_x(1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -421,7 +449,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_r2_c1
 
   SUBROUTINE reshape_inplace_r2_c2(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     REAL(real_8), TARGET, INTENT(in) :: tgt_x(1,*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -433,8 +460,19 @@ CONTAINS
     CALL C_F_POINTER(loc_x, ptr_x, new_shape)
   END SUBROUTINE reshape_inplace_r2_c2
 
+    SUBROUTINE reshape_inplace_c4_r4(tgt_x, new_shape, ptr_x)
+    IMPLICIT NONE
+    COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,1,1,*)
+    INTEGER, INTENT(in) :: new_shape(:)
+    REAL(real_8), POINTER, INTENT(out) :: ptr_x(:,:,:,:)
+
+    TYPE(c_ptr) :: loc_x
+
+    loc_x = C_LOC(tgt_x)
+    CALL C_F_POINTER(loc_x, ptr_x, new_shape)
+  END SUBROUTINE reshape_inplace_c4_r4
+
   SUBROUTINE reshape_inplace_r1_r2(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     REAL(real_8), TARGET, INTENT(in) :: tgt_x(*)
     INTEGER, INTENT(in) :: new_shape(:)
@@ -447,7 +485,6 @@ CONTAINS
   END SUBROUTINE reshape_inplace_r1_r2
 
   SUBROUTINE reshape_inplace_r1_r3(tgt_x, new_shape, ptr_x)
-    USE, INTRINSIC :: iso_c_binding
     IMPLICIT NONE
     REAL(real_8), TARGET, INTENT(in) :: tgt_x(*)
     INTEGER, INTENT(in) :: new_shape(:)

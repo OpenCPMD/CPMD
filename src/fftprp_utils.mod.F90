@@ -1,6 +1,7 @@
 #include "cpmd_global.h"
 
 MODULE fftprp_utils
+  USE benc,                            ONLY: ibench
   USE cp_cuda_types,                   ONLY: cp_cuda_devices_fft,&
                                              cp_cuda_env
   USE cp_cufft_types,                  ONLY: cp_cufft
@@ -19,7 +20,9 @@ MODULE fftprp_utils
   USE error_handling,                  ONLY: stopgm
   USE fft,                             ONLY: &
        fftpool, kr1m, kr2max, kr2min, kr3max, kr3min, lmsqmax, lnzf, lnzs, &
-       maxrpt, mg, ms, msp, mxy, mz, ngrm, nhrm, nr1m, nr3m, xf, yf
+       maxrpt, mg, ms, msp, mxy, mz, ngrm, nhrm, nr1m, nr3m, xf, yf,&
+       batch_fft, a2a_msgsize, fft_batchsize, fft_numbatches, fft_residual, &
+       fft_total,  fft_tune_max_it, fft_tune_num_it, fft_time_total, fft_batchsizes, fft_min_numbatches
   USE fft_maxfft,                      ONLY: maxfft
   USE fftnew_utils,                    ONLY: addfftnset,&
                                              setfftn
@@ -27,9 +30,11 @@ MODULE fftprp_utils
   USE kinds,                           ONLY: real_8
   USE kpts,                            ONLY: tkpts
   USE mp_interface,                    ONLY: mp_max,&
-                                             mp_sum
+                                             mp_sum,&
+                                             mp_bcast
   USE parac,                           ONLY: parai,&
                                              paral
+  USE part_1d,                         ONLY: part_1d_get_blk_bounds
   USE prmem_utils,                     ONLY: prmem
   USE sizeof_kinds,                    ONLY: sizeof_complex_8
   USE reshaper,                        ONLY: reshape_inplace
@@ -39,6 +44,7 @@ MODULE fftprp_utils
                                              rswf
   USE system,                          ONLY: cntl,&
                                              cntr,&
+                                             cnti,&
                                              fpar,&
                                              group,&
                                              ncpw,&
@@ -57,6 +63,7 @@ MODULE fftprp_utils
 
   PUBLIC :: fft_init
   PUBLIC :: fft_finalize
+  PUBLIC :: autotune_fftbatchsize
 
   LOGICAL, PARAMETER, PRIVATE :: cuda_register_memory = .true.
 
@@ -119,7 +126,7 @@ CONTAINS
 
     INTEGER :: i, ierr, ig, ij, img, iny1, iny2, iny3, ip, ipp, ixf, j, jj, &
       jmg, ldim, len, mxrp, nclu, ngray, nh1, nh2, nh3, nhray, nl1, nl2, nn2, &
-      nr3i, nrx, nstate, ny1, ny2, ny3
+      nr3i, nrx, nstate, ny1, ny2, ny3, first, last, lda, it, count
     INTEGER, ALLOCATABLE                     :: my(:)
     REAL(real_8)                             :: rmem, rstate, xmpenm
 
@@ -196,6 +203,9 @@ CONTAINS
     ALLOCATE(indzs(ncpw%ngw),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:nzhs,indzs)
+#endif
     ! MAXIMUM OF NR1, NGRAYS AND NHRAYS FOR MP_INDEX
     nr1m = 0
     nhrm = 0
@@ -253,6 +263,9 @@ CONTAINS
     ALLOCATE(msp(nhrm,2,parai%nproc),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:msp)
+#endif
     len = nhrm * 8
     CALL my_concat(ms,msp,len,parai%allgrp)
     ! TRANSLATE I,J TO A SINGLE G/S INDEX
@@ -304,6 +317,9 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
             __LINE__,__FILE__)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to (nzhs,indzs,msp,nzh,indz)
+#endif
     ! ARRAY SIZE TO DO A 3D-FFT
     maxfft = MAX(kr1m*fpar%kr2s*fpar%kr3s,parai%nproc*nr1m*nhrm)
     IF (group%nogrp.GT.1) maxfft = MAX(fpar%krx*fpar%kr2s*fpar%kr3s,maxfft)
@@ -340,14 +356,18 @@ CONTAINS
 #else
        CALL stopgm(procedureN,'shall not get to that point', __LINE__,__FILE__)
 #endif
+#if !defined(_USE_SCRATCHLIBRARY)
     ELSE
        ALLOCATE(xf(maxfft,1),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', __LINE__,__FILE__)
        ALLOCATE(yf(maxfft,1),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', __LINE__,__FILE__)
+#endif
     ENDIF
+#if defined(_HAS_CUDA) || !defined(_USE_SCRATCHLIBRARY)
     CALL zeroing(xf)!,SIZE(xf))
     CALL zeroing(yf)!,SIZE(yf))
+#endif
     !
     DEALLOCATE(mg,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
@@ -367,7 +387,7 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ARRAY TO KEEP THE REAL SPACE WAVEFUNCTIONS
     rsactive = .FALSE.
-    IF (cntl%krwfn) THEN
+    IF (cntl%krwfn.AND..NOT.batch_fft) THEN
        IF (tkpts%tkblock) CALL stopgm('FFTPRP',&
             'INCOMPATIBLE OPTIONS TKBLOCK AND KRWFN',&
             __LINE__,__FILE__)
@@ -388,6 +408,8 @@ CONTAINS
 
           IF (tkpts%tkpnt) nstate = nstate*nkpt%nkpnt
        ENDIF
+       !TK sometimes we have no real space plane...nnr1=0!
+       CALL mp_max(lwdim,parai%allgrp)
        !
        ! SuperDirtyFix (SDF): allocate all the memory when CP_NOGRP.GT.1
        IF (cntr%memsize.LT.0.OR.parai%cp_nogrp.GT.1) THEN
@@ -425,10 +447,208 @@ CONTAINS
        ENDIF
     ENDIF
     ! ==--------------------------------------------------------------==
+    ! INITIALIZE BATCH FFT ALGORITHM
+    IF(batch_fft)THEN
+       nstate = crge%n
+       CALL part_1d_get_blk_bounds(nstate,parai%cp_inter_me,parai%cp_nogrp,first,last)
+       nstate = last - first +1
+       IF(tkpts%tkpnt) nstate = nstate*nkpt%nkpnt
+       maxstates = nstate
+       fft_total=(maxstates+1)/2
+       IF (tkpts%tkpnt) fft_total=maxstates+1
+       lda=ngrm*nr1m
+       !calculate fft_batchsize so that we get something less than a2a_msgsize to send per proc (sparse fft)
+       !if autotuning is requested, we use this batchsize to set fft_max_numbatches
+       a2a_msgsize=a2a_msgsize*1024/(parai%nproc*16)
+       fft_batchsize=FLOOR(REAL(a2a_msgsize,KIND=real_8)/REAL(lda,KIND=real_8))
+       IF(fft_batchsize.LE.0) fft_batchsize=1
+       fft_residual=MOD(fft_total,fft_batchsize)
+       fft_numbatches=(fft_total-fft_residual)/fft_batchsize
+
+       IF(cntl%overlapp_comm_comp)THEN
+          IF(cntl%krwfn)THEN
+             fft_min_numbatches=2
+          ELSE
+             fft_min_numbatches=3
+          END IF
+       ELSE
+          fft_min_numbatches=1
+       END IF
+       IF(fft_numbatches.LT.fft_min_numbatches)THEN
+          fft_numbatches=fft_min_numbatches
+          fft_batchsize=FLOOR(REAL(fft_total,KIND=real_8)/REAL(fft_numbatches,KIND=real_8))
+          fft_residual=MOD(fft_total,fft_batchsize)
+       END IF
+
+       CALL mp_bcast(fft_min_numbatches,parai%source,parai%allgrp)
+       CALL mp_bcast(fft_numbatches,parai%source,parai%allgrp)
+       CALL mp_bcast(fft_residual,parai%source,parai%allgrp)
+       CALL mp_bcast(fft_batchsize,parai%source,parai%allgrp)
+       CALL mp_bcast(fft_total,parai%source,parai%allgrp)
+       
+       fft_tune_max_it=0
+
+       IF(cntl%fft_tune_batchsize)THEN
+          fft_tune_num_it=0
+          fft_tune_max_it=(fft_batchsize*cnti%fft_tune_it_per_batch)+3
+          call mp_max(fft_tune_max_it,parai%cp_grp)
+          ALLOCATE(fft_time_total(fft_tune_max_it),STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', __LINE__,__FILE__)
+          ALLOCATE(fft_batchsizes(fft_tune_max_it),STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', __LINE__,__FILE__)
+          fft_batchsizes=1
+          !We start with the upper limit and decrease the batchsize in each iteration
+          !the first FFT is always very slow so we skip it for the autotuning process.
+          fft_batchsizes(1)=fft_batchsize
+          fft_batchsizes(2)=fft_batchsize
+          DO i=3,cnti%fft_tune_it_per_batch+2
+             fft_batchsizes(i)=fft_batchsize
+          END DO
+
+          count=cnti%fft_tune_it_per_batch+2
+          DO it=fft_tune_max_it-1,1,-1
+             fft_batchsize=fft_batchsize-1
+             IF(fft_batchsize.EQ.0)fft_batchsize=1
+             fft_residual=MOD(fft_total,fft_batchsize)
+             fft_numbatches=(fft_total-fft_residual)/fft_batchsize
+             IF(fft_numbatches.LT.fft_min_numbatches)THEN
+                fft_numbatches=fft_min_numbatches
+                fft_batchsize=FLOOR(REAL(fft_total,KIND=real_8)/REAL(fft_numbatches,KIND=real_8))
+                fft_residual=MOD(fft_total,fft_batchsize)
+             END IF
+             IF(fft_batchsize.NE.fft_batchsizes(count))THEN
+                DO i=1,cnti%fft_tune_it_per_batch
+                   count=count+1
+                   fft_batchsizes(count)=fft_batchsize
+                END DO
+             end IF
+          end DO
+          fft_tune_max_it=count
+          call mp_max(fft_tune_max_it,parai%cp_grp)
+          fft_time_total=HUGE(0.0_real_8)
+          fft_batchsize=fft_batchsizes(1)
+          fft_residual=MOD(fft_total,fft_batchsize)
+          fft_numbatches=(fft_total-fft_residual)/fft_batchsize          
+       END IF
+#if !defined(_USE_SCRATCHLIBRARY)
+       IF(ALLOCATED(xf))THEN
+          DEALLOCATE(xf,STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+               __LINE__,__FILE__)
+       END IF
+       IF(ALLOCATED(YF))THEN
+          DEALLOCATE(yf,STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+               __LINE__,__FILE__)
+       END IF
+       ALLOCATE(xf(MAX(maxfft,fpar%nnr1*fft_batchsize),2),STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', __LINE__,__FILE__)
+       ALLOCATE(yf(MAX(maxfft,fpar%nnr1*fft_batchsize),2),STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', __LINE__,__FILE__)
+#endif
+       IF (paral%parent) THEN
+          WRITE(6,*)&
+               ' FFTPRP| BATCH FFT NUMBER ALLTOALL CALLS ',fft_numbatches
+          WRITE(6,*)&
+               ' FFTPRP| BATCH FFT NUMBER OF STATES PER CALL ',fft_batchsize
+       ENDIF
+    ENDIF
+    ! ==--------------------------------------------------------------==
     IF (paral%parent) CALL prmem('    FFTPRP')
     ! ==--------------------------------------------------------------==
   END SUBROUTINE fftprp_default_init
 
+  ! ==================================================================
+  SUBROUTINE autotune_fftbatchsize()
+    ! ==--------------------------------------------------------------==
+    ! == tunes the number of states per fft batch                     ==
+    ! ==--------------------------------------------------------------==
+    INTEGER                                  :: ind(1), ierr
+    CHARACTER(*), PARAMETER                  :: procedureN = 'autotune_fftbatchsize'
+    REAL(real_8)                             :: last, now
+    INTEGER                                  :: i
+    ! ==--------------------------------------------------------------==
+    IF(fft_tune_max_it.EQ.0)RETURN
+
+    IF(fft_tune_num_it.EQ.fft_tune_max_it)THEN
+       cntl%fft_tune_batchsize=.FALSE.
+    ELSE
+       fft_tune_num_it=fft_tune_num_it+1
+       fft_batchsize=fft_batchsizes(fft_tune_num_it)
+       fft_residual=MOD(fft_total,fft_batchsize)
+       fft_numbatches=(fft_total-fft_residual)/fft_batchsize
+       IF(fft_tune_num_it.EQ.1)THEN
+          RETURN
+       ELSEIF(fft_tune_num_it.EQ.2)THEN
+          CALL mp_max(fft_time_total(fft_tune_num_it-1),parai%cp_grp)
+          RETURN
+       END IF
+       CALL mp_max(fft_time_total(fft_tune_num_it-1),parai%cp_grp)
+    END IF
+       
+    IF(.NOT.cntl%fft_tune_batchsize)THEN
+       DO i=3,fft_tune_max_it,cnti%fft_tune_it_per_batch
+          fft_time_total(i+1:i+cnti%fft_tune_it_per_batch-1)=&
+               SUM(fft_time_total(i+1:i+cnti%fft_tune_it_per_batch-1))/&
+               (REAL(cnti%fft_tune_it_per_batch-1,KIND=real_8))
+       END DO
+       ind=MINLOC(fft_time_total)
+       fft_batchsize=fft_batchsizes(ind(1))
+       if(ibench(4).eq.1)then
+          if(paral%io_parent)write(6,*) fft_time_total
+          if(paral%io_parent)write(6,*) fft_batchsizes
+          if(paral%io_parent)write(6,*) ind,fft_time_total(ind),fft_batchsizes(ind)
+       end if
+       fft_residual=MOD(fft_total,fft_batchsize)
+       fft_numbatches=(fft_total-fft_residual)/fft_batchsize
+       IF(fft_numbatches.LT.fft_min_numbatches)THEN
+          fft_numbatches=fft_min_numbatches
+!          fft_batchsize=FLOOR(REAL(fft_total,KIND=real_8)/REAL(fft_numbatches,KIND=real_8))
+          fft_batchsize=fft_total/fft_numbatches
+          fft_residual=MOD(fft_total,fft_batchsize)
+       END IF
+    END IF
+
+    CALL mp_bcast(fft_numbatches,parai%source,parai%allgrp)
+    CALL mp_bcast(fft_residual,parai%source,parai%allgrp)
+    CALL mp_bcast(fft_batchsize,parai%source,parai%allgrp)
+
+#if !defined(_USE_SCRATCHLIBRARY)
+    IF(ALLOCATED(xf))THEN
+       DEALLOCATE(xf,STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+            __LINE__,__FILE__)
+    END IF
+    IF(ALLOCATED(YF))THEN
+       DEALLOCATE(yf,STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+            __LINE__,__FILE__)
+    END IF
+    ALLOCATE(xf(MAX(maxfft,fpar%nnr1*fft_batchsize),2),STAT=ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', __LINE__,__FILE__)
+    ALLOCATE(yf(MAX(maxfft,fpar%nnr1*fft_batchsize),2),STAT=ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', __LINE__,__FILE__)
+#endif
+    IF (.NOT.cntl%fft_tune_batchsize.AND.paral%parent) THEN
+       WRITE(6,*)&
+            ' autotune_fftbatchsize| BATCH FFT NUMBER ALLTOALL CALLS ',fft_numbatches
+       WRITE(6,*)&
+            ' autotune_fftbatchsize| BATCH FFT NUMBER OF STATES PER CALL ',fft_batchsize
+       WRITE(6,*)&
+            ' autotune_fftbatchsize| A2A MESSAGE SIZE ',fft_batchsize*ngrm*nr1m*parai%nproc*16/1024
+   ENDIF
+
+    IF(.NOT.cntl%fft_tune_batchsize)THEN
+       IF(ALLOCATED(fft_time_total))THEN
+          DEALLOCATE(fft_time_total,STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', __LINE__,__FILE__)
+          DEALLOCATE(fft_batchsizes,STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', __LINE__,__FILE__)
+       END IF
+    END IF
+    ! ==--------------------------------------------------------------==
+  END SUBROUTINE autotune_fftbatchsize
+  ! ==================================================================
 
   ! ==================================================================
   SUBROUTINE fftprp_default_finalize
@@ -464,6 +684,7 @@ CONTAINS
        CALL stopgm(procedureN,'shall not get to that point', __LINE__,__FILE__)
 #endif
        ENDIF
+#if !defined(_USE_SCRATCHLIBRARY)
     ELSE
        DEALLOCATE(xf,STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
@@ -471,7 +692,9 @@ CONTAINS
        DEALLOCATE(yf,STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
             __LINE__,__FILE__)
+#endif
     ENDIF
+
 
   END SUBROUTINE fftprp_default_finalize
 

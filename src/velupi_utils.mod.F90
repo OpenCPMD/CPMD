@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE velupi_utils
   USE cnst,                            ONLY: au_fs
   USE ions,                            ONLY: ions0,&
@@ -12,11 +14,13 @@ MODULE velupi_utils
   USE puttau_utils,                    ONLY: taucl
   USE rmas,                            ONLY: rmass
   USE system,                          ONLY: cntr,&
+                                             cntl,&
                                              iatpt,&
                                              maxsys
   USE tpar,                            ONLY: dt_ions,&
                                              dtb2mi
-  USE utils,                           ONLY: invmat
+  USE utils,                           ONLY: invmat,&
+                                             print_debug_ions
   USE zeroing_utils,                   ONLY: zeroing
 
   IMPLICIT NONE
@@ -44,9 +48,13 @@ CONTAINS
 
     INTEGER                                  :: i, ia, is
     REAL(real_8)                             :: fact
+    CHARACTER(*), PARAMETER                  :: procedureN='velupi'
+    
+    IF(cntl%tverbosevel)THEN
+       CALL print_debug_ions('DEBUG VELOCITIES '//procedureN, velp)
+    END IF
 
-!ocl NOALIAS
-
+    !ocl NOALIAS
     !$omp parallel do private(I,IS,IA,FACT) schedule(static)
     DO i=1,ions1%nat
        ia=iatpt(1,i)
@@ -56,7 +64,12 @@ CONTAINS
        velp(2,ia,is)=velp(2,ia,is)+fact*fion(2,ia,is)
        velp(3,ia,is)=velp(3,ia,is)+fact*fion(3,ia,is)
     ENDDO
+
     CALL taucl(velp)
+    IF(cntl%tverbosevel)THEN
+       CALL print_debug_ions('DEBUG VELOCITIES '//procedureN, velp)
+    END IF
+
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE velupi

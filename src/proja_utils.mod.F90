@@ -10,6 +10,7 @@ MODULE proja_utils
   USE parac,                           ONLY: parai
   USE pslo,                            ONLY: pslo_com
   USE rotate_utils,                    ONLY: rotate
+  USE sfac,                            ONLY: fnl_packed
   USE spin,                            ONLY: spin_mod
   USE spsi_utils,                      ONLY: spsi
   USE system,                          ONLY: cntl,&
@@ -65,7 +66,7 @@ CONTAINS
        ! ==------------------------------------------------------------==
        IF (pslo_com%tivan) THEN
           CALL dcopy(2*ncpw%ngw*nstate,c0(1,1),1,sc0(1,1),1)
-          CALL spsi(nstate,sc0)
+          CALL spsi(nstate,sc0,fnl_packed,redist=.TRUE.)
           DO i=1,nstate
              aux(i)=dotp(ncpw%ngw,c0(:,i),c2(:,i))
           ENDDO
@@ -88,7 +89,7 @@ CONTAINS
        ! ==------------------------------------------------------------==
        IF (pslo_com%tivan) THEN
           CALL dcopy(2*ncpw%ngw*nstate,c0(1,1),1,sc0(1,1),1)
-          CALL spsi(nstate,sc0)
+          CALL spsi(nstate,sc0,fnl_packed,redist=.TRUE.)
           CALL ovlap(nstate,aux,c0,c2)
           CALL mp_sum(aux,nstate*nstate,parai%allgrp)
           CALL rotate(-1.0_real_8,sc0,1.0_real_8,c2,aux,nstate,2*ncpw%ngw,&

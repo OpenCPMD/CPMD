@@ -32,8 +32,7 @@ MODULE mm_mdmain_utils
   USE csize_utils,                     ONLY: csize
   USE ddipo_utils,                     ONLY: ddipo,&
                                              give_scr_ddipo
-  USE deort_utils,                     ONLY: deort,&
-                                             give_scr_deort
+  USE deort_utils,                     ONLY: deort
   USE detdof_utils,                    ONLY: detdof
   USE dispp_utils,                     ONLY: dispp
   USE dynit_utils,                     ONLY: dynit
@@ -162,6 +161,7 @@ MODULE mm_mdmain_utils
   USE wrgeo_utils,                     ONLY: wrgeof
   USE wv30_utils,                      ONLY: zhwwf
   USE zeroing_utils,                   ONLY: zeroing
+  USE sinr_utils  !ritama
 
   IMPLICIT NONE
 
@@ -419,19 +419,14 @@ CONTAINS
           IF (cntl%tlsd) THEN
              bsclcs=1
              IF (cntl%bsymm)CALL setbsstate
-             CALL deort(ncpw%ngw,spin_mod%nsup,eigm,eigv,c0(1,1,1),sc0(1,1,1))
-             CALL deort(ncpw%ngw,spin_mod%nsdown,eigm,eigv,c0(1,spin_mod%nsup+1,1),&
-                  sc0(1,spin_mod%nsup+1,1))
+             CALL deort(nstate,c0(:,:,1))
              IF (cntl%bsymm)THEN
                 bsclcs=2
                 CALL setbsstate
-                CALL deort(ncpw%ngw,spin_mod%nsup,eigm(1,2),eigv(1,2),c0(1,1,2),&
-                     sc0(1,1,2))
-                CALL deort(ncpw%ngw,spin_mod%nsdown,eigm(1,2),eigv(1,2),c0(1,spin_mod%nsup+1,2),&
-                     sc0(1,spin_mod%nsup+1,2))
+                CALL deort(nstate,c0(:,:,2))
              ENDIF
           ELSE
-             CALL deort(ncpw%ngw,nstate,eigm,eigv,c0,sc0)
+             CALL deort(nstate,c0(:,:,1))
           ENDIF
        ENDIF
        ! INITIALIZE VELOCITIES
@@ -1016,7 +1011,7 @@ CONTAINS
           CALL mm_dim(mm_go_qm,statusdummy)
           CALL ddipo(taup,c0(:,:,1),cm(:,:,1),c2(:,:,1),sc0,nstate,center)
           CALL forcedr(c0(:,:,1),c2(:,:,1),sc0(:,:,1),rhoe,psi,taup,fion,eigv,&
-               nstate,1,.FALSE.,.TRUE.)
+               nstate,1,.FALSE.,.TRUE.,.TRUE.)
           CALL wc_dos(c0,c2,nstate,center)
           CALL mm_dim(mm_go_mm,statusdummy)
        ENDIF
@@ -1096,7 +1091,7 @@ CONTAINS
     INTEGER                                  :: lmdmain
     CHARACTER(len=30)                        :: tag
 
-    INTEGER :: lcopot, lddipo, ldeort, lforcedr, linitrun, lmtd, lortho, &
+    INTEGER :: lcopot, lddipo, lforcedr, linitrun, lmtd, lortho, &
       lposupa, lquenbo, lrhopri, lrortv, nstate
 
     nstate=crge%n
@@ -1104,21 +1099,19 @@ CONTAINS
     lcopot=0
     lortho=0
     lquenbo=0
-    ldeort=0
     lrhopri=0
     lddipo=0
     CALL give_scr_initrun(linitrun,tag)
     IF (corel%tinlc) CALL give_scr_copot(lcopot,tag)
     IF (cntl%trane) CALL give_scr_ortho(lortho,tag,nstate)
     IF (cntl%quenchb) CALL give_scr_quenbo(lquenbo,tag)
-    IF (pslo_com%tivan) CALL give_scr_deort(ldeort,tag,nstate)
     IF (cntl%tdipd) CALL give_scr_ddipo(lddipo,tag)
     CALL give_scr_forcedr(lforcedr,tag,nstate,.FALSE.,.TRUE.)
     CALL give_scr_rortv(lrortv,tag,nstate)
     CALL give_scr_posupa(lposupa,tag,nstate)
     IF (rout1%rhoout) CALL give_scr_rhopri(lrhopri,tag,nstate)
     CALL give_scr_meta_extlagr(lmtd,tag)
-    lmdmain=MAX(lcopot,lortho,lquenbo,ldeort,lforcedr,&
+    lmdmain=MAX(lcopot,lortho,lquenbo,lforcedr,&
          lrortv,lposupa,lrhopri,lddipo,linitrun,lmtd)
     IF (cntl%tqmmm)lmdmain=MAX(lmdmain,fpar%kr1*fpar%kr2s*fpar%kr3s)
     IF (cntl%tqmmm)lmdmain=MAX(lmdmain,maxsys%nax*maxsys%nsx*3)
@@ -1203,7 +1196,11 @@ CONTAINS
     ENDDO
     qmdof=REAL(ndof,kind=real_8)-qmcnstr
     IF (qmdof.GT.0.1_real_8) THEN
-       tempqm=ekinqm*factem*2._real_8/qmdof
+       IF(cntl%tsinr)THEN !SINR
+         tempqm=ekinqm*factem*2._real_8/(qmdof*lbylp1)
+       ELSE
+         tempqm=ekinqm*factem*2._real_8/qmdof
+       ENDIF
     ELSE
        tempqm=0.0_real_8
     ENDIF
@@ -1227,15 +1224,28 @@ CONTAINS
     ! account for uncounted constraints in case we have no solvent
     IF (glib.LT.(qmdof+mmdof)) mmdof=glib-qmdof
     IF (mmdof.GT.0.1_real_8) THEN
-       tempmm=ekinmm*factem*2._real_8/mmdof
+       IF(cntl%tsinr)THEN !SINR
+         tempmm=ekinmm*factem*2._real_8/(mmdof*lbylp1)
+       ELSE
+         tempmm=ekinmm*factem*2._real_8/mmdof
+       ENDIF
     ELSE
        tempmm=0.0_real_8
     ENDIF
-
-    ekinp=tempp/factem/2.0_real_8*glib
+! SINR thermostat
+    IF(cntl%tsinr)THEN
+      ekinp=tempp/factem/2.0_real_8*glib
+    ELSE
+      ekinp=tempp/factem/2.0_real_8*glib
+    ENDIF
+!
     ekincl=ekinp-ekinqm-ekinmm
     IF (glib.GT.(qmdof+mmdof)) THEN
-       tempcl=ekincl*factem*2._real_8/(glib-qmdof-mmdof)
+       IF(cntl%tsinr)THEN   !SINR
+         tempcl=ekincl*factem*2._real_8/((glib-qmdof-mmdof)*lbylp1)
+       ELSE
+         tempcl=ekincl*factem*2._real_8/(glib-qmdof-mmdof)
+       ENDIF
     ELSE
        tempcl=0.0_real_8
     ENDIF

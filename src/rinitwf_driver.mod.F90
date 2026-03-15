@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE rinitwf_driver
   USE atomwf_utils,                    ONLY: atomwf
   USE atwf,                            ONLY: atwp,&
@@ -52,11 +54,12 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! == INITIALIZATION OF WAVEFUNCTION                               ==
     ! ==--------------------------------------------------------------==
-    COMPLEX(real_8)                          :: c0(:,:,:), c2(*), sc0(*)
-    INTEGER                                  :: nstate
-    REAL(real_8)                             :: tau0(:,:,:), fion(:,:,:), &
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: c0(:,:,:)
+    COMPLEX(real_8),INTENT(OUT)              :: c2(*), sc0(*)
+    INTEGER,INTENT(IN)                       :: nstate
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: tau0(:,:,:), fion(:,:,:), &
                                                 rhoe(:,:)
-    COMPLEX(real_8)                          :: psi(:,:)
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: psi(:,:)
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'rinitwf'
 
@@ -77,11 +80,17 @@ CONTAINS
        qmmm_s=lqmmm%qmmm
        lqmmm%qmmm=.FALSE.
        CALL randwf(c0,c2,sc0,nstate,tau0,fion,rhoe,psi)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(C0)
+#endif
        lqmmm%qmmm=qmmm_s
     ELSEIF (cnti%inwfun.EQ.2) THEN
        CALL atomwf(c0,nstate,tau0,fion,rhoe,psi)
     ELSEIF (cnti%inwfun.EQ.3) THEN
        CALL simplewf(c0,c2,nstate,tau0)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(C0)
+#endif
     ELSE
        IF (paral%io_parent) WRITE(6,*) ' RINITWF| UNKNOWN OPTION'
        CALL stopgm('RINITWF',' ',& 
@@ -116,7 +125,7 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ==  PHASE FACTORS                                               ==
     ! ==--------------------------------------------------------------==
-    CALL phfac(tau0)
+    CALL phfac(tau0,force_update=.TRUE.)
     ! ==--------------------------------------------------------------==
 
     ALLOCATE(CATOM_loc(nkpt%ngwk,atwp%nattot),overlap(atwp%nattot,nstate),stat=ierr)
@@ -217,7 +226,7 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ==  PHASE FACTORS                                               ==
     ! ==--------------------------------------------------------------==
-    CALL phfac(tau0)
+    CALL phfac(tau0,force_update=.TRUE.)
     ! ==--------------------------------------------------------------==
     ! ==  RANDOM INITIALIZATION COEFFICIENTS FOR THE WAVEFUNCTIONS    ==
     ! ==--------------------------------------------------------------==
@@ -231,9 +240,15 @@ CONTAINS
           ikk=kpbeg(ikpt)+ik
           CALL randtowf(c0(:,:,ik),nstate,ik,ikk)
           ! Orthogonalization
+#if defined(_HAS_OMP_TARGET_OFFLOAD)          
+          !$omp target update to(c0(:,:,ik))
+#endif
           IF (pslo_com%tivan) CALL rnlsm(c0(:,:,ik),nstate,&
                ikpt,ik,.FALSE.)
           CALL ortho(nstate,c0(:,:,ik),c2(:,:,ik))
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update from(c0(:,:,ik))
+#endif
        ENDDO
        IF (tkpts%tkblock) THEN
           CALL wkpt_swap(c0,nstate,ikpt,'C0')
@@ -256,7 +271,7 @@ CONTAINS
        CALL reshape_inplace(c2, (/SIZE(c2,1),SIZE(c2,2)/), c2_ptr)
        !CALL forcedr(c0(:,:,1),c2(:,:,1),sc0,rhoe,psi,tau0,fion,eigv,&
        CALL forcedr(c0(:,:,1),c2_ptr(:,:),sc0,rhoe,psi,tau0,fion,eigv,&
-            nstate,1,.TRUE.,tfor)
+            nstate,1,.TRUE.,tfor,.TRUE.)
        ! ==------------------------------------------------------------==
        ! ==  STEEPEST DESCENT STEP                                     ==
        ! ==------------------------------------------------------------==
@@ -266,9 +281,15 @@ CONTAINS
        ! ==------------------------------------------------------------==
        IF (.NOT.cntl%nonort) THEN
           DO ik=1,nkpoint
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target update to(c0(:,:,ik))
+#endif
              IF (pslo_com%tivan) CALL rnlsm(c0(:,:,ik),nstate,&
                   1,ik,.FALSE.)
              CALL ortho(nstate,c0(:,:,ik),c2(:,:,ik))
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             !$omp target update from(c0(:,:,ik))
+#endif
           ENDDO
        ENDIF
        DEALLOCATE(eigv,STAT=ierr)

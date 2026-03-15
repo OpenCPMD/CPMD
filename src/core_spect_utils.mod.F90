@@ -122,17 +122,11 @@ CONTAINS
     rmin=LOG(atrg(1,is))
     gmin=LOG(SQRT(gvec_com%gcutw+gcutka)*parm%tpiba)-(mmax-1)*atwr%clogat(is)
     !$omp parallel do private(IL)
-#ifdef __SR8000
-    !poption parallel
-#endif
     DO il=1,mmax
        gg(il)=(EXP(gmin+(il-1)*atwr%clogat(is))/parm%tpiba)**2
     ENDDO
     CALL zeroing(fint(1:n22))!,n22)
     !$omp parallel do private(IR)
-#ifdef __SR8000
-    !poption parallel
-#endif
     DO ir=1,mmax
        fint(ir)=fpi*core_atwfr(ir)/atrg(ir,is)
     ENDDO
@@ -226,9 +220,6 @@ CONTAINS
                 csumy=(0.0_real_8,0.0_real_8)
                 csumz=(0.0_real_8,0.0_real_8)
                 ! mb-> first G > 0 with the k-points
-#ifdef __SR8000
-                !poption parallel
-#endif
                 !$omp parallel do private(IG,CAUX) reduction(+:CSUMX,CSUMY,CSUMZ)
                 DO ig=1,ncpw%ngw
                    caux=CONJG(c0(ig,i,ik))*core_c0(ig,iv)
@@ -237,9 +228,6 @@ CONTAINS
                    csumz=csumz+(rk(3,ik)+gk(3,ig))*caux
                 ENDDO
                 ! mb-> then G < 0 with the k-points
-#ifdef __SR8000
-                !poption parallel
-#endif
                 !$omp parallel do private(IG,CAUX) reduction(+:CSUMX,CSUMY,CSUMZ)
                 DO ig=1,ncpw%ngw
                    caux=CONJG(c0(ig+ncpw%ngw,i,ik))*core_c0(ig,iv)
@@ -283,9 +271,6 @@ CONTAINS
              sumx=0.0_real_8
              sumy=0.0_real_8
              sumz=0.0_real_8
-#ifdef __SR8000
-             !poption parallel
-#endif
              !$omp parallel do private(IG,AIAUX) reduction(+:SUMX,SUMY,SUMZ)
              DO ig=1,ncpw%ngw
                 aiaux=AIMAG(CONJG(c0(ig,i,ik))*core_c0(ig,iv))

@@ -80,7 +80,48 @@
 #define _HAS_LIBXC
 #endif
 
+!tk DGEMMT not yet in standard BLAS
+#if defined(__HAS_DGEMMT) || defined(__INTEL_MKL)
+#define _HAS_DGEMMT
+#endif
 
+!tk OpenMP Offload
+#if defined(__HAS_OMP_OFFLOAD)
+#define _HAS_OMP_TARGET_OFFLOAD
+#endif
+!tk OpenMP Offload with GPU aware MPI
+#if defined(__HAS_GPU_AWARE_MPI)
+#define _HAS_GPU_AWARE_MPI
+#endif
+!tk OpenMP offload for Intel MKL
+#if defined(__HAS_OMP_OFFLOAD) && defined(__INTEL_MKL)
+#define _HAS_OMP_TARGET_OFFLOAD_INTEL
+#endif
+
+!tk grimme lib for vdw
+#if defined(__HAS_LIBGRIMMEVDW)
+#define _HAS_LIBGRIMMEVDW
+#endif
+
+!tk use scratchmodule
+#if defined(__USE_SCRATCHLIBRARY)
+#define _USE_SCRATCHLIBRARY
+#endif
+
+!tk Disable Scalapack
+#if defined(__HAS_SCALAPACK) || defined(__INTEL_MKL)
+#define _HAS_SCALAPACK
+#endif
+
+!tk Enable FFTW3 if __INTEL_MKL is defined but disable if __HAS_FFT_DEFAULT is defined
+#if defined(__INTEL_MKL) && !defined(__HAS_FFT_DEFAULT)
+#define _HAS_FFT_FFTW3
+#endif
+
+!gm elpa lib
+#if defined(__HAS_LIBELPA)
+#define _HAS_LIBELPA
+#endif
 !vw ------------------------------------------------------
 !vw CUDA 
 
@@ -96,4 +137,10 @@
 #else
 #define __NVTX_TIMER_START( name )
 #define __NVTX_TIMER_STOP
+#endif
+
+!tk ------------------------------------------------------
+!tk INTEL MKL needs special setting for nested calls
+#if defined(__INTEL_MKL)
+#define _INTEL_MKL
 #endif

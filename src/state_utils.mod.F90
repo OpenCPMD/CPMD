@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE state_utils
   USE cnst,                            ONLY: uimag
   USE cppt,                            ONLY: indzs,&
@@ -7,13 +9,17 @@ MODULE state_utils
                                              llr1,&
                                              nzfs
   USE geq0mod,                         ONLY: geq0
+  USE gpu
   USE kinds,                           ONLY: real_8
+  USE part_1d,                         ONLY: part_1d_get_el_in_blk,&
+                                             part_1d_nbr_el_in_blk
   USE system,                          ONLY: ncpw
 
   IMPLICIT NONE
 
   PRIVATE
 
+  PUBLIC :: set_to_re
   PUBLIC :: copy_to_re
   PUBLIC :: copy_re_to_re
   PUBLIC :: copy_im_to_re
@@ -26,9 +32,33 @@ MODULE state_utils
   PUBLIC :: set_psi_1_state_g_kpts
   PUBLIC :: zero_wfn
   PUBLIC :: add_wfn
-
+  PUBLIC :: set_psi_batch_g
 CONTAINS
 
+  ! ==================================================================
+  SUBROUTINE set_to_re(n,a,b)
+    ! ==================================================================
+    INTEGER                                    :: n
+    REAL(real_8), INTENT(IN) __CONTIGUOUS      :: a(:)
+    COMPLEX(real_8 ), INTENT(OUT) __CONTIGUOUS  :: b(:)
+
+    INTEGER                                    :: i
+    if(update_first_to_gpu.or.update_second_to_gpu.or.update_result_to_host) write(*,*) 'set_to_re'
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(A) IF(update_first_to_gpu)
+    !$omp target update to(B) IF(update_second_to_gpu)
+    !$omp target teams distribute parallel do
+#else
+    !$omp parallel do
+#endif
+    DO i=1,n
+       b(i)=CMPLX(REAL(a(i),KIND=real_8),0.0_real_8,KIND=real_8)
+    ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(b) IF(update_result_to_host)
+#endif
+  END SUBROUTINE set_to_re
+  
   ! ==================================================================
   SUBROUTINE copy_to_re(n,a,b)
     ! ==================================================================
@@ -142,9 +172,6 @@ CONTAINS
     IF (alpha.EQ.zone) THEN
        !CDIR NODEP
        !ocl novrec
-#ifdef __SR8000
-       !poption parallel, tlocal(IG)
-#endif
        !$omp parallel do private(IG)
        DO ig=1,jgw
           psi(nzfs(ig))=c1(ig)
@@ -154,9 +181,6 @@ CONTAINS
     ELSE
        !CDIR NODEP
        !ocl novrec
-#ifdef __SR8000
-       !poption parallel, tlocal(IG)
-#endif
        !$omp parallel do private(IG)
        DO ig=1,jgw
           psi(nzfs(ig))=alpha*c1(ig)
@@ -223,6 +247,94 @@ CONTAINS
     ! ==--------------------------------------------------------------==
   END SUBROUTINE set_psi_1_state_g_kpts
 
+  ! ==================================================================
+  SUBROUTINE set_psi_batch_g(c0,psi,ld_psi,ist_start,bsize,maxstate, me_grp, n_grp)
+    ! ==================================================================
+    ! == Set Psi with two*batchsize states                            ==
+    ! ==--------------------------------------------------------------==
+    INTEGER,INTENT(IN)                       :: ld_psi, ist_start, bsize, maxstate, me_grp, n_grp
+    COMPLEX(real_8),INTENT(IN) __CONTIGUOUS  :: c0(:,:)
+    COMPLEX(real_8),INTENT(OUT)              :: psi(ld_psi,bsize)
+
+    INTEGER                                  :: count, ist, is1, is2, ir
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    INTEGER, PARAMETER                       :: num_threads=32, end_ir=num_threads-1
+    INTEGER                                  :: ir0
+    !$omp target teams distribute parallel do simd collapse(2) private(count,ir)
+    DO count=1,bsize    
+       DO ir=1,ld_psi
+          psi(ir,count)=CMPLX(0.0_real_8,0.0_real_8,kind=real_8)
+       END DO
+    END DO
+
+    !$omp target teams distribute thread_limit(num_threads) collapse(2) &
+    !$omp& private(ist,is1,is2,ir0,ir)
+    DO count=1,bsize
+       DO ir0=1,jgw,num_threads
+          ist=ist_start + (count-1)*2 +1
+          is1=part_1d_get_el_in_blk(ist,maxstate,me_grp,n_grp)
+          is2=maxstate+1
+          ist=ist+1
+          IF (ist.LE.part_1d_nbr_el_in_blk(maxstate,me_grp,n_grp))&
+               is2 = part_1d_get_el_in_blk(ist,maxstate,me_grp,n_grp)
+          IF (ist.LE.part_1d_nbr_el_in_blk(maxstate,me_grp,n_grp))&
+               is2 = part_1d_get_el_in_blk(ist,maxstate,me_grp,n_grp)
+          IF (is2.GT.maxstate) THEN
+             !$omp parallel do private(ir)
+             DO ir=ir0,min(ir0+end_ir,jgw)
+                psi(nzfs(ir),count)=c0(ir,is1)
+                psi(inzs(ir),count)=CONJG(c0(ir,is1))
+             ENDDO
+             IF (geq0) psi(nzfs(1),count)=c0(1,is1)
+          ELSE
+             !$omp parallel do private(ir)
+             DO ir=ir0,min(ir0+end_ir,jgw)
+                psi(nzfs(ir),count)=c0(ir,is1)+uimag*c0(ir,is2)
+                psi(inzs(ir),count)=CONJG(c0(ir,is1))+uimag*CONJG(c0(ir,is2))
+             ENDDO
+             IF (geq0) psi(nzfs(1),count)=c0(1,is1)+uimag*c0(1,is2)
+          ENDIF
+       END DO
+    END DO
+#else
+    !$omp parallel private (count,ist,is1,is2,ir)
+    DO count=1,bsize
+       ist=ist_start + (count-1)*2 +1
+       is1=part_1d_get_el_in_blk(ist,maxstate,me_grp,n_grp)
+       is2=maxstate+1
+       ist=ist+1
+       IF (ist.LE.part_1d_nbr_el_in_blk(maxstate,me_grp,n_grp))&
+            is2 = part_1d_get_el_in_blk(ist,maxstate,me_grp,n_grp)
+       !$omp do 
+       DO ir=1,ld_psi
+          psi(ir,count)=CMPLX(0.0_real_8,0.0_real_8,kind=real_8)
+       END DO
+       IF (is2.GT.maxstate) THEN
+          !$omp do
+          DO ir=1,jgw
+             psi(nzfs(ir),count)=c0(ir,is1)
+             psi(inzs(ir),count)=CONJG(c0(ir,is1))
+          ENDDO
+          !$omp single
+          IF (geq0) psi(nzfs(1),count)=c0(1,is1)
+          !$omp end single
+       ELSE
+          !$omp do
+          DO ir=1,jgw
+             psi(nzfs(ir),count)=c0(ir,is1)+uimag*c0(ir,is2)
+             psi(inzs(ir),count)=CONJG(c0(ir,is1))+uimag*CONJG(c0(ir,is2))
+          ENDDO
+          !$omp single
+          IF (geq0) psi(nzfs(1),count)=c0(1,is1)+uimag*c0(1,is2)
+          !$omp end single
+       ENDIF
+    END DO
+    !$omp end parallel
+#endif
+    
+  END SUBROUTINE set_psi_batch_g
+  
   ! ==================================================================
   SUBROUTINE zero_wfn(m,n,x,ldx)
     ! ==================================================================

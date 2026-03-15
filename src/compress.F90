@@ -18,7 +18,7 @@ SUBROUTINE compress(n,a,ia,scale,icomp,nx)
   USE timer, ONLY: tiset, tihalt
   USE reshaper, ONLY: reshape_inplace, type_cast
   ! corresponding reshaper procedures
-#if defined(__NEC) || defined(__SUN) || defined( __Linux) || defined(__SR8000) || defined( __WINNT)
+#if defined(__NEC) || defined(__SUN) || defined( __Linux) || defined( __WINNT)
   IMPLICIT NONE
   ! Arguments
   INTEGER :: n,icomp,nx
@@ -106,7 +106,7 @@ SUBROUTINE decompr(na,a,ia,scale,icomp,nx)
   USE error_handling, ONLY: stopgm
   USE timer, ONLY: tiset, tihalt
   USE reshaper, ONLY: type_cast
-#if defined(__NEC) || defined(__SUN) || defined(__Linux) || defined(__SR8000)
+#if defined(__NEC) || defined(__SUN) || defined(__Linux)
   USE string_utils, ONLY: int2str
   USE parac, ONLY : paral,parai
   IMPLICIT NONE
@@ -332,7 +332,7 @@ SUBROUTINE sunpack(ia,a,n,nx,ibyte,fx)
   RETURN
 END SUBROUTINE sunpack
 ! ==================================================================
-#elif defined(__SUN) || defined(__Linux) || defined (__SR8000) || defined(__WINNT)
+#elif defined(__SUN) || defined(__Linux) || defined(__WINNT)
 SUBROUTINE spack(ia,a,n,nx,ibyte,fx)
   ! ==--------------------------------------------------------------==
   USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8

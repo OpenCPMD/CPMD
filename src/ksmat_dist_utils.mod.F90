@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE ksmat_dist_utils
   USE atwf,                            ONLY: atwf_mod,&
                                              atwp,&
@@ -7,8 +9,7 @@ MODULE ksmat_dist_utils
   USE fnlalloc_utils,                  ONLY: fnl_set,&
                                              fnlalloc,&
                                              fnldealloc
-  USE fnonloc_utils,                   ONLY: fnonloc,&
-                                             give_scr_fnonloc
+  USE fnonloc_utils,                   ONLY: fnonloc
   USE gsortho_utils,                   ONLY: gs_ortho
   USE ions,                            ONLY: ions0,&
                                              ions1
@@ -23,8 +24,7 @@ MODULE ksmat_dist_utils
                                              mp_sync
   USE parac,                           ONLY: parai
   USE prng_utils,                      ONLY: repprngu_vec
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE spin,                            ONLY: lspin2,&
                                              spin_mod
   USE system,                          ONLY: cnti,&
@@ -35,13 +35,15 @@ MODULE ksmat_dist_utils
   USE vpsi_utils,                      ONLY: vpsi
   USE wfnio_utils,                     ONLY: queryrands
   USE zeroing_utils,                   ONLY: zeroing
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
 
   IMPLICIT NONE
 
   PRIVATE
 
   PUBLIC :: dist_ksmat
-  PUBLIC :: give_scr_dist_ksmat
 
 CONTAINS
 
@@ -56,17 +58,29 @@ CONTAINS
     ! ==  USES: DISTRIBUTED LANCZOS WITH GS REORTHOGONALIZATION       ==
     ! ==--------------------------------------------------------------==
 
-    COMPLEX(real_8)                          :: c2(:,:)
-    REAL(real_8)                             :: vpot(:,:)
-    COMPLEX(real_8)                          :: psi(:)
-    INTEGER                                  :: nstate, ikind
-    COMPLEX(real_8)                          :: c0(:,:,:)
-    INTEGER                                  :: nn
-    LOGICAL                                  :: tlsd2, ainitwfflag
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: c2(:,:)
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: vpot(:,:)
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: psi(:)
+    INTEGER,INTENT(IN)                       :: nstate, ikind
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: c0(:,:,:)
+    INTEGER,INTENT(IN)                       :: nn
+    LOGICAL,INTENT(IN)                       :: tlsd2, ainitwfflag
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'dist_ksmat'
 
     COMPLEX(real_8)                          :: pab(1)
+#ifdef __PARALLEL
+    INTEGER :: chunk_begin, chunk_begin_e, chunk_end, chunk_end_e, chunk_new, &
+      chunk_new_e, from_beg, from_end, i, ia, ibeg, ierr, ifail(atwp%nattot), &
+      index1, index2, index4, is, ist, isub, iwork(5*atwp%nattot), lan_max, &
+      lanlist(parai%nproc), lc_index(atwp%nattot), max_n, msglen, &
+      n_max, n_seed, natst, nfound, nolan, norb, norbx, num_eig, &
+      old_send_cnt_e(parai%nproc), rank, send_cnt(parai%nproc), &
+      send_cnt_e(parai%nproc), send_displ(parai%nproc), &
+      send_displ_e(parai%nproc), start, start_col, start_spd, start_spu, sz, &
+      sz_old, tm1, tm2
+    type(MPI_COMM)                           :: langrp
+#else
     INTEGER :: chunk_begin, chunk_begin_e, chunk_end, chunk_end_e, chunk_new, &
       chunk_new_e, from_beg, from_end, i, ia, ibeg, ierr, ifail(atwp%nattot), &
       index1, index2, index4, is, ist, isub, iwork(5*atwp%nattot), lan_max, &
@@ -76,6 +90,7 @@ CONTAINS
       send_cnt_e(parai%nproc), send_displ(parai%nproc), &
       send_displ_e(parai%nproc), start, start_col, start_spd, start_spu, sz, &
       sz_old, tm1, tm2
+#endif
     INTEGER, ALLOCATABLE                     :: seed(:)
     LOGICAL                                  :: conv_flag, first_check, &
                                                 flag_spdown, flag_spu
@@ -646,22 +661,5 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE dist_ksmat
-  ! ==================================================================
-  SUBROUTINE give_scr_dist_ksmat(lksmat,tag)
-    ! ==--------------------------------------------------------------==
-    INTEGER                                  :: lksmat
-    CHARACTER(len=30)                        :: tag
-
-    INTEGER                                  :: il_auxc, il_ddia, lfnonloc, &
-                                                lrnlsm
-
-    CALL give_scr_rnlsm(lrnlsm,tag,atwp%nattot,.FALSE.)
-    CALL give_scr_fnonloc(il_auxc,il_ddia,atwp%numaormax)
-    lfnonloc = il_auxc + il_ddia
-    lksmat=MAX(lfnonloc,lrnlsm)
-    ! ==--------------------------------------------------------------==
-    RETURN
-  END SUBROUTINE give_scr_dist_ksmat
-  ! ==================================================================
 
 END MODULE ksmat_dist_utils

@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE atrho_utils
   USE atwf,                            ONLY: &
        atchg, atrg, atwf_mod, atwfr, atwp, atwr, catom, loadc_foc_array_size, &
@@ -28,13 +30,15 @@ MODULE atrho_utils
   USE setbasis_utils,                  ONLY: loadc
   USE sfac,                            ONLY: ei1,&
                                              ei2,&
-                                             ei3
+                                             ei3,&
+                                             eigrb
   USE spin,                            ONLY: clsd
   USE system,                          ONLY: fpar,&
                                              maxsys,&
                                              ncpw,&
                                              parm,&
-                                             spar
+                                             spar,&
+                                             cntl
   USE timer,                           ONLY: tihalt,&
                                              tiset
   USE zeroing_utils,                   ONLY: zeroing
@@ -56,16 +60,16 @@ CONTAINS
     ! ==  THE NORMALIZED ELECTRON DENSITY RHOE IN REAL SPACE          ==
     ! ==--------------------------------------------------------------==
 
-    REAL(real_8)                             :: rhoe(*)
-    COMPLEX(real_8)                          :: psi(:)
-    INTEGER                                  :: nstate
+    REAL(real_8),INTENT(OUT)                 :: rhoe(*)
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: psi(:)
+    INTEGER,INTENT(IN)                       :: nstate
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'atrho'
 
     CHARACTER(len=8)                         :: form
     COMPLEX(real_8)                          :: tsfac
     COMPLEX(real_8), ALLOCATABLE             :: rhog(:)
-    COMPLEX(real_8), POINTER                 :: pcatom(:,:)
+    COMPLEX(real_8), POINTER __CONTIGUOUS    :: pcatom(:,:)
     INTEGER                                  :: ia, iaorb, iat, ierr, iform, &
                                                 ig, ir, is, isa, isa0, isub, &
                                                 ixx, natst
@@ -106,38 +110,37 @@ CONTAINS
     natsave=0
     DO is=1,ions1%nsp
        CALL atdens(is,datom)
-#if defined(__VECTOR)
-       !$omp parallel do private(IG,IA,ISA,TSFAC,AR) shared(NSPLPO)
-#else
-       !$omp parallel do private(IG,IA,ISA,TSFAC,AR) shared(NSPLPO)&
-       !$omp  schedule(static)
-#endif
-#ifdef __SR8000
-       !poption parallel, tlocal(IG,IA,ISA,TSFAC,AR)
-#endif 
-
-       DO ig=1,ncpw%nhg
-          tsfac=CMPLX(0._real_8,0._real_8,kind=real_8)
-          DO ia=1,ions0%na(is)
-             isa=isa0+ia
-             tsfac=tsfac+ei1(isa,inyh(1,ig))*ei2(isa,inyh(2,ig))*&
-                  ei3(isa,inyh(3,ig))
+       IF(cntl%bigmem)THEN
+          !$omp parallel do private(IG,IA,ISA,TSFAC,AR) shared(NSPLPO)&
+          !$omp  schedule(static)
+          DO ig=1,ncpw%nhg
+             tsfac=CMPLX(0._real_8,0._real_8,kind=real_8)
+             DO ia=1,ions0%na(is)
+                isa=isa0+ia
+                tsfac=tsfac+eigrb(ig,isa)
+             ENDDO
+             ar=curv2(hg(ig),nsplpo,ggnh(1),datom(1,1),datom(1,2),0._real_8)
+             rhog(ig)=rhog(ig) + ar*vol*tsfac
           ENDDO
-          ar=curv2(hg(ig),nsplpo,ggnh(1),datom(1,1),datom(1,2),0._real_8)
-          rhog(ig)=rhog(ig) + ar*vol*tsfac
-       ENDDO
+       ELSE
+          !$omp parallel do private(IG,IA,ISA,TSFAC,AR) shared(NSPLPO)&
+          !$omp  schedule(static)
+          DO ig=1,ncpw%nhg
+             tsfac=CMPLX(0._real_8,0._real_8,kind=real_8)
+             DO ia=1,ions0%na(is)
+                isa=isa0+ia
+                tsfac=tsfac+ei1(isa,inyh(1,ig))*ei2(isa,inyh(2,ig))*&
+                     ei3(isa,inyh(3,ig))
+             ENDDO
+             ar=curv2(hg(ig),nsplpo,ggnh(1),datom(1,1),datom(1,2),0._real_8)
+             rhog(ig)=rhog(ig) + ar*vol*tsfac
+          ENDDO
+       END IF
        isa0=isa0+ions0%na(is)
     ENDDO
     CALL zeroing(psi)!,maxfft)
     !CDIR NODEP
-#if defined(__VECTOR)
-    !$omp parallel do private(IG)
-#else
     !$omp parallel do private(IG) schedule(static)
-#endif
-#ifdef __SR8000
-    !poption parallel, tlocal(IG)
-#endif 
     DO ig=1,ncpw%nhg
        psi(indz(ig)) = CONJG(rhog(ig))
        psi(nzh(ig))  = rhog(ig)
@@ -149,11 +152,7 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! COMPUTE THE INTEGRAL OF THE CHARGE DENSITY IN REAL SPACE
     rsum1=0._real_8
-#if defined(__VECTOR)
-    !$omp parallel do private(IR,RDUM) reduction(+:RSUM1)
-#else
     !$omp parallel do private(IR,RDUM) reduction(+:RSUM1) schedule(static)
-#endif
     DO ir=1,fpar%nnr1
        rdum = REAL(psi(ir))
        rhoe(ir)= rdum
@@ -272,9 +271,6 @@ CONTAINS
 #else
        !$omp parallel do private(IR) schedule(static)
 #endif
-#ifdef __SR8000
-       !poption parallel, tlocal(IR)
-#endif 
        DO ir=1,mmax
           arho(ir)=arho(ir)+occu * (atwfr(ir,ish,is)/atrg(ir,is))**2
        ENDDO
@@ -292,9 +288,6 @@ CONTAINS
     ! FFT
     CALL zeroing(datom(:,1))!,nsplpo)
     !$omp parallel do private(IL,XG,TMP) shared(MUSED)
-#ifdef __SR8000
-    !poption parallel, tlocal(IL,XG,TMP)
-#endif 
     DO il=nsplpa,nsplpe
        xg=SQRT(ggnh(il))*parm%tpiba
        CALL bessov(atrg(1,is),atwr%clogat(is),mused,arho,0,xg,atrg(mused,is)&

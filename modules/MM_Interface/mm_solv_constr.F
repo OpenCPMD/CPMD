@@ -52,9 +52,6 @@ C     nothing to do without solvent molecules
       allocate(WMASS(NRAM))
       call azzero(WMASS,NRAM)
 !$OMP parallel do private(i)
-#ifdef __SR11000
-*poption parallel, tlocal(i)
-#endif 
       DO i=1,NRAM
         WMASS(i)=rmass%PMA0(cpsp(solsolv%NRPT+i))
       ENDDO
@@ -91,9 +88,6 @@ C     nothing to do without solvent molecules
         call prmem('MM_SOLV_CO')
 cmb        ii=NRPT
 !$OMP parallel do private(ia,ii)
-#ifdef __SR11000
-*poption parallel, tlocal(ia,ii)
-#endif
 #ifdef _vpp_
 !OCL NOALIAS
 #endif
@@ -126,9 +120,6 @@ c
 #ifdef __NEC
 !CDIR NODEP
 #endif
-#ifdef __SR11000
-*poption parallel, tlocal(ia,ii)
-#endif
 #ifdef _vpp_
 !OCL NOALIAS
 #endif
@@ -147,9 +138,6 @@ c
           call shake_sm (NRAM,xsp,vsp,xs0,
      c         NCONST,Abl,Bbl,DAB,INVM,TOL,dt)
 !$OMP parallel do private(ia,ii)
-#ifdef __SR11000
-*poption parallel, tlocal(ia,ii)
-#endif 
           DO ia=1,NRAM
             ii=solsolv%NRPT+ia+(i-1)*NRAM
             taup(1,cpat(ii),cpsp(ii)) = xsp(1,ia)
@@ -197,9 +185,6 @@ c
 #ifdef __NEC
 !CDIR NODEP
 #endif
-#ifdef __SR11000
-*poption parallel, tlocal(ia,ii)
-#endif
 #ifdef _vpp_
 !OCL NOALIAS
 #endif
@@ -215,9 +200,6 @@ c
 !         write(6,*)'RATTLE',i,ii
           call rattle_sm (NRAM,xsp,vsp,NCONST,Abl,Bbl,DAB,INVM,TOL)
 !$OMP parallel do private(ia,ii)
-#ifdef __SR11000
-*poption parallel, tlocal(ia,ii)
-#endif 
           DO ia=1,NRAM
             ii=solsolv%NRPT+ia+(i-1)*NRAM
             velp(1,cpat(ii),cpsp(ii)) = vsp(1,ia)
@@ -290,9 +272,6 @@ c
 C    *******************************************************************
       TOL2 = 2.0D0*TOL
 !$OMP parallel do private(i)
-#ifdef __SR11000
-*poption parallel, tlocal(i)
-#endif
       DO i = 1, NA
         MOVING(i) = .FALSE.
         MOVED(i)  = .TRUE.
@@ -367,9 +346,6 @@ C
         ENDDO
 C
 !$OMP parallel do private(i)
-#ifdef __SR11000
-*poption parallel, tlocal(i)
-#endif
         DO i = 1, NA
           MOVED(i)  = MOVING(i)
           MOVING(i) = .FALSE.
@@ -409,9 +385,6 @@ c
       real*8  RVAB,r_AB(3,NCONST),v_AB(3)
 C     *******************************************************************
 !$OMP parallel do private(i)
-#ifdef __SR11000
-*poption parallel, tlocal(i)
-#endif
       DO i = 1, NA
         MOVING(i) = .FALSE.
         MOVED(i)  = .TRUE.
@@ -470,9 +443,6 @@ C
         ENDDO
 C
 !$OMP parallel do private(i)
-#ifdef __SR11000
-*poption parallel, tlocal(i)
-#endif
         DO i = 1, NA
           MOVED(i)  = MOVING(i)
           MOVING(i) = .FALSE.

@@ -191,18 +191,18 @@ CONTAINS
     IF (glocal%tg_antisymm .AND. icont .LE. 100 )  THEN
        icont = icont+1
        IF (paral%io_parent)&
-            WRITE(10,'(I10,3(2x,1PE12.6),2x,1PE12.6,2x,1PE12.6,2x,f10.5)')&
+            WRITE(10,'(I10,3(2x,1PE13.6),2x,1PE13.6,2x,1PE13.6,2x,f10.5)')&
             nstep,gloc_re%gmax,gloc_re%ofun,grmax,gloc_re%dif_fun,gloc_re%omega_tot,step_fac
        IF (paral%io_parent)&
             WRITE(12,'(I10,16f10.4)') nstep,(omega_n(i),i=1,16)
     ELSEIF (glocal%tgwannier) THEN
        IF (paral%io_parent)&
-            WRITE(10,'(I10,6(2x,1PE12.6),1PE12.3)')&
+            WRITE(10,'(I10,6(2x,1PE13.6),1PE12.3)')&
             nstep,gloc_re%gmax,gloc_re%ofun,gloc_re%xyzfun,grmax,gloc_re%dif_fun,gloc_re%ggnorm,&
             LOG(step_fac)
     ELSE
        IF (paral%io_parent)&
-            WRITE(10,'(I10,3(2x,1PE12.6),2x,1PE12.6,2x,1PE12.6,1PE12.3)')&
+            WRITE(10,'(I10,3(2x,1PE13.6),2x,1PE13.6,2x,1PE13.6,1PE12.3)')&
             nstep,gloc_re%gmax,gloc_re%ofun,grmax,gloc_re%dif_fun,gloc_re%ggnorm,LOG(step_fac)
     ENDIF
 

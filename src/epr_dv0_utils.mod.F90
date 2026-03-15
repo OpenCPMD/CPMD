@@ -65,9 +65,6 @@ CONTAINS
 #ifdef __NEC
     !CDIR NODEP
 #endif
-#ifdef __SR8000
-    !poption parallel
-#endif
 #ifdef _vpp_
     !OCL NOVREC(VT)
 #endif
@@ -93,9 +90,6 @@ CONTAINS
     ENDDO
 #else 
     !$omp parallel do private(IG)
-#ifdef __SR8000
-    !poption parallel
-#endif
 #ifdef _vpp_
     !OCL NOVREC(VT)
 #endif

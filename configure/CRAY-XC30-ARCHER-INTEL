@@ -1,6 +1,6 @@
 #INFO#
 #INFO# Configuration for CRAY XC30 type machine (ARCHER) using
-#INFO# Intel Composer v.17 or later (or later) 
+#INFO# Intel Composer v.17 (or later) 
 #INFO# For optimal performance you should use the Intel xiar driver
 #INFO# instead of the standard GNU ar
 #INFO# All applications that will run in parallel on the Cray XC 

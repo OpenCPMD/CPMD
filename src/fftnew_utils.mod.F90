@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE fftnew_utils
   USE cell,                            ONLY: cell_com
   USE cnst,                            ONLY: pi
@@ -154,7 +156,9 @@ CONTAINS
        CALL stopgm("SETFFTN","FFTPOOL NOT DEFINED",& 
             __LINE__,__FILE__)
     ENDIF
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(lrxpl,sp5,sp8,sp9,msqf,msqs)
+#endif
     !vw copy FFT arrays to GPU memory
     IF( cp_cuda_env%use_fft ) THEN
        DO i_device = 1, cp_cuda_env%fft_n_devices_per_task
@@ -256,7 +260,6 @@ CONTAINS
        ALLOCATE(nzffp(lnzf,l/lnzf),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
-
        IF (lnzs > 0) THEN
           ALLOCATE(nzfsp(lnzs,l/lnzs),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
@@ -266,7 +269,6 @@ CONTAINS
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
        ENDIF
-
        ALLOCATE(inzfp(lnzf,l/lnzf),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
@@ -280,7 +282,9 @@ CONTAINS
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
        ENDIF
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:msqf,msqs,nzfsp,inzfp)
+#endif
        l=(3*ncpw%nhg*fftpoolsize)
        ALLOCATE(inzhp(3,lnzf,l/(3*lnzf)),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
@@ -608,6 +612,9 @@ CONTAINS
        nzfs(ig)=nzff(ig)
        inzs(ig)=inzf(ig)
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(nzfs,inzs)
+#endif
     DEALLOCATE(mg,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)

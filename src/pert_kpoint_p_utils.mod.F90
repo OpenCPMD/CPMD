@@ -30,11 +30,9 @@ MODULE pert_kpoint_p_utils
        response1, response_read, response_write, rrk, wwk
   USE restart_p_utils,                 ONLY: restart_p
   USE rhoofr_p_utils,                  ONLY: give_scr_rhoofr_p
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr
   USE rnl_dk_p_utils,                  ONLY: give_scr_rnl_dk_p,&
                                              rnl_dk_p
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE ropt,                            ONLY: ropt_mod
   USE rscpot_utils,                    ONLY: give_scr_rscpot
   USE rwfopt_p_utils,                  ONLY: rwfopt_p
@@ -545,8 +543,8 @@ CONTAINS
     CHARACTER(len=*)                         :: tag
     INTEGER                                  :: nstate
 
-    INTEGER :: lforce1, lks_ener_p, lmatrix_p, lnrl_dk_p, lputwnl, lrho, &
-      lrhoofr, lrnlsm, lrscpot, lupdrho_p, n2
+    INTEGER :: lforce1, lks_ener_p, lmatrix_p, lnrl_dk_p, lputwnl, &
+      lrhoofr, lrscpot, lupdrho_p, n2
 
 ! ==--------------------------------------------------------------==
 
@@ -556,8 +554,6 @@ CONTAINS
     lpert_kpoint_p=nstate
     ropt_mod%calste=.FALSE.
     n2 = nstate*nstate
-    CALL give_scr_rnlsm(lrnlsm,tag,nstate,.TRUE.)
-    CALL give_scr_rhoofr(lrho,tag)
     CALL give_scr_rscpot(lrscpot,tag,ropt_mod%calste)
     CALL give_scr_rhoofr_p(lrhoofr,tag)
     CALL give_scr_forces_p(lforce1,tag,nstate)
@@ -566,10 +562,9 @@ CONTAINS
     CALL give_scr_up3_p(lupdrho_p,tag,nstate)
     CALL give_scr_matrix_p(lmatrix_p,tag,nstate)
     CALL give_scr_ks_ener_p(lks_ener_p,n2,nstate)
-    lrho=lrho+2*ncpw%nhg
     lrhoofr=lrhoofr+2*ncpw%nhg
     lforce1=2*ncpw%ngw*nstate
-    lpert_kpoint_p=MAX(lrho,lrscpot,lrnlsm,lrhoofr,&
+    lpert_kpoint_p=MAX(lrscpot,lrhoofr,&
          lpert_kpoint_p,lforce1,lnrl_dk_p,lupdrho_p,&
          lputwnl,lmatrix_p,lks_ener_p)
     ! ==--------------------------------------------------------------==

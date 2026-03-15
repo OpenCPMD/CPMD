@@ -709,7 +709,7 @@ CONTAINS
     ENDDO                     ! isp
     IF (paral%io_parent)&
          WRITE(6, '(9("=")," RAW SHIELD MATRICES END ",31("="))')
-    IF (paral%io_parent) WRITE(6,'(A,E12.6)') ' ChkSum(NMR) = ',chksum
+    IF (paral%io_parent) WRITE(6,'(A,E13.6)') ' ChkSum(NMR) = ',chksum
     ! ==--------------------------------------------------------------==
     ! FINAL LIST, this time INCLUDING THE SUSCEPTIBILITY CORRECTION:
     IF (tsusceptibility) THEN

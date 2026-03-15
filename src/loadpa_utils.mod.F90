@@ -3,6 +3,8 @@
 MODULE loadpa_utils
   USE cppt,                            ONLY: hg,&
                                              inyh
+  USE distribution_utils,              ONLY: dist_entity2,&
+                                             dist_entity
   USE elct,                            ONLY: crge
   USE error_handling,                  ONLY: stopgm
   USE geq0mod,                         ONLY: geq0
@@ -22,12 +24,13 @@ MODULE loadpa_utils
                                              mp_sync
   USE parac,                           ONLY: parai,&
                                              paral
+  USE part_1d,                         ONLY: part_1d_get_blk_bounds
   USE prmem_utils,                     ONLY: prmem
   USE sort_utils,                      ONLY: sort2
   USE sphe,                            ONLY: gcutwmax
   USE system,                          ONLY: &
-       fpar, iatpe, iatpt, ipept, mapgp, natpe, ncpw, nkpt, norbpe, parap, &
-       parm, spar
+       fpar, iatpe, iatpe_cp, iatpt, ipept, ipept_cp, natpe_cp,  &
+       mapgp, natpe, ncpw, nkpt, norbpe, parap, parm, spar
   USE timer,                           ONLY: tihalt,&
                                              tiset
   USE zeroing_utils,                   ONLY: zeroing
@@ -51,14 +54,13 @@ CONTAINS
 
     INTEGER :: i, i0, ia, iat, icpu, ierr, ig, ihrays, ii, img, in1, in2, &
       in3, iorb, ip, ipp, ir, is, isub, isub2, isub3, isub4, ixrays, izpl, j, &
-      j1, j2, jmax, jmin, k, kmax, kmin, mspace, nh1, nh2, nh3, nthreads
+      j1, j2, jmax, jmin, k, kmax, kmin, mspace, nh1, nh2, nh3, nthreads,&
+      first, last
     INTEGER, ALLOCATABLE                     :: ihray(:,:), ixray(:,:), &
                                                 mgpa(:,:)
     INTEGER, ALLOCATABLE, DIMENSION(:)       :: thread_buff
     LOGICAL                                  :: oldstatus
-    REAL(real_8)                             :: g2, sign, t, xpaim, xplanes, &
-                                                xpnow, xsaim, xsnow, xstates, &
-                                                zpaim, zplanes, zpnow
+    REAL(real_8)                             :: g2, sign, t
 
 ! ==--------------------------------------------------------------==
 ! ==  DISTRIBUTION OF PARALLEL WORK                               ==
@@ -84,24 +86,17 @@ CONTAINS
     ALLOCATE(iatpe(ions1%nat),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+    ALLOCATE(iatpe_cp(ions1%nat,0:parai%cp_nogrp-1),STAT=ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
+         __LINE__,__FILE__)
+    ALLOCATE(ipept_cp(2,0:parai%nproc-1,0:parai%cp_nogrp-1),STAT=ierr)
+    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
+         __LINE__,__FILE__)
     CALL mp_sync(parai%allgrp)
     ! ==--------------------------------------------------------------==
     ! DISTRIBUTE ATOMS
     ! ==--------------------------------------------------------------==
-    xstates=REAL(ions1%nat,kind=real_8)
-    xsnow=0.0_real_8
-    DO i=parai%nproc,1,-1
-       xsaim = xsnow + xstates/parai%nproc
-       ipept(1,i-1)=NINT(xsnow)+1
-       ipept(2,i-1)=NINT(xsaim)
-       IF (NINT(xsaim).GT.ions1%nat) THEN
-          ipept(2,i-1)=ions1%nat
-       ENDIF
-       IF (i.EQ.1) THEN
-          ipept(2,i-1)=ions1%nat
-       ENDIF
-       xsnow = xsaim
-    ENDDO
+    CALL dist_entity(ions1%nat,parai%nproc,ipept)
 
     CALL mm_dim(mm_go_mm,oldstatus)
     ALLOCATE(iatpt(2,ions1%nat),STAT=ierr)
@@ -123,59 +118,41 @@ CONTAINS
        ENDDO
     ENDDO
     natpe=ipept(2,parai%mepos)-ipept(1,parai%mepos)+1
+
+    DO i=0,parai%nproc-1
+       do j=0,parai%cp_nogrp-1
+          CALL part_1d_get_blk_bounds((ipept(2,i)-ipept(1,i)+1),j,parai%cp_nogrp,first,last)
+          ipept_cp(1,i,j)=ipept(1,i)+first-1
+          ipept_cp(2,i,j)=ipept(1,i)+last-1
+       end do
+    ENDDO
+
+    iatpe_cp=-1 !mepos .ge. 0
+
+    DO i=0,parai%nproc-1
+       do k=0,parai%cp_nogrp-1
+          DO j=ipept_cp(1,i,k),ipept_cp(2,i,k)
+             iatpe_cp(j,k)=i
+          end do
+       ENDDO
+    ENDDO
+
+    natpe_cp=&
+         ipept_cp(2,parai%mepos,parai%cp_inter_me)&
+         -ipept_cp(1,parai%mepos,parai%cp_inter_me)+1
+
     ! ==--------------------------------------------------------------==
     ! DISTRIBUTE ORBITALS
     ! ==--------------------------------------------------------------==
-    xstates=REAL(crge%n,kind=real_8)
-    xsnow=0.0_real_8
-    DO i=parai%nproc,1,-1
-       xsaim = xsnow + xstates/parai%nproc
-       parap%nst12(i-1,1)=NINT(xsnow)+1
-       parap%nst12(i-1,2)=NINT(xsaim)
-       IF (NINT(xsaim).GT.crge%n) THEN
-          parap%nst12(i-1,2)=crge%n
-       ENDIF
-       IF (i.EQ.1) THEN
-          parap%nst12(i-1,2)=crge%n
-       ENDIF
-       xsnow = xsaim
-    ENDDO
-    norbpe=parap%nst12(parai%mepos,2)-parap%nst12(parai%mepos,1)+1
+    CALL dist_entity2(crge%n,parai%nproc,parap%nst12,nblocal=norbpe,iloc=parai%me)
     ! ==--------------------------------------------------------------==
     ! DISTRIBUTE REAL SPACE YZ-PLANES
     ! ==--------------------------------------------------------------==
-    CALL zeroing(parap%nrxpl)!,2*(maxcpu+1))
-    xplanes=REAL(spar%nr1s,kind=real_8)
-    xpnow=0.0_real_8
-    DO i=parai%nproc,1,-1
-       xpaim = xpnow + xplanes/parai%nproc
-       parap%nrxpl(i-1,1)=NINT(xpnow)+1
-       parap%nrxpl(i-1,2)=NINT(xpaim)
-       IF (NINT(xpaim).GT.spar%nr1s) THEN
-          parap%nrxpl(i-1,2)=spar%nr1s
-       ENDIF
-       IF (i.EQ.1) THEN
-          parap%nrxpl(i-1,2)=spar%nr1s
-       ENDIF
-       xpnow = xpaim
-    ENDDO
+    CALL dist_entity2(spar%nr1s,parai%nproc,parap%nrxpl)
     CALL zeroing(parap%nrzpl)!,2*(maxcpu+1))
-    IF (isos1%tclust.AND.isos3%ps_type.EQ.1) THEN
+    IF (isos1%tclust.AND.isos3%ps_type.EQ.1) THEN      
        ! DISTRIBUTE REAL SPACE XY-PLANES
-       zplanes=REAL(2*spar%nr3s,kind=real_8)
-       zpnow=0.0_real_8
-       DO i=parai%nproc,1,-1
-          zpaim = zpnow + zplanes/parai%nproc
-          parap%nrzpl(i-1,1)=NINT(zpnow)+1
-          parap%nrzpl(i-1,2)=NINT(zpaim)
-          IF (NINT(zpaim).GT.2*spar%nr3s) THEN
-             parap%nrzpl(i-1,2)=2*spar%nr3s
-          ENDIF
-          IF (i.EQ.1) THEN
-             parap%nrzpl(i-1,2)=2*spar%nr3s
-          ENDIF
-          zpnow = zpaim
-       ENDDO
+       CALL dist_entity2(2*spar%nr3s,parai%nproc,parap%nrzpl)
     ENDIF
     ! ==--------------------------------------------------------------==
     ! DISTRIBUTE G-VECTORS
@@ -264,6 +241,9 @@ CONTAINS
     ALLOCATE(mapgp(ncpw%nhg),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:hg,inyh)
+#endif
     CALL zeroing(hg)!,nhg)
     CALL zeroing(inyh)!,3*nhg)
     CALL zeroing(mapgp)!,nhg)
@@ -301,12 +281,14 @@ CONTAINS
                 t=REAL(i,kind=real_8)*gvec_com%b1(ir)+REAL(j,kind=real_8)*gvec_com%b2(ir)+REAL(k,kind=real_8)*gvec_com%b3(ir)
                 g2=g2+t*t
              ENDDO
-             IF (g2.LT.gvec_com%gcut) THEN
+             IF (compare_lt(g2,gvec_com%gcut)) THEN
+!             IF (g2.LT.gvec_com%gcut) THEN
                 ig=ig+1
                 in1=nh1+i
                 in2=nh2+j
                 in3=nh3+k
-                IF (g2.LT.gcutwmax) THEN
+                IF (compare_lt(g2,gcutwmax)) THEN
+!                IF (g2.LT.gcutwmax) THEN
                    icpu=ixray(in2,in3)
                    IF (-icpu.EQ.parai%mepos+1) THEN
                       ncpw%ngw=ncpw%ngw+1
@@ -410,6 +392,9 @@ CONTAINS
        mapgp(ig)=ig
     ENDDO
     CALL gorder
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(hg,inyh)
+#endif
     ! ==--------------------------------------------------------------==
     geq0=.FALSE.
     i0=0
@@ -425,6 +410,9 @@ CONTAINS
        WRITE(6,'(" ",16("PARA"),/)')
        CALL prmem(procedureN)
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(geq0)
+#endif
     ! ==--------------------------------------------------------------==
     ! LEADING DIMENSIONS OF REAL SPACE ARRAYS
     ! ==--------------------------------------------------------------==
@@ -516,10 +504,16 @@ CONTAINS
 ! KR2=NR2+MOD(NR2,2)
 ! KR3=NR3+MOD(NR3,2)
 ! instead off that
-
+    !TK kr[123]=nr[123] seems to be much faster on Intel architectures...
+#ifdef _INTEL_MKL
+    kr1=nr1
+    kr2=nr2
+    kr3=nr3
+#else
     kr1=nr1+MOD(nr1+1,2)
     kr2=nr2+MOD(nr2+1,2)
     kr3=nr3+MOD(nr3+1,2)
+#endif
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE leadim
@@ -559,7 +553,8 @@ CONTAINS
                 t=REAL(i,kind=real_8)*gvec_com%b1(ir)+REAL(j,kind=real_8)*gvec_com%b2(ir)+REAL(k,kind=real_8)*gvec_com%b3(ir)
                 g2=g2+t*t
              ENDDO
-             IF (g2.LT.gvcut) THEN
+!             IF (g2.LT.gvcut) THEN
+             IF (compare_lt(g2,gvcut)) THEN
                 in1=nh1+i
                 in2=nh2+j
                 in3=nh3+k
@@ -624,7 +619,8 @@ CONTAINS
                 t=REAL(i,kind=real_8)*gvec_com%b1(ir)+REAL(j,kind=real_8)*gvec_com%b2(ir)+REAL(k,kind=real_8)*gvec_com%b3(ir)
                 g2=g2+t*t
              ENDDO
-             IF (g2.LT.gvcut) THEN
+             IF (compare_lt(g2,gvcut)) THEN
+!             IF (g2.LT.gvcut) THEN
                 in1=nh1+i
                 in2=nh2+j
                 in3=nh3+k
@@ -697,7 +693,8 @@ CONTAINS
              mho=0
           ELSE
              DO j=l,nho-1
-                IF (hg(i).GE.ho(j).AND.hg(i).LT.ho(j+1)) THEN
+                IF (compare_ge(hg(i),ho(j)).AND.compare_lt(hg(i),ho(j+1))) THEN
+!                IF (hg(i).GE.ho(j).AND.hg(i).LT.ho(j+1)) THEN
                    l=j
                    mho=j
                    GOTO 100
@@ -718,10 +715,10 @@ CONTAINS
     CALL mp_sum(xm,parai%allgrp)
     xt=REAL(spar%ngws,kind=real_8)
     xt=0.5_real_8*xt*(xt+1._real_8)-xm
-    ! IF(ABS(XT).GT.0.1_real_8.AND.PARENT) THEN
-    ! WRITE(6,*) ' GORDER| PROGRAMING ERROR. INFORM THE PROGRAMMER'
-    ! CALL STOPGM('GORDER','ERROR IN G-VEC ORDERING (NGW)')
-    ! ENDIF
+    IF(ABS(XT).GT.0.1_real_8.AND.paral%io_PARENT) THEN
+       WRITE(6,*) 'PROGRAMING ERROR. INFORM THE PROGRAMMER'
+       WRITE(6,*) procedureN,'ERROR IN G-VEC ORDERING (NGW)'
+    ENDIF
     xm=0._real_8
     DO i=1,ncpw%nhg
        xm=xm+mapgp(i)
@@ -729,10 +726,10 @@ CONTAINS
     CALL mp_sum(xm,parai%allgrp)
     xt=REAL(spar%nhgs,kind=real_8)
     xt=0.5_real_8*xt*(xt+1._real_8)-xm
-    ! IF(ABS(XT).GT.0.1_real_8.AND.PARENT) THEN
-    ! WRITE(6,*) ' GORDER| PROGRAMING ERROR. INFORM THE PROGRAMMER'
-    ! CALL STOPGM('GORDER','ERROR IN G-VEC ORDERING (NHG)')
-    ! ENDIF
+    IF(ABS(XT).GT.0.1_real_8.AND.paral%io_PARENT) THEN
+       WRITE(6,*) 'PROGRAMING ERROR. INFORM THE PROGRAMMER'
+       wRITE(6,*) procedureN,'ERROR IN G-VEC ORDERING (NHG)'
+    ENDIF
     DEALLOCATE(ho,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
@@ -752,7 +749,7 @@ CONTAINS
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'gsort'
 
-    INTEGER                                  :: icurr, ierr, ig, it
+    INTEGER                                  :: icurr, ierr, ig, it, j
     INTEGER, ALLOCATABLE                     :: INDEX(:)
 
 ! REORDER THE G S IN ORDER OF INCREASING MAGNITUDE
@@ -765,15 +762,11 @@ CONTAINS
        icurr=ig
 30     CONTINUE
        IF (INDEX(icurr).NE.ig) THEN
-          it=inyh(1,icurr)
-          inyh(1,icurr)=inyh(1,INDEX(icurr))
-          inyh(1,INDEX(icurr))=it
-          it=inyh(2,icurr)
-          inyh(2,icurr)=inyh(2,INDEX(icurr))
-          inyh(2,INDEX(icurr))=it
-          it=inyh(3,icurr)
-          inyh(3,icurr)=inyh(3,INDEX(icurr))
-          inyh(3,INDEX(icurr))=it
+          DO j=1,3
+             it=inyh(j,icurr)
+             inyh(j,icurr)=inyh(j,INDEX(icurr))
+             inyh(j,INDEX(icurr))=it
+          END DO
           it=icurr
           icurr=INDEX(icurr)
           INDEX(it)=it
@@ -790,5 +783,40 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE gsort
+
+  ! ******************************************************************************
+  PURE FUNCTION compare_ge(a,b) RESULT(greater_equal)
+    REAL(real_8), INTENT(IN)                 :: a,b
+    REAL(real_8), PARAMETER                  :: eps=EPSILON(1.0_real_8)
+    LOGICAL                                  :: greater_equal
+    
+    greater_equal=.FALSE.
+    IF(ABS(a-b).LT.eps)THEN
+       !a.eq.b
+       greater_equal=.TRUE.
+    ELSE
+       IF(a.GT.b)THEN
+          greater_equal=.TRUE.
+       END IF
+    END IF
+    
+  END FUNCTION compare_ge
+  ! ******************************************************************************
+  PURE FUNCTION compare_lt(a,b) RESULT(lower)
+    REAL(real_8), INTENT(IN)                 :: a,b
+    REAL(real_8), PARAMETER                  :: eps=EPSILON(1.0_real_8)
+    LOGICAL                                  :: lower
+    
+    lower=.FALSE.
+    IF(ABS(a-b).LT.eps)THEN
+       !a.eq.b
+    ELSE
+       IF(a.LT.b)THEN
+          lower=.TRUE.
+       END IF
+    END IF
+    
+  END FUNCTION compare_lt
+  ! ******************************************************************************
 
 END MODULE loadpa_utils

@@ -37,7 +37,8 @@ CONTAINS
           a = arr(j)
           ib = INDEX(j)
           DO i = j - 1, 1, -1
-             IF (arr(i).LE.a) go to 2
+             IF (compare_le(arr(i),a)) go to 2
+!             IF (arr(i).LE.a) go to 2
              arr(i+1) = arr(i)
              INDEX(i+1) = INDEX(i)
           ENDDO
@@ -57,7 +58,8 @@ CONTAINS
        itemp = INDEX(k)
        INDEX(k) = INDEX(l+1)
        INDEX(l+1) = itemp
-       IF (arr(l+1).GT.arr(ir)) THEN
+       IF (compare_gt(arr(l+1),arr(ir))) THEN
+!       IF (arr(l+1).GT.arr(ir)) THEN
           temp = arr(l+1)
           arr(l+1) = arr(ir)
           arr(ir) = temp
@@ -65,7 +67,8 @@ CONTAINS
           INDEX(l+1) = INDEX(ir)
           INDEX(ir) = itemp
        ENDIF
-       IF (arr(l).GT.arr(ir)) THEN
+       IF (compare_gt(arr(l),arr(ir))) THEN
+!       IF (arr(l).GT.arr(ir)) THEN
           temp = arr(l)
           arr(l) = arr(ir)
           arr(ir) = temp
@@ -73,7 +76,8 @@ CONTAINS
           INDEX(l) = INDEX(ir)
           INDEX(ir) = itemp
        ENDIF
-       IF (arr(l+1).GT.arr(l)) THEN
+       IF (compare_gt(arr(l+1),arr(l))) THEN
+!       IF (arr(l+1).GT.arr(l)) THEN
           temp = arr(l+1)
           arr(l+1) = arr(l)
           arr(l) = temp
@@ -87,10 +91,12 @@ CONTAINS
        ib = INDEX(l)
 3      CONTINUE
        i = i + 1
-       IF (arr(i).LT.a) go to 3
+       IF (compare_lt(arr(i),a)) go to 3
+!       IF (arr(i).LT.a) go to 3
 4      CONTINUE
        j = j - 1
-       IF (arr(j).GT.a) go to 4
+       IF (compare_gt(arr(j),a)) go to 4
+!       IF (arr(j).GT.a) go to 4
        IF (j.LT.i) go to 5
        temp = arr(i)
        arr(i) = arr(j)
@@ -121,6 +127,55 @@ CONTAINS
 
   END SUBROUTINE sort2
 
+  ! ******************************************************************************
+  PURE FUNCTION compare_le(a,b) RESULT(lower_equal)
+    REAL(real_8), INTENT(IN)                 :: a,b
+    REAL(real_8), PARAMETER                  :: eps=EPSILON(1.0_real_8)
+    LOGICAL                                  :: lower_equal
+    
+    lower_equal=.FALSE.
+    IF(ABS(a-b).LT.eps)THEN
+       !a.eq.b
+       lower_equal=.TRUE.
+    ELSE
+       IF(a.LT.b)THEN
+          lower_equal=.TRUE.
+       END IF
+    END IF
+    
+  END FUNCTION compare_le
+  ! ******************************************************************************
+  PURE FUNCTION compare_gt(a,b) RESULT(greater)
+    REAL(real_8), INTENT(IN)                 :: a,b
+    REAL(real_8), PARAMETER                  :: eps=EPSILON(1.0_real_8)
+    LOGICAL                                  :: greater
+    
+    greater=.FALSE.
+    IF(ABS(a-b).LT.eps)THEN
+       !a.eq.b
+    ELSE
+       IF(a.GT.b)THEN
+          greater=.TRUE.
+       END IF
+    END IF
+    
+  END FUNCTION compare_gt
+  ! ******************************************************************************
+  PURE FUNCTION compare_lt(a,b) RESULT(lower)
+    REAL(real_8), INTENT(IN)                 :: a,b
+    REAL(real_8), PARAMETER                  :: eps=EPSILON(1.0_real_8)
+    LOGICAL                                  :: lower
+    
+    lower=.FALSE.
+    IF(ABS(a-b).LT.eps)THEN
+       !a.eq.b
+    ELSE
+       IF(a.LT.b)THEN
+          lower=.TRUE.
+       END IF
+    END IF
+    
+  END FUNCTION compare_lt
   ! ******************************************************************************
 
   SUBROUTINE sort2i ( iarr, n, index )

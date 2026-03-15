@@ -765,7 +765,11 @@ CONTAINS
     TYPE(cuda_memory_t)                      :: mem
     INTEGER(int_8), INTENT(IN)               :: n_bytes_row
     INTEGER, INTENT(IN)                      :: n_col
+#if defined(_HAS_CUDA)
     INTEGER(int_8), INTENT(OUT)              :: n_bytes_pitch
+#else
+    INTEGER(int_8), INTENT(INOUT)            :: n_bytes_pitch
+#endif
     INTEGER, INTENT(IN)                      :: device
 
     CHARACTER(*), PARAMETER :: procedureN = 'cuda_alloc_pitch_bytes'

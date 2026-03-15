@@ -1,0 +1,6 @@
+SRC_SCRATCHMODULE = data_managment_utils.F90 segment_managment_utils.F90 pool_managment_utils.F90 scratch_interface.F90
+
+
+OBJ_SCRATCHMODULE     = $(SRC_SCRATCHMODULE:%.F90=%.o)
+
+

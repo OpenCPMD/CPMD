@@ -106,10 +106,8 @@ MODULE proppt_utils
   USE readsr_utils,                    ONLY: xstring
   USE rho1ofr_utils,                   ONLY: rhoabofr
   USE rhoofr_c_utils,                  ONLY: rhoofr_c
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr,&
-                                             rhoofr
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rhoofr_utils,                    ONLY: rhoofr
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE ropt,                            ONLY: iteropt
   USE rscpot_utils,                    ONLY: rscpot
   USE rv30_utils,                      ONLY: zhrwf
@@ -165,7 +163,7 @@ CONTAINS
                                                 eirop(:), eivps(:), psi(:,:), &
                                                 qphi(:), sc0(:,:), vtemp(:)
     INTEGER :: i, ia, iat, ie, ierr, ig, il_psi_1d, il_psi_2d, il_qphi, &
-      il_rhoe_1d, il_rhoe_2d, ippc, ir, irec(100), isp, j, ji, lo, lr, lrho, &
+      il_rhoe_1d, il_rhoe_2d, ippc, ir, irec(100), isp, j, ji, lo, lr, &
       lscr, mlen, n_cubefiles, nc, nl, nnat, nstate, nxx
     INTEGER, ALLOCATABLE                     :: isel(:)
     LOGICAL                                  :: oldstatus, statusdummy, tinfo
@@ -359,9 +357,6 @@ CONTAINS
              ENDDO
              CALL difrho(c0,rhoe,psi,prop2%numorb)
              CALL zeroing(eirop)!,nhg)
-#ifdef __SR8000
-             !poption parallel
-#endif
              !$omp parallel do private(IR)
              DO ir=1,fpar%nnr1
                 psi(ir,1)=CMPLX(rhoe(ir,1),0._real_8,kind=real_8)
@@ -376,9 +371,6 @@ CONTAINS
              CALL zeroing(rhoe(:,1))!,nnr1)
              CALL zeroing(eirop)!,nhg)
              CALL rhoabofr(1,c0(:,nsdip(1,i):nsdip(1,i),1),c0(:,nsdip(2,i):nsdip(2,i),1),rhoe(:,1),psi(:,1))
-#ifdef __SR8000
-             !poption parallel
-#endif
              !$omp parallel do private(IR)
              DO ir=1,fpar%nnr1
                 psi(ir,1)=CMPLX(rhoe(ir,1),0._real_8,kind=real_8)
@@ -404,9 +396,6 @@ CONTAINS
                 CALL rsdipo(tau0,eirop,psi,rhoe)
              ENDIF
           ELSE
-#ifdef __SR8000
-             !poption parallel
-#endif
              !$omp parallel do private(IR)
              DO ir=1,fpar%nnr1
                 psi(ir,1)=CMPLX(rhoe(ir,1),0._real_8,kind=real_8)
@@ -443,7 +432,7 @@ CONTAINS
                   (REAL(i-1,kind=real_8)+0.5_real_8)*condpa%condstep,conduct(i),&
                   conduct2(i)-conduct(i)**2,normcon(i)
           ENDDO
-          WRITE(6,'(A,E12.6)') ' ChkSum(CONDUCTIVITY) = ',&
+          WRITE(6,'(A,E13.6)') ' ChkSum(CONDUCTIVITY) = ',&
                SUM(ABS(conduct(1:condpa%nconduct)))
        ENDIF! cmb
     ENDIF
@@ -709,16 +698,11 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
             __LINE__,__FILE__)
 
-#ifdef __SR8000
-       !poption parallel
-#endif
+       !$omp parallel do private(I)
        DO i=1,fpar%nnr1
           psi(i,1)=CMPLX(rhoe(i,1),0._real_8,kind=real_8)
        ENDDO
        CALL  fwfftn(psi(:,1),.FALSE.,parai%allgrp)
-#ifdef __SR8000
-       !poption parallel
-#endif
        !$omp parallel do private(IG)
        DO ig=1,ncpw%nhg
           vtemp(ig) = psi(nzh(ig),1)
@@ -737,9 +721,6 @@ CONTAINS
           psi(nzh(1),1) = CMPLX(0._real_8,0._real_8,kind=real_8)
        ENDIF
        CALL  invfftn(psi(:,1),.FALSE.,parai%allgrp)
-#ifdef __SR8000
-       !poption parallel
-#endif
        !$omp parallel do private(I)
        DO i=1,fpar%nnr1
           rhoe(i,1)=REAL(psi(i,1))
@@ -836,9 +817,8 @@ CONTAINS
     IF (prop4%tcubefile_dens.OR.prop4%tcubefile_orb.OR.prop4%tcubefile_pot) THEN
        CALL rhoe_psi_size(il_rhoe_1d=il_rhoe_1d,il_rhoe_2d=il_rhoe_2d,&
             il_psi_1d=il_psi_1d,il_psi_2d=il_psi_2d)
-       CALL give_scr_rhoofr(lrho,tag)
        CALL give_scr_forces(lscr,tag,nstate,.TRUE.,.FALSE.)
-       lscr=MAX(il_rhoe_1d*il_rhoe_2d,2*maxfft,lrho,lscr)
+       lscr=MAX(il_rhoe_1d*il_rhoe_2d,2*maxfft,lscr)
        ALLOCATE(scr(lscr),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
@@ -1071,11 +1051,11 @@ CONTAINS
              IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                   __LINE__,__FILE__)
              CALL forcedr(c0(:,:,1),c2,sc0,vpot,psi,taup,save_fion,We,&
-                  nstate,1,.FALSE.,.TRUE.)
+                  nstate,1,.FALSE.,.TRUE.,.TRUE.)
              IF (wannl%twmol) THEN
                 CALL molorb(c0,c2,taup,nstate,center)
                 CALL forcedr(c0(:,:,1),c2,sc0,vpot,psi,taup,save_fion,We,&
-                     nstate,1,.FALSE.,.TRUE.)
+                     nstate,1,.FALSE.,.TRUE.,.TRUE.)
              ENDIF
              IF (wannl%twdos) CALL wc_dos(c0,c2,nstate,center)
              DEALLOCATE(save_fion,STAT=ierr)
@@ -1360,15 +1340,10 @@ CONTAINS
     INTEGER                                  :: lespc
     CHARACTER(len=30)                        :: tag
 
-    INTEGER                                  :: il_qphi, lrnlsm
+    INTEGER                                  :: il_qphi
 
     CALL give_qphi(il_qphi)
-    IF (pslo_com%tivan) THEN
-       CALL give_scr_rnlsm(lrnlsm,tag,crge%n,.FALSE.)
-    ELSE
-       lrnlsm=0
-    ENDIF
-    lespc=MAX(2*ncpw%nhg+il_qphi,lrnlsm)
+    lespc=2*ncpw%nhg+il_qphi
     tag='2*NHG+IL_QPHI'
     ! ==--------------------------------------------------------------==
     RETURN
@@ -1379,15 +1354,10 @@ CONTAINS
     INTEGER                                  :: lavgp
     CHARACTER(len=30)                        :: tag
 
-    INTEGER                                  :: il_qphi, lrnlsm
+    INTEGER                                  :: il_qphi
 
     CALL give_qphi(il_qphi)
-    IF (pslo_com%tivan) THEN
-       CALL give_scr_rnlsm(lrnlsm,tag,crge%n,.FALSE.)
-    ELSE
-       lrnlsm=0
-    ENDIF
-    lavgp=MAX(2*ncpw%nhg+il_qphi,lrnlsm)
+    lavgp=2*ncpw%nhg+il_qphi
     tag='2*NHG+IL_QPHI'
     ! ==--------------------------------------------------------------==
     RETURN

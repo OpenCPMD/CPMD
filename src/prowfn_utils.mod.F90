@@ -37,14 +37,12 @@ MODULE prowfn_utils
                                              prop2,&
                                              prop3
   USE pslo,                            ONLY: pslo_com
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE setbasis_utils,                  ONLY: loadc
   USE sfac,                            ONLY: fnl,&
                                              fnl2
   USE spin,                            ONLY: spin_mod
-  USE summat_utils,                    ONLY: give_scr_summat,&
-                                             summat
+  USE summat_utils,                    ONLY: summat
   USE system,                          ONLY: cntl,&
                                              maxsys,&
                                              ncpw
@@ -171,7 +169,7 @@ CONTAINS
     DO is=1,ions1%nsp
        DO ia=1,ions0%na(is)
           iat=iat+1
-          CALL loadc(catom(1,iaorb),foc,ncpw%ngw,ncpw%ngw,atwp%nattot,SIZE(foc),&
+          CALL loadc(catom(:,iaorb:),foc,ncpw%ngw,ncpw%ngw,atwp%nattot,SIZE(foc),&
                is,iat,natst)
           DO ixx=iaorb,iaorb+natst-1
              sfc=dotp(ncpw%ngw,catom(:,ixx),catom(:,ixx))
@@ -302,9 +300,9 @@ CONTAINS
           WRITE(6,'(/,A,/)') ' WAVEFUNCTIONS IN ATOMIC ORBITAL BASIS'
           IF (cntl%tlsd) THEN
              WRITE(6,'(21X,A)') ' ****** ALPHA SPIN ******'
-             CALL prtmat(xxmat(1,1),atwp%nattot,spin_mod%nsup,label,comp,crge%f)
+             CALL prtmat(xxmat(1:,1:),atwp%nattot,spin_mod%nsup,label,comp,crge%f)
              WRITE(6,'(/,21X,A)') ' ****** BETA  SPIN ******'
-             CALL prtmat(xxmat(1,spin_mod%nsup+1),atwp%nattot,spin_mod%nsdown,label,&
+             CALL prtmat(xxmat(1:,spin_mod%nsup+1:),atwp%nattot,spin_mod%nsdown,label,&
                   comp(spin_mod%nsup+1),crge%f(spin_mod%nsup+1,1))
           ELSE
              CALL prtmat(xxmat,atwp%nattot,prop2%numorb,label,comp,crge%f)
@@ -925,17 +923,14 @@ CONTAINS
     INTEGER                                  :: lprowfn
     CHARACTER(len=30)                        :: tag
 
-    INTEGER                                  :: is, lcmaos, lrnlsm, lsatch, &
-                                                lsummat, lwfnrho, nstate, &
+    INTEGER                                  :: is, lcmaos, lsatch, &
+                                                lwfnrho, nstate, &
                                                 numin
 
     nstate=crge%n
-    lrnlsm=0
     lcmaos=0
     lsatch=0
     lwfnrho=0
-    CALL give_scr_summat(lsummat,tag,atwp%nattot)
-    IF (pslo_com%tivan) CALL give_scr_rnlsm(lrnlsm,tag,atwp%nattot,.FALSE.)
     IF (prop1%dpan) THEN
        ! Davidson Population Analysis
        numin=0
@@ -948,7 +943,7 @@ CONTAINS
     ! PROWFN
     lprowfn=MAX(2*atwp%nattot*atwp%nattot+4*atwp%nattot,&
          atwp%nattot*prop2%numorb,&
-         lrnlsm,lsummat,lcmaos,lsatch,lwfnrho)
+         lcmaos,lsatch,lwfnrho)
     ! ==--------------------------------------------------------------==
   END SUBROUTINE give_scr_prowfn
   ! ==================================================================

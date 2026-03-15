@@ -112,7 +112,7 @@ CONTAINS
 
     ! calculate the potential and apply it to c0
     CALL forces(c0,c1,tau0,fion,rhoe,psi,nstate,1,.FALSE.,&
-         .FALSE.)
+         .FALSE.,.TRUE.)
 
     ! calculate the hamiltonian matrix <c0|H|c0> = <c0|c1>:
     CALL ovlap(nstate,z11,c0(:,:,1),c1)

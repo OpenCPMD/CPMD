@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 #if defined(__USE_IBM_HPM)
 #define USE_IBM_HPM
 #endif
@@ -102,7 +104,7 @@ MODULE md_driver
   USE mfep,                            ONLY: mfepi
   USE mm_extrap,                       ONLY: cold , cold_high, &
                                              numcold, numcold_high, &
-                                             nnow, nnow_high
+                                             scold, nnow, nnow_high
   USE moverho_utils,                   ONLY: give_scr_moverho,&
                                              moverho
   USE mp_interface,                    ONLY: mp_bcast,&
@@ -143,14 +145,12 @@ MODULE md_driver
   USE readsr_utils,                    ONLY: xstring
   USE resetac_utils,                   ONLY: resetac
   USE response_pmod,                   ONLY: dmbi
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr
   USE rhopri_utils,                    ONLY: give_scr_rhopri,&
                                              rhopri
   USE rinitwf_utils,                   ONLY: give_scr_rinitwf
   USE rinvel_utils,                    ONLY: rinvel,&
                                              rvscal
   USE rmas,                            ONLY: rmass
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm
   USE ropt,                            ONLY: infi,&
                                              iteropt,&
                                              ropt_mod
@@ -200,6 +200,11 @@ MODULE md_driver
   USE wrgeo_utils,                     ONLY: wrgeof
   USE wv30_utils,                      ONLY: zhwwf
   USE zeroing_utils,                   ONLY: zeroing
+  USE ace_hfx  !SM
+  USE sinr_utils  !ritama
+  USE hfx_utils,                       ONLY: posupi_lan, &
+                                       velupi_lan1,velupi_lan2,lang_cons, &
+                                             rotate_c0
 
   IMPLICIT NONE
 
@@ -247,6 +252,10 @@ CONTAINS
     ! high level wave-function parameters
     complex(real_8), allocatable :: c0_high(:,:,:)
     ! MTS]
+    INTEGER :: iostat !ritama
+    INTEGER, SAVE :: ifirst=0
+    !LANGEVIN
+    REAL(real_8),allocatable::VEL_TMP(:,:,:),RND(:,:,:) !SAGAR HACK
 
     CALL tiset(procedureN,isub)
     IF (cntl%tddft.AND.cntl%tresponse) CALL stopgm("MDDIAG",&
@@ -603,19 +612,38 @@ CONTAINS
     IF (cntl%textrap) THEN
        lenext=2*nkpt%ngwk*nstate*nkpt%nkpts*cnti%mextra
        rmem = 16._real_8*lenext*1.e-6_real_8
-       ALLOCATE(cold(nkpt%ngwk,crge%n,nkpt%nkpnt,lenext/(crge%n*nkpt%ngwk*nkpt%nkpnt)),STAT=ierr)
+       ALLOCATE(cold(nkpt%ngwk,crge%n,nkpt%nkpnt,lenext/(crge%n*nkpt%ngwk*nkpt%nkpnt)),&
+            STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
-       call zeroing(cold)
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target enter data map(alloc:cold)
+#endif
+       CALL zeroing(cold)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target update to(cold)
+#endif
+      
+       IF(pslo_com%tivan)THEN
+          ALLOCATE(scold(nkpt%ngwk,crge%n,nkpt%nkpnt,lenext/(crge%n*nkpt%ngwk*nkpt%nkpnt)),&
+               STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
+               __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target enter data map(alloc:scold)
+#endif
+          CALL zeroing(scold)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update to(scold)
+#endif
+           rmem=rmem*2._real_8
+       END IF
        ! allocate array for high level WF extrapolation
        if (mts_pure_dft) then
           allocate(cold_high(nkpt%ngwk,crge%n,nkpt%nkpnt,lenext/(crge%n*nkpt%ngwk*nkpt%nkpnt)),stat=ierr)
           if(ierr/=0) call stopgm(proceduren,'allocation problem: cold_high',&
                __LINE__,__FILE__)
           call zeroing(cold_high)
-          numcold_high=0 
-          nnow_high=0
           rmem=rmem*2._real_8
        endif
 
@@ -631,6 +659,9 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
     nmm=1
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:rhoe)
+#endif
     IF (cntl%tddft) THEN
        ALLOCATE(rhoo(il_rhoe_1d, il_rhoe_2d),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
@@ -644,10 +675,16 @@ CONTAINS
     ALLOCATE(psi(il_psi_1d,il_psi_2d),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:psi)
+#endif
     CALL give_scr_mddiag(lscr,tag)
     ALLOCATE(scr(lscr),STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target enter data map(alloc:scr)
+#endif
     ! ==--------------------------------------------------------------==
 99999 IF (cntl%tsampl) THEN
        CALL sample_wait
@@ -659,7 +696,8 @@ CONTAINS
     CALL dynit(ekincp,ekin1,ekin2,temp1,temp2,ekinh1,ekinh2)
     ekinp=0.0_real_8    ! McB: cf. META_EXT..()
     ! PARAMETERS FOR THE NOSE-HOOVER THERMOSTATS
-    IF (cntl%tnosep.AND.paral%parent) CALL nosepa(ipwalk,ipwalk)
+    ! call nosepa to collect dtsuz(*) terms     ! ritama
+    IF ((cntl%tnosep.OR.cntl%tsinr).AND.paral%parent) CALL nosepa(ipwalk,ipwalk) !ritama
     ! Dont symmetrize density 
     cntl%tsymrho=.FALSE.
     ! ..Make sure TKFULL=.TRUE
@@ -671,9 +709,30 @@ CONTAINS
        WRITE(6,*)&
             ' ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
     ENDIF
+!=======================================================================
+    IF(USE_ACE)THEN  !SM
+         allocate(XI(ncpw%ngw,NSTATE),stat=ierr)
+         if(ierr/=0) call stopgm(proceduren,'allocation problem: XI',&
+              __LINE__,__FILE__)
+    ENDIF
+   IF(HFX_SCDM_STATUS)THEN  !SM
+       IF(cntl%tlsd)THEN
+         allocate(rho_scdm(fpar%nnr1,2),grad_scdm(fpar%nnr1,2),stat=ierr)
+       ELSE
+         allocate(rho_scdm(fpar%nnr1,1),grad_scdm(fpar%nnr1,1),stat=ierr)
+       END IF
+       if(ierr/=0) call stopgm(proceduren,'allocation problem: rho_scdm/grad_scdm',&
+               __LINE__,__FILE__)
+    ENDIF
     ! ==--------------------------------------------------------------==
     ! == INITIALISATION                                               ==
     ! ==--------------------------------------------------------------==
+!  Ritam
+! Set  sinr thermostat parametes
+! Take the temperature
+     IF(cntl%tsinr.AND.paral%io_parent)THEN
+       CALL sinr_init                           !ritama
+     ENDIF
     ! ..TSH[
     IF (tshl%tdtully) THEN
        ! ..XFMQC[
@@ -779,15 +838,45 @@ CONTAINS
     IF (irec(irec_vel).EQ.0.AND..NOT.restart1%rgeo) THEN
        ener_com%ecnstr = 0.0_real_8
        ener_com%erestr = 0.0_real_8
-       CALL rinvel(velp,c2,nstate)
-       IF (paral%parent) CALL taucl(velp)
-       IF (paral%parent) CALL rattle(tau0,velp)
+       CALL rinvel(velp,c2,nstate)  ! ritama edit
+       IF (paral%parent) CALL taucl(velp)  !ritama
+       IF (paral%parent) CALL rattle(tau0,velp)  !ritama
+       !IF ((.NOT.cntl%tsinr).AND.paral%parent) CALL taucl(velp)  !ritama
+       !IF ((.NOT.cntl%tsinr).AND.paral%parent) CALL rattle(tau0,velp)  !ritama
        CALL rvscal(velp)
     ELSE
-       IF (paral%parent) CALL taucl(velp)
-       IF (paral%parent) CALL rattle(tau0,velp)
+       IF (paral%parent) CALL taucl(velp) !ritama
+       IF (paral%parent) CALL rattle(tau0,velp) !ritama
+       !IF ((.NOT.cntl%tsinr).AND.paral%parent) CALL taucl(velp) !ritama
+       !IF ((.NOT.cntl%tsinr).AND.paral%parent) CALL rattle(tau0,velp) !ritama
        IF (cntl%trescale) CALL rvscal(velp)
     ENDIF
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ritama!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    IF(cntl%tsinr) THEN
+       IF(ifirst.EQ.0) THEN
+          IF(paral%io_parent)THEN
+             INQUIRE(file='RESTART_SINR',exist=fexist)
+             IF(.NOT.fexist)THEN
+                CALL invelp_sinr(velp,v1_sinr,v2_sinr)  !ritama
+                WRITE(6,'(1X,64("="))')
+                WRITE(6,*)&
+                     'THERMOSTAT VARIABLES AND VELOCITIES READ FROM SUBROUTINE'
+             ELSE
+                OPEN(unit=601,file='RESTART_SINR',status='OLD',iostat=iostat)
+                IF (iostat.NE.0)CALL stopgm(procedureN,&
+                     'Cannot open the restart_sinr file',& 
+                     __LINE__,__FILE__)
+                CALL read_restart_sinr(v1_sinr,v2_sinr,sinr_ke)
+                ifirst=1
+                WRITE(6,'(1X,64("="))')
+                WRITE(6,*)&
+                     'THERMOSTAT VARIABLES READ FROM RESTART_SINR FILE'
+                CLOSE(601)
+             ENDIF
+          ENDIF
+       ENDIF
+    ENDIF
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ritama!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     IF (cntl%quenchp) CALL zeroing(velp)!,3*maxsys%nax*maxsys%nsx)
     IF (cntl%trevers) THEN
        ! invert ionic velocities (useful for path sampling)
@@ -796,9 +885,14 @@ CONTAINS
     ! COMPUTE THE IONIC TEMPERATURE TEMPP
     IF (paral%parent) THEN
        CALL ekinpp(ekinp,velp)
+       IF(cntl%tsinr)THEN  !ritama
+       !  CALL sinr_cons(esinr)   
+         tempp=(ekinp*2._real_8)*factem/(lbylp1*glib) !ritama
+       ELSE
        tempp=ekinp*factem*2._real_8/glib
+       ENDIF
        ! ..TSH[
-       tempp_sh=tempp
+       tempp_sh=tempp 
        ! ..TSH]
     ENDIF
     ! RESET ACCUMULATORS
@@ -851,11 +945,11 @@ CONTAINS
     IF (cntl%tdiag) THEN
        IF (cntl%tlanc) nx=1
        IF (cntl%tdavi) nx=nkpt%ngwk*cnti%ndavv*nkpt%nkpnt+1
-       IF (cntl%diis)  nx=((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)/4
+       IF (cntl%diis)  nx=((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)
     ELSEIF (cntl%tsde) THEN
        nx=1
     ELSEIF (cntl%diis) THEN
-       nx=(nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt/2+4
+       nx=(nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt+4
     ELSEIF (cntl%pcg) THEN
        nx=1
     ENDIF
@@ -873,6 +967,10 @@ CONTAINS
        WRITE(6,'(1X,64("="))')
     ENDIF
     ifcalc=0
+    if(.not.use_ace.and.hfx_scdm_status)then
+        CALL rotate_c0(c0(:,:,1),nstate)
+        IF (paral%io_parent) write(6,*)"Initial SCDM localization"
+    end if
     IF (cntl%bsymm) THEN
        CALL bs_forces_diag(nstate,c0,c2,cm,sc0,cm(nx:),vpp,eigv,&
           rhoe,psi,&
@@ -953,8 +1051,12 @@ CONTAINS
        ! MEAN SQUARE DISPLACEMENT OF DIFFERENT IONIC SPECIES
        IF (paral%parent) CALL dispp(tau0,taui,disa)
        ! ENERGY OF THE NOSE THERMOSTATS
-       CALL noseng(iteropt%nfi,velp,enose,enosp,dummy(1),1)
-       econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr
+       CALL noseng(iteropt%nfi,velp,enose,enosp,dummy(1),1)  ! SINR development
+       IF(cntl%tsinr)THEN
+         econs=ekinp+ener_com%etot+ener_com%ecnstr+esinr 
+       ELSE
+         econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr
+       ENDIF
        IF (cntl%cdft)econs=econs+cdftcom%cdft_v(1)*(cdftcom%cdft_nc+cdftcom%vgrad(1))
        time2 =m_walltime()
        tcpu = (time2 - time1)*0.001_real_8
@@ -972,6 +1074,18 @@ CONTAINS
     ! ==          THE BASIC LOOP FOR MOLECULAR DYNAMICS               ==
     ! ==                 USING VELOCITY VERLET                        ==
     ! ==================================================================
+
+    IF(paral%io_parent.AND.LANG_DYN)THEN
+       CALL LANG_CONS  !SAGAR HACK
+       !
+       ALLOCATE(VEL_TMP(3,MAXSYS%NAX,MAXSYS%NSX),RND(3,MAXSYS%NAX,MAXSYS%NSX) &
+            ,stat=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
+           __LINE__,__FILE__)
+       !
+    ENDIF
+
+
 #if defined(USE_IBM_HPM)
     CALL hpm_start('MD LOOP')
 #endif
@@ -1009,21 +1123,30 @@ CONTAINS
        ENDIF
        ! ANNEALING
        ! thermostats only if 1) standard dynamics 2) larger MTS step
-       if ( .not.cntl%use_mts .or. mts_large_step ) then
+       !if ( .not.cntl%use_mts .or. mts_large_step ) then
           CALL anneal(velp,c2,nstate,scr)
           CALL berendsen(velp,c2,nstate,scr,0.0_real_8,0.0_real_8)
           ! UPDATE NOSE THERMOSTATS
           CALL noseup(velp,c2,nstate,ipwalk)
           ! FIRST HALF OF GLE EVOLUTION
           CALL gle_step(tau0,velp,rmass%pma)
-       endif 
+       !endif 
+          !FIRST HALF OF SINR UPDATE
+       IF(cntl%tsinr.AND.paral%io_parent)CALL sinrup(velp,v1_sinr,v2_sinr)   !ritama
        ! SUBTRACT CENTER OF MASS VELOCITY
        IF (paral%io_parent.AND.comvl%subcom) CALL comvel(velp,vcmio,.TRUE.)
        ! SUBTRACT ROTATION AROUND CENTER OF MASS
        IF (paral%io_parent.AND.comvl%subrot) CALL rotvel(tau0,velp,lmio,&
             tauio,.TRUE.)
        ! UPDATE VELOCITIES
-       IF (paral%io_parent) CALL velupi(velp,fion,1)
+       !IF (paral%io_parent)CALL velupi(velp,fion,1)
+       IF (paral%io_parent)THEN
+          IF(cntl%tsinr)THEN
+            CALL velupi_sinr(velp,v1_sinr,fion)  !ritama
+          ELSE
+            CALL velupi(velp,fion,1)
+          ENDIF
+       ENDIF
 #if defined (__QMECHCOUPL)
        IF (paral%io_parent .AND. qmmech) THEN
           CALL mm_cpmd_velup(cntr%delt_ions)
@@ -1032,8 +1155,13 @@ CONTAINS
        ! UPDATE POSITIONS
        ener_com%ecnstr = 0.0_real_8
        IF (paral%io_parent) THEN
-          CALL posupi(tau0,taup,velp)
-          IF (cotc0%mcnstr.NE.0) CALL cpmdshake(tau0,taup,velp)
+    !      CALL posupi(tau0,taup,velp)
+           IF(cntl%tsinr)THEN 
+             CALL posupi_sinr(tau0,taup,velp,v2_sinr)  !ritama
+           ELSE
+             CALL posupi(tau0,taup,velp)
+           ENDIF
+          IF (cotc0%mcnstr.NE.0) CALL cpmdshake(tau0,taup,velp) 
 #if defined (__QMECHCOUPL)
           IF (qmmech) THEN
              CALL mm_cpmd_update_links(taup, ions0%na, ions1%nsp, maxsys%nax, ions1%nat)
@@ -1058,8 +1186,20 @@ CONTAINS
        ropt_mod%calste=cntl%tpres.AND.MOD(iteropt%nfi,cnti%npres).EQ.0
        IF (cntl%textrap) THEN
           ! Extrapolate wavefunctions
-          CALL extrapwf(infi,c0,scr,cold,nnow,numcold,nstate,cnti%mextra)
+          IF(pslo_com%tivan)THEN
+             CALL extrapwf(infi,c0,scr,cold,nnow,numcold,nstate,cnti%mextra,scold,.FALSE.)
+          ELSE
+             CALL extrapwf(infi,c0,scr,cold,nnow,numcold,nstate,cnti%mextra)
+          END IF
        ENDIF
+
+       if( mod(infi, n_loop) == 0 ) then 
+          if(.not.use_ace.and.hfx_scdm_status) then
+             CALL rotate_c0(c0(:,:,1),nstate)
+             IF (paral%io_parent) write(6,*) "relocalization of SCDM", infi, "-th step"
+          endif
+       end if
+
        IF (cntl%tlanc) nx=1
        IF (cntl%tdavi) nx=cnti%ndavv*nkpt%nkpnt+1
        ! RESPONSE calculation
@@ -1103,6 +1243,12 @@ CONTAINS
              CALL lr_tddft(c0(:,:,1),c1,c2(:,:,1),sc0,rhoe,psi,taup,fion,eigv,&
                   nstate,.TRUE.,td01%ioutput)
           ENDIF
+       ENDIF
+       IF (cntl%textrap) THEN
+          ! Extrapolate wavefunctions
+          IF(pslo_com%tivan)THEN
+             CALL extrapwf(infi,c0,scr,cold,nnow,numcold,nstate,cnti%mextra,scold,.TRUE.)
+          END IF
        ENDIF
        ! ..TSH[
        IF (tshl%tdtully) THEN 
@@ -1189,8 +1335,13 @@ CONTAINS
 #endif
        ! FINAL UPDATE FOR VELOCITIES
        ener_com%ecnstr = 0.0_real_8
+
        IF (paral%io_parent) THEN
-          CALL velupi(velp,fion,1)
+          IF(cntl%tsinr)THEN
+            CALL velupi_sinr(velp,v1_sinr,fion)  !ritama
+          ELSE
+            CALL velupi(velp,fion,1)
+          ENDIF
 #if defined (__QMECHCOUPL)
           IF (qmmech) THEN
              CALL mm_cpmd_velup(cntr%delt_ions)
@@ -1206,6 +1357,8 @@ CONTAINS
           IF (lmeta%lextlagrange.AND. ltcglobal) THEN
              CALL ekincv_global(ek_cv)
              tempp=(ek_cv+ekinp)*factem*2._real_8/(glib+REAL(ncolvar,kind=real_8))
+          ELSEIF(cntl%tsinr)THEN  !ritama
+             tempp=(ekinp*2._real_8)*factem/(lbylp1*glib)
           ELSE
              tempp=ekinp*factem*2._real_8/glib
           ENDIF
@@ -1240,21 +1393,27 @@ CONTAINS
        IF (paral%io_parent.AND.comvl%subcom) CALL comvel(velp,vcmio,.FALSE.)
 
        ! thermostats only if 1) standard dynamics 2) larger MTS step
-       if ( .not.cntl%use_mts .or. mts_large_step ) then
+       !if ( .not.cntl%use_mts .or. mts_large_step.or.use_ace ) then !SM
           ! SECOND HALF OF GLE EVOLUTION
           CALL gle_step(tau0,velp,rmass%pma)
 
           ! UPDATE NOSE THERMOSTATS
           CALL noseup(velp,c2,nstate,ipwalk)
           CALL berendsen(velp,c2,nstate,scr,0.0_real_8,0.0_real_8)
+        
+          !UPDATE SECOND HALF OF SINR THERMOSTAT
+          IF(cntl%tsinr.AND.paral%io_parent)CALL sinrup(velp,v1_sinr,v2_sinr)   !ritama
+
           ! ANNEALING
           CALL anneal(velp,c2,nstate,scr)
-       endif
+       !endif
        IF (paral%io_parent) THEN
           CALL ekinpp(ekinp,velp)
           IF (lmeta%lextlagrange.AND. ltcglobal) THEN
              CALL ekincv_global(ek_cv)
              tempp=(ek_cv+ekinp)*factem*2._real_8/(glib+REAL(ncolvar,kind=real_8))
+          ELSEIF (cntl%tsinr)THEN
+             tempp=(ekinp*2._real_8)*factem/(lbylp1*glib)
           ELSE
              tempp=ekinp*factem*2._real_8/glib
           ENDIF
@@ -1263,6 +1422,13 @@ CONTAINS
        IF (paral%io_parent) CALL dispp(taup,taui,disa)
        ! ENERGY OF THE NOSE THERMOSTATS
        IF (paral%io_parent) CALL noseng(iteropt%nfi,velp,enose,enosp,dummy(1),ipwalk)
+       !PRINT SINR VARIABLES AFTER EVERY ISTORE STEP
+       IF (cntl%tsinr.AND.paral%io_parent) THEN !ritama
+          IF((MOD(iteropt%nfi,store1%istore).EQ.0) .OR. (iteropt%nfi.EQ.cnti%nomore))THEN
+            CALL print_sinr(iteropt%nfi,velp,v1_sinr,v2_sinr,sinr_ke) 
+          ENDIF
+       IF (paral%io_parent) CLOSE(500)
+       ENDIF
        ! CALCULATE PROPERTIES DURING SIMULATION.
        cntl%caldip=cntl%tdipd.AND.MOD(iteropt%nfi-1,cnti%npdip).EQ.0
        ! mb - Wannier stuff for vdW-WC; call ddipo instead of localize2
@@ -1280,7 +1446,12 @@ CONTAINS
             rhoe,psi,nstate,nkpt%nkpnt,iteropt%nfi,infi)
        ! PRINTOUT the evolution of the accumulators every time step
        IF (paral%io_parent) THEN
-          econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr+ekincv+vharm+glepar%egle 
+          IF(cntl%tsinr)THEN
+            CALL sinr_cons(esinr)   ! ritama !TODO remove extra energy
+            econs=ekinp+ener_com%etot+ener_com%ecnstr+ekincv+vharm+glepar%egle+esinr 
+          ELSE
+            econs=ekinp+ener_com%etot+enose+enosp+ener_com%ecnstr+ekincv+vharm+glepar%egle
+          ENDIF
           IF (cntl%cdft)THEN
              econs=econs+cdftcom%cdft_v(1)*(cdftcom%cdft_nc+cdftcom%vgrad(1))
           ENDIF
@@ -1498,6 +1669,14 @@ CONTAINS
        GOTO 99999
     ENDIF
 10000 CONTINUE
+    !SAGAR HACK
+    IF(paral%io_parent.AND.LANG_DYN)THEN
+       !
+       DEALLOCATE(VEL_TMP,RND,stat=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+           __LINE__,__FILE__)
+       !
+    ENDIF
     ! ==--------------------------------------------------------------==
     DEALLOCATE(eigv,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
@@ -1575,18 +1754,40 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
     IF (paral%io_parent) CALL fileclose(3)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:rhoe)
+#endif
     DEALLOCATE(rhoe,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:psi)
+#endif
     DEALLOCATE(psi,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target exit data map(delete:scr)
+#endif
     DEALLOCATE(scr,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
-    IF (cntl%textrap) DEALLOCATE(cold,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
+    IF (cntl%textrap) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target exit data map(delete:cold)
+#endif
+       DEALLOCATE(cold,STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+            __LINE__,__FILE__)
+       IF (pslo_com%tivan) THEN
+          DEALLOCATE(scold,STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+               __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target exit data map(delete:scold)
+#endif
+       END IF
+    END IF
     if (cntl%use_mts) then
        deallocate(fion_high,stat=ierr)
        if(ierr/=0) call stopgm(proceduren,'deallocation problem: fion_high',&
@@ -1687,6 +1888,21 @@ CONTAINS
             __LINE__,__FILE__)
     ENDIF
     ! SOC]
+!=======================================================================
+    IF(USE_ACE)THEN  !SM
+       DEALLOCATE(XI,STAT=ierr)
+       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem: XI',&
+            __LINE__,__FILE__)
+    ENDIF
+    IF(HFX_SCDM_STATUS)THEN  !SM
+       Deallocate(rho_scdm,STAT=ierr)
+       if(ierr/=0) call stopgm(proceduren,'deallocation problem: rho_scdm',&
+            __LINE__,__FILE__)
+       Deallocate(grad_scdm,STAT=ierr)
+       if(ierr/=0) call stopgm(proceduren,'deallocation problem: grad_scdm',&
+            __LINE__,__FILE__)
+    ENDIF
+!-----------------------------------------------------------------------
     CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
   END SUBROUTINE mddiag
@@ -1740,6 +1956,8 @@ CONTAINS
 
         call set_mts_functional('LOW')
 
+        if(use_ace)status_ace=.true. !SM
+        !
         call forces_diag(nstate,c0,c2,cr,csc0,cscr,vpp,eigv,&
            rhoe,psi,tau0,velp,taui,fion,ifcalc,irec,tfor,tinfo)
 
@@ -1772,14 +1990,22 @@ CONTAINS
 
               ! wf extrapolation
               if (.not.initialization .and. cntl%textrap) then
-                 call extrapwf(infi,c0_high,cscr,cold_high,nnow_high,numcold_high,nstate,cnti%mextra)
+                 if(.not.use_ace)then
+                   call extrapwf(infi,c0_high,cscr,cold_high,nnow_high,numcold_high,nstate,cnti%mextra)
+                 else
+                   call dcopy(2*size(c0,1)*size(c0,2)*size(c0,3),c0,1,c0_high,1) !sagar hack
+                 endif
               end if
 
+              if(use_ace)status_ace=.false. !SM
+              !
               ! get forces
               call forces_diag(nstate,c0_high,c2,cr,csc0,cscr,vpp,eigv,&
                  rhoe,psi,tau0,velp,taui,fion_high,ifcalc,irec,tfor,tinfo)
            else
 
+              !if(use_ace)status_ace=.false. !SM
+              !
               ! In this case the wf extrap. is done in the main (outside) routine
               call forces_diag(nstate,c0,c2,cr,csc0,cscr,vpp,eigv,&
                  rhoe,psi,tau0,velp,taui,fion_high,ifcalc,irec,tfor,tinfo)
@@ -1829,10 +2055,9 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
 
     INTEGER :: lcalc_alm, lcopot, lddipo, lforces_diag, linitrun, lmoverho, &
-      lmtd, lpropcal, lrhoofr, lrhopri, lrinitwf, lrnlsm, ltddft, nstate
+      lmtd, lpropcal, lrhopri, lrinitwf, ltddft, nstate
 
     nstate=crge%n
-    lrnlsm=0
     lcalc_alm=0
     lcopot=0
     lrhopri=0
@@ -1842,8 +2067,6 @@ CONTAINS
     lddipo=0
     CALL give_scr_initrun(linitrun,tag)
     CALL give_scr_rinitwf(lrinitwf,tag,nstate)
-    IF (pslo_com%tivan) CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
-    CALL give_scr_rhoofr(lrhoofr,tag)
     IF (fint1%ttrot) CALL give_scr_calc_alm(lcalc_alm,tag)
     IF (cntl%tmdeh) THEN
        CALL give_scr_forces_prop(lforces_diag,tag,nstate,.TRUE.)
@@ -1857,7 +2080,7 @@ CONTAINS
     IF (cntl%tddft) CALL give_scr_lr_tddft(ltddft,.TRUE.,tag)
     CALL give_scr_meta_extlagr(lmtd,tag)
     IF (vdwl%vdwd) CALL give_scr_ddipo(lddipo,tag)
-    lmddiag=MAX(lrinitwf,lrnlsm,lrhoofr,lforces_diag,ltddft,linitrun,&
+    lmddiag=MAX(lrinitwf,lforces_diag,ltddft,linitrun,&
          lcopot,lcalc_alm,lrhopri,lpropcal,lmoverho,lmtd,&
          lddipo)
     ! ==--------------------------------------------------------------==
@@ -1866,58 +2089,99 @@ CONTAINS
 END MODULE md_driver
 
 ! ==================================================================
-SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m)
+SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m,scold,only_save)
   USE dotp_utils, ONLY: dotp
   USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8
   USE error_handling, ONLY: stopgm
   USE timer, ONLY: tiset, tihalt
   USE mp_interface, ONLY: mp_sum
-  USE system , ONLY:cntl,ncpw,nkpt
+  USE system , ONLY:cntl,ncpw,nkpt,parm
   USE parac, ONLY : paral,parai
   USE kpts, ONLY : tkpts
   USE kpnt, ONLY : wk
   USE spin, ONLY : spin_mod
   USE elct, ONLY : crge
   USE geq0mod , ONLY:geq0
+  USE gpu
   USE pslo, ONLY : pslo_com
   USE legendre_p_utils, ONLY : d_binom
   USE ortho_utils, ONLY: ortho,preortho
   USE ovlap_utils, ONLY : ovlap
   USE rnlsm_utils, ONLY: rnlsm
   USE rotate_utils, ONLY: rotate
-  USE utils, ONLY: zclean
+  USE rgsvan_utils, ONLY: rgsvan
+  USE spsi_utils, ONLY: spsi
+  USE rnlsm_utils, ONLY: rnlsm
+  USE sfac, ONLY: fnl_packed, il_fnl_packed
+  use summat_utils, only : summat
+  USE rhov_utils, ONLY: rhov
   USE zeroing_utils,                   ONLY: zeroing
   IMPLICIT NONE
   INTEGER                                    :: nstate, infi, nnow, numcold, m
   COMPLEX(real_8)                            :: cold(nkpt%ngwk,nstate,nkpt%nkpnt,*)
   REAL(real_8)                               :: gam(nstate,*)
   COMPLEX(real_8)                            :: c0(nkpt%ngwk,nstate,*)
-
-  INTEGER                                    :: i, ik, isub, ma, n1, nm, ierr
-  REAL(real_8)                               :: fa, rsum, scalef
+  COMPLEX(real_8), optional                  :: scold(nkpt%ngwk,nstate,nkpt%nkpnt,*)
+  
+  LOGICAL, INTENT(IN), OPTIONAL              :: only_save
+  logical                                    :: save
+  INTEGER                                    :: i, ik, isub, ma, n1, nm, nnow_save, ig, &
+                                                nstates(2,1)
+  REAL(real_8)                               :: fa, rsum, scalef, rsumv, fac_r
+  COMPLEX(real_8)                            :: fac_c
   REAL(real_8), EXTERNAL                     :: ddot
-  complex(real_8), allocatable               :: c2(:,:)
+  CHARACTER(*), PARAMETER                    :: procedureN = 'extrapwf'
+  CALL tiset(procedureN,isub)
 
-! IF (pslo_com%tivan) CALL stopgm('EXTRAPWF','EXTRAPOLATION NOT (YET) ' //&
-!      'SUPPORTED FOR VANDERBILT PSEUDOPOTENTIALS',& 
-!      __LINE__,__FILE__)
-  CALL tiset('  EXTRAPWF',isub)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  update_first_to_gpu  =.FALSE.
+  update_second_to_gpu =.FALSE.
+  update_third_to_gpu  =.FALSE.
+  update_result_to_host=.FALSE.
+  comm_buffers_on_host= .FALSE.
+#endif
 
-  ALLOCATE(c2(nkpt%ngwk,nstate),stat=ierr)
-  IF(ierr/=0) CALL stopgm('extrapwf','allocation problem : c2',&
-       __LINE__,__FILE__)
-
-  nnow=MOD(nnow,m)+1
-  CALL dcopy(2*nkpt%ngwk*nstate*nkpt%nkpnt,c0,1,cold(1,1,1,nnow),1)
-
-  numcold=MIN(numcold+1,m)
+  IF(pslo_com%tivan)THEN
+     IF (PRESENT(only_save)) save=only_save
+     IF(save)THEN
+        nnow_save=MOD(nnow,m)+1
+        CALL cpmd_dcopy(2*nkpt%ngwk*nstate*nkpt%nkpnt,c0,1,cold(1,1,1,nnow_save),1)
+        IF(pslo_com%tivan)THEN
+           CALL cpmd_dcopy(2*nkpt%ngwk*nstate*nkpt%nkpnt,c0,1,scold(1,1,1,nnow_save),1)
+           CALL spsi(nstate,scold(:,:,1,nnow_save),fnl_packed,.FALSE.)
+        END IF
+        numcold=MIN(numcold+1,m)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+        update_first_to_gpu  =.TRUE.
+        update_second_to_gpu =.TRUE.
+        update_third_to_gpu  =.TRUE.
+        update_result_to_host=.TRUE.
+        comm_buffers_on_host= .TRUE.
+#endif
+        CALL tihalt(procedureN,isub)
+        RETURN
+     ELSE
+        nnow=MOD(nnow,m)+1        
+     END IF
+  ELSE
+     nnow=MOD(nnow,m)+1
+     CALL cpmd_dcopy(2*nkpt%ngwk*nstate*nkpt%nkpnt,c0,1,cold(1,1,1,nnow),1)
+     numcold=MIN(numcold+1,m)
+  END IF
 
   ma=numcold
   IF (ma.GT.1) THEN
-     CALL zeroing(c0(:,:,1:nkpt%nkpnt))!,nkpt%ngwk*nstate*nkpt%nkpnt)
      n1=nnow
      fa=-1.0_real_8
      DO i=1,ma
+        IF(i.eq.1)THEN
+           fac_r=0._real_8
+           fac_c=CMPLX(0._real_8,0._real_8)
+        ELSE
+           fac_r=1._real_8
+           fac_c=CMPLX(1._real_8,0._real_8)
+        END IF
+
         nm=nnow-i+1
         IF (nm.LE.0) nm=nm+m
         ! construct extrapolation polynomial coefficient.
@@ -1932,55 +2196,64 @@ SUBROUTINE extrapwf(infi,c0,gam,cold,nnow,numcold,nstate,m)
               CALL ovlap_c(nstate,gam,cold(:,:,ik,nm),cold(:,:,ik,n1))
               CALL mp_sum(gam,2*nstate*nstate,parai%allgrp)
               CALL rotate_c(CMPLX(fa,0._real_8,kind=real_8),cold(1,1,ik,nm),&
-                   CMPLX(1._real_8,0._real_8,kind=real_8),c0(1,1,ik),gam,nstate)
+                   fac_c,c0(1,1,ik),gam,nstate)
            ENDDO
         ELSE
-           CALL ovlap(nstate,gam,cold(:,:,1,nm),cold(:,:,1,n1))
+           IF(pslo_com%tivan)THEN
+              CALL ovlap(nstate,gam,scold(:,:,1,nm),cold(:,:,1,n1))
+           ELSE
+              CALL ovlap(nstate,gam,cold(:,:,1,nm),cold(:,:,1,n1))
+           END IF
            CALL mp_sum(gam,nstate*nstate,parai%allgrp)
-           CALL rotate(fa,cold(:,:,1,nm),1._real_8,c0(:,:,1),gam,nstate,2*nkpt%ngwk,&
+           CALL rotate(fa,cold(:,:,1,nm),fac_r,c0(:,:,1),gam,nstate,2*nkpt%ngwk,&
                 cntl%tlsd,spin_mod%nsup,spin_mod%nsdown)
         ENDIF
      ENDDO
-     ! orthogonalization: as done in k_forces
-     DO ik=1,nkpt%nkpnt
-        IF (cntl%nonort) THEN
-           IF (geq0) CALL zclean(c0,nstate,ncpw%ngw)
-        ELSE
-           CALL preortho(c0(1,1,ik),nstate)
-           IF (pslo_com%tivan) CALL rnlsm(c0(:,:,1),nstate,1,1,.FALSE.)
-           CALL ortho(nstate,c0(:,:,ik),c2)
-        ENDIF
-     ENDDO
-     IF (pslo_com%tivan) GOTO 1
      ! ..COUNT NUMBER OF ELECTRONS IN EXTRAPOLATED WFN AND RENORMALIZE
-     rsum=0._real_8
-     IF (tkpts%tkpnt) THEN
-        DO ik=1,nkpt%nkpnt
+     IF(.NOT.cntl%nonort) THEN
+        rsum=0._real_8
+        IF (tkpts%tkpnt) THEN
+           DO ik=1,nkpt%nkpnt
+              DO i=1,nstate
+                 IF (crge%f(i,ik).NE.0._real_8) THEN
+                    rsum=rsum+&
+                         crge%f(i,ik)*wk(ik) *&
+                         ddot(nkpt%ngwk*2,c0(1,i, ik),1,c0(1,i,ik),1)
+                 ENDIF
+              ENDDO
+           ENDDO
+        ELSE
            DO i=1,nstate
-              IF (crge%f(i,ik).NE.0._real_8) THEN
-                 rsum=rsum+&
-                      crge%f(i,ik)*wk(ik) *&
-                      ddot(nkpt%ngwk*2,c0(1,i, ik),1,c0(1,i,ik),1)
+              IF (crge%f(i,1).NE.0._real_8) THEN
+                 rsum=rsum+crge%f(i,1)*dotp(ncpw%ngw,c0(:,i,1),c0(:,i,1))
               ENDIF
            ENDDO
-        ENDDO
-     ELSE
-        DO i=1,nstate
-           IF (crge%f(i,1).NE.0._real_8) THEN
-              rsum=rsum+crge%f(i,1)*dotp(ncpw%ngw,c0(:,i,1),c0(:,i,1))
-           ENDIF
-        ENDDO
-     ENDIF
-     CALL mp_sum(rsum,parai%allgrp)
-     scalef=crge%nel/rsum
-     CALL dscal(2*nkpt%ngwk*nstate*nkpt%nkpnt,scalef,c0,1)
+           IF(pslo_com%tivan)THEN
+              CALL rnlsm(c0(:,:,1),nstate,1,1,.FALSE.,unpack_dfnl_fnl=.FALSE.)
+              nstates(1,1)=1
+              nstates(2,1)=nstate
+              CALL rhov(nstates,rsumv,hfx=.FALSE.,dipole=.FALSE.)
+              rsum=rsum+parm%omega*rsumv
+           END IF
+        ENDIF
+        CALL mp_sum(rsum,parai%allgrp)
+        scalef=crge%nel/rsum
+        CALL dscal(2*nkpt%ngwk*nstate*nkpt%nkpnt,scalef,c0,1)
+        IF(pslo_com%tivan) THEN
+           CALL dscal(nstate*il_fnl_packed(1),scalef,fnl_packed,1)
+           CALL rgsvan(c0(:,:,1),nstate,gam,store_nonort=.FALSE.)
+        END IF
+     END IF
   ENDIF
-1 CONTINUE
-  DEALLOCATE(c2,stat=ierr)
-  IF(ierr/=0) call stopgm('extrapwf','deallocation problem : c2',&
-       __LINE__,__FILE__)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+  update_first_to_gpu  =.TRUE.
+  update_second_to_gpu =.TRUE.
+  update_third_to_gpu  =.TRUE.
+  update_result_to_host=.TRUE.
+  comm_buffers_on_host= .TRUE.
+#endif
 
-  CALL tihalt('  EXTRAPWF',isub)
+  CALL tihalt(procedureN,isub)
   ! ==--------------------------------------------------------------==
   RETURN
 END SUBROUTINE extrapwf

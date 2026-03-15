@@ -5,7 +5,6 @@ MODULE forcedr_utils
   USE mm_dim_utils,                    ONLY: mm_dim
   USE mm_dimmod,                       ONLY: mm_go_mm,&
                                              mm_revert
-  USE noforce_utils,                   ONLY: give_scr_noforce
   USE symtrz_utils,                    ONLY: give_scr_symvec
   USE system,                          ONLY: cntl,&
                                              maxsys
@@ -30,8 +29,7 @@ CONTAINS
 
     CHARACTER(*), PARAMETER :: procedureN = 'give_scr_forcedr'
 
-    INTEGER                                  :: il_auxc, il_ddia, il_gam, &
-                                                il_smat, isub, lsymvec, ltscr
+    INTEGER                                  :: isub, lsymvec, ltscr
     LOGICAL                                  :: oldstatus
 
 ! ==--------------------------------------------------------------==
@@ -41,16 +39,11 @@ CONTAINS
     ! ivano 4/3/2011
     lforcedr=0
     ! ivano 4/3/2011
-    IF (cntl%nonort) THEN
-       CALL give_scr_noforce(lforcedr,il_gam,il_auxc,il_smat,il_ddia,&
-            tag,nstate,tfor)
+    ! EHR[
+    IF (tkpts%tkpnt.AND.(.NOT.(cntl%tmdeh.OR.cntl%tpspec.OR.cntl%tpdist))) THEN
+       CALL give_scr_kforces(lforcedr,tag,nstate,lproj,tfor)
     ELSE
-       ! EHR[
-       IF (tkpts%tkpnt.AND.(.NOT.(cntl%tmdeh.OR.cntl%tpspec.OR.cntl%tpdist))) THEN
-          CALL give_scr_kforces(lforcedr,tag,nstate,lproj,tfor)
-       ELSE
-          CALL give_scr_forces(lforcedr,tag,nstate,lproj,tfor)
-       ENDIF
+       CALL give_scr_forces(lforcedr,tag,nstate,lproj,tfor)
     ENDIF
     ! EHR]
     ltscr=3*maxsys%nax*maxsys%nsx

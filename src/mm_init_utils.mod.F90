@@ -418,9 +418,6 @@ CONTAINS
          __LINE__,__FILE__)
     CALL zeroing(gratom)!,maxsys%nax*maxsys%nsx)
     !$omp parallel do private(I)
-#ifdef __SR11000
-    !poption parallel, tlocal(I)
-#endif
     DO i=0,mmdim%natm
        nat_cpmd(i)=i
        nat_grm(i)=i

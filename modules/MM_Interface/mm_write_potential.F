@@ -41,10 +41,14 @@ C     AK 2005/04/09
 !     ----------------------------------------------------------
       allocate (EXTF_pr_scr(fpar%kr1s,fpar%kr2s,fpar%kr3s))
       allocate (EXTF_pr(fpar%kr1s,fpar%kr2s,fpar%kr3s))
-!$OMP parallel do private(i)
-      DO i=1,fpar%kr1s*fpar%kr2s*fpar%kr3s
-        EXTF_pr_scr(i,1,1)=0.0d0
-        EXTF_pr(i,1,1)=0.0d0
+!$OMP parallel do private(iz,iy,ix)
+      DO IZ=1,fpar%kr3s
+         DO IY=1,fpar%kr2s
+            DO IX=1,fpar%kr1s
+               EXTF_pr_scr(IX,IY,IZ)=0.0d0
+               EXTF_pr(IX,IY,IZ)=0.0d0
+            ENDDO
+         ENDDO
       ENDDO
 !$OMP parallel do private(IZ,IY,IX,IX2)      
       DO IZ=1,spar%nr3s

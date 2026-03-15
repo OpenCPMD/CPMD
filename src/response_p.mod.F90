@@ -1,6 +1,8 @@
 MODULE response_pmod
   USE kinds,                           ONLY: real_8
-
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
   IMPLICIT NONE
 
   ! ==================================================================
@@ -359,7 +361,11 @@ MODULE response_pmod
   ! ==  nmr superparallel variables                                 ==
   ! ==================================================================
   TYPE :: nmr_para_t
+#ifdef __PARALLEL
+     type(MPI_COMM) :: nmr_supergroup
+#else
      INTEGER :: nmr_supergroup
+#endif
      INTEGER :: nmr_threads
      INTEGER :: nmr_mygroup
      INTEGER :: nmr_total_nproc

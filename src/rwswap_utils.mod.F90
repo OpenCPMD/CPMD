@@ -120,7 +120,7 @@ SUBROUTINE rkpt_swap(c0,nstate,ikpt,tag)
   USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8
   USE error_handling, ONLY: stopgm
   USE timer, ONLY: tiset, tihalt
-  USE rinforce_utils, ONLY : calc_twnl
+  USE rinforce_utils, ONLY : putwnl
   USE rkpnt_utils, ONLY : rkpnt, bzmesh, calc_maskgw, calc_hgk
   USE ehpsi_utils, ONLY : calc_emk2
   USE calc_alm_utils, ONLY : calc_k_alm
@@ -209,7 +209,7 @@ SUBROUTINE rkpt_swap(c0,nstate,ikpt,tag)
               GOTO 1000
            ENDIF
            iswacce(2,isw_twnl,isw_calc)=iswacce(2,isw_twnl,isw_calc)+1
-           CALL calc_twnl(ikpt)
+           CALL putwnl(ikpt)
            iswmem(isw_twnl,isw_calc)=ikpt
         ENDIF
      ENDIF

@@ -2,6 +2,7 @@
 
 MODULE jrotation_utils
   USE cnst,                            ONLY: pi
+  USE distribution_utils,              ONLY: dist_entity2
   USE error_handling,                  ONLY: stopgm
   USE kinds,                           ONLY: real_8
   USE machine,                         ONLY: m_flush
@@ -29,6 +30,10 @@ MODULE jrotation_utils
                                              wannr
 !!use utils, only : matmov
   USE zeroing_utils,                   ONLY: zeroing
+
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
 
   IMPLICIT NONE
 
@@ -69,10 +74,16 @@ CONTAINS
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'jrotation'
 
+#ifdef __PARALLEL
+    INTEGER                                  :: i, ierr, imax, isub, j, k, &
+                                                loc_nogrp, msglen, &
+                                                my_nproc
+    type(MPI_COMM)                           :: my_grp
+#else
     INTEGER                                  :: i, ierr, imax, isub, j, k, &
                                                 loc_nogrp, msglen, my_grp, &
                                                 my_nproc
-    INTEGER, ALLOCATABLE, DIMENSION(:)       :: loc_nolist, loc_nplist
+#endif
     LOGICAL                                  :: debug
     LOGICAL, SAVE                            :: is_first = .TRUE.
     REAL(real_8), ALLOCATABLE                :: abc(:,:,:), gmat(:,:)
@@ -152,15 +163,9 @@ CONTAINS
           loc_nogrp = parai%cp_nproc / wan05%loc_npgrp
        ENDIF
 
-       ALLOCATE(loc_nolist(parai%cp_nproc),loc_nplist(parai%cp_nproc),stat=ierr)
-       IF (ierr.NE.0) CALL stopgm(procedureN,'Allocation problem',& 
-            __LINE__,__FILE__)
        !      CALL mp_cart(mp_comm_world,loc_nogrp,wan05%loc_npgrp,loc_nolist,loc_nplist,&
-       CALL mp_cart(parai%cp_grp,loc_nogrp,wan05%loc_npgrp,loc_nolist,loc_nplist,&
+       CALL mp_cart(parai%cp_grp,loc_nogrp,wan05%loc_npgrp,&
             parai%loc_inter_grp,parai%loc_grp)
-       DEALLOCATE(loc_nolist,loc_nplist,stat=ierr)
-       IF (ierr.NE.0) CALL stopgm(procedureN,'Deallocation problem',& 
-            __LINE__,__FILE__)
        CALL mp_environ(parai%loc_grp,parai%loc_nproc,parai%loc_me)
     ENDIF
     my_grp=parai%loc_grp
@@ -192,34 +197,9 @@ CONTAINS
     INTEGER                                  :: nstate, nblock, my_nproc, &
                                                 nbmax
 
-    INTEGER                                  :: ip, nx
-    REAL(real_8)                             :: xsaim, xsnow, xstates
 
-! ==--------------------------------------------------------------==
-
-    nbmax=0
-    xstates=REAL(nblock,kind=real_8)
-    IF ((xstates*my_nproc).LT.nstate) THEN
-       xstates=REAL(nstate,kind=real_8)/REAL(my_nproc,kind=real_8)
-    ENDIF
-    xsnow=0.0_real_8
-    xsaim=0.0_real_8
-    DO ip=1,my_nproc
-       xsaim = xsnow + xstates
-       paraw%nwa12(ip-1,1)=NINT(xsnow)+1
-       paraw%nwa12(ip-1,2)=NINT(xsaim)
-       IF (NINT(xsaim).GT.nstate) THEN
-          paraw%nwa12(ip-1,2)=nstate
-       ENDIF
-       IF (NINT(xsnow).GT.nstate) THEN
-          paraw%nwa12(ip-1,1)=nstate+1
-       ENDIF
-       xsnow = xsaim
-    ENDDO
-    DO ip=0,my_nproc-1
-       nx=paraw%nwa12(ip,2)-paraw%nwa12(ip,1)+1
-       nbmax=MAX(nbmax,nx)
-    ENDDO
+    ! ==--------------------------------------------------------------==
+    CALL dist_entity2(nstate,my_nproc,paraw%nwa12,nblock=nblock,nbmax=nbmax,fw=.TRUE.)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE set_orbdist
@@ -228,27 +208,8 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     INTEGER                                  :: nstate, nblock, nbmax
 
-    INTEGER                                  :: ip, n
-    REAL(real_8)                             :: xsaim, xsnow, xstates
-
-! ==--------------------------------------------------------------==
-
-    nbmax=0
-    xstates=REAL(nstate,kind=real_8)/REAL(parai%nproc,kind=real_8)
-    IF (xstates.LT.REAL(nblock,kind=real_8)) xstates=REAL(nblock,kind=real_8)
-    xsnow=0.0_real_8
-    n=0
-    DO ip=1,parai%nproc
-       xsaim = xsnow + xstates
-       paraw%nwa12(ip-1,1)=NINT(xsnow)+1
-       paraw%nwa12(ip-1,2)=NINT(xsaim)
-       IF (NINT(xsaim).GT.nstate) paraw%nwa12(ip-1,2)=nstate
-       IF (ip.EQ.parai%nproc) paraw%nwa12(ip-1,2)=nstate
-       IF (NINT(xsnow).GT.nstate) paraw%nwa12(ip-1,1)=nstate+1
-       xsnow = xsaim
-       n=n+paraw%nwa12(ip-1,2)-paraw%nwa12(ip-1,1)+1
-       nbmax=MAX(nbmax,paraw%nwa12(ip-1,2)-paraw%nwa12(ip-1,1)+1)
-    ENDDO
+    ! ==--------------------------------------------------------------==
+    CALL dist_entity2(nstate,parai%nproc,paraw%nwa12,nblock=nblock,nbmax=nbmax,fw=.TRUE.)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE my_set_orbdist
@@ -333,7 +294,11 @@ CONTAINS
     COMPLEX(real_8)                          :: xyzmat(ldx,ldx,*)
     INTEGER                                  :: nstate
     REAL(real_8)                             :: rotmat(nstate,*)
+#ifdef __PARALLEL
+    type(MPI_COMM)                           :: my_grp
+#else
     INTEGER                                  :: my_grp
+#endif
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'jrotationp'
 

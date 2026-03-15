@@ -243,10 +243,10 @@ CONTAINS
        WRITE(6, '(A, i8)') '  fm  nr. of frames: ', nframes
     ENDIF
     ! write(6, '(A)') '  fm  Weights for fitting are: '
-    ! write(6, '(A, e9.3)') '  fm  WV (Potential)        = ', fm_wv
-    ! write(6, '(A, e9.3)') '  fm  WF (Field)            = ', fm_wf
-    ! write(6, '(A, e9.3)') '  fm  WQ (Charge restraint) = ', fm_wq
-    ! write(6, '(A, e9.3)') '  fm  WTOT (Total charge)   = ', fm_wtot
+    ! write(6, '(A, e10.3)') '  fm  WV (Potential)        = ', fm_wv
+    ! write(6, '(A, e10.3)') '  fm  WF (Field)            = ', fm_wf
+    ! write(6, '(A, e10.3)') '  fm  WQ (Charge restraint) = ', fm_wq
+    ! write(6, '(A, e10.3)') '  fm  WTOT (Total charge)   = ', fm_wtot
 
 
     ! compute nr of unique charges
@@ -290,8 +290,8 @@ CONTAINS
     ENDIF
     IF (paral%io_parent) THEN
        WRITE(6, '(A)') '  fm  Weights for fitting are:'
-       WRITE(6, '(A, e9.3)') '  fm  WV (Potential)        = ', fm_wv
-       WRITE(6, '(A, e9.3)') '  fm  WF (Field)            = ', fm_wf
+       WRITE(6, '(A, e10.3)') '  fm  WV (Potential)        = ', fm_wv
+       WRITE(6, '(A, e10.3)') '  fm  WF (Field)            = ', fm_wf
        WRITE(6, '(A)') '  fm  WQ'
        WRITE(6, '(2A)')&
             '  fm    cpmd         gromos   ',&
@@ -309,7 +309,7 @@ CONTAINS
             debug_weight,q_restrain(debug_unique_indx)
     ENDDO
     IF (paral%io_parent)&
-         WRITE(6, '(A, e9.3)') '  fm  WTOT (Total charge)   = ', fm_wtot
+         WRITE(6, '(A, e10.3)') '  fm  WTOT (Total charge)   = ', fm_wtot
     ! setup target vector and "influence" matrix
     ! size of target vector is 1+3=4 times the total nr. of NN atoms (1 for
     ! potential, 3 for field), plus the nr. of charges to restrain to, plus

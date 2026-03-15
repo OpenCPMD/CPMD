@@ -13,8 +13,7 @@ MODULE difrho_utils
   USE parac,                           ONLY: parai
   USE pslo,                            ONLY: pslo_com
   USE reshaper,                        ONLY: reshape_inplace
-  USE rhov_utils,                      ONLY: give_scr_rhov,&
-                                             rhov
+  USE rhov_utils,                      ONLY: rhov
   USE spin,                            ONLY: clsd,&
                                              spin_mod
   USE system,                          ONLY: cntl,&
@@ -51,7 +50,8 @@ CONTAINS
     INTEGER                                  :: i, ib, ibb, id, ierr, ifft, &
                                                 ig, is1, is2, ispin1, ispin2, &
                                                 isub, ix, ix1, ixp, l, lead, &
-                                                leadx, msglen, nl2, nnrx, nsta
+                                                leadx, msglen, nl2, nnrx, nsta,&
+                                                i_start, i_end, nstates(2,1)
     REAL(real_8)                             :: coef3, coef4, r1, r2, rsumv, &
                                                 tff
     REAL(real_8), ALLOCATABLE, DIMENSION(:)  :: psix
@@ -199,19 +199,25 @@ CONTAINS
     IF (pslo_com%tivan) THEN
        IF (cntl%tlsd) THEN
           ! ALPHA SPIN
-          CALL rhov(nstate,1,spin_mod%nsup,rsumv,psi)
+          nstates(1,1)=1
+          nstates(2,1)=spin_mod%nsup
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
           !$omp parallel do private(I)
           DO i=1,fpar%nnr1
              rhoe(i,1)=rhoe(i,1)+REAL(psire(i))
           ENDDO
           ! BETA SPIN
-          CALL rhov(nstate,spin_mod%nsup+1,nstate,rsumv,psi)
+          nstates(1,1)=spin_mod%nsup+1
+          nstates(2,1)=spin_mod%nsup+spin_mod%nsdown
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
           !$omp parallel do private(I)
           DO i=1,fpar%nnr1
              rhoe(i,2)=rhoe(i,2)+REAL(psire(i))
           ENDDO
        ELSE
-          CALL rhov(nstate,1,nstate,rsumv,psi)
+          nstates(1,1)=1
+          nstates(2,1)=nstate
+          CALL rhov(nstates,rsumv,psi,.FALSE.,.FALSE.)
           !$omp parallel do private(I)
           DO i=1,fpar%nnr1
              rhoe(i,1)=rhoe(i,1)+REAL(psire(i))
@@ -237,11 +243,7 @@ CONTAINS
 
 ! ==--------------------------------------------------------------==
 
-    IF (pslo_com%tivan) THEN
-       CALL give_scr_rhov(ldifrho,tag)
-    ELSE
-       ldifrho=0
-    ENDIF
+    ldifrho=0
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE give_scr_difrho

@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE atomwf_utils
   USE atrho_utils,                     ONLY: atrho,&
                                              give_scr_atrho
@@ -21,18 +23,18 @@ MODULE atomwf_utils
   USE func,                            ONLY: func1,&
                                              mfxcc_is_pade,&
                                              mfxcc_is_skipped
+  USE gpu
   USE gs_disortho_utils,               ONLY: gs_disortho
   USE gsortho_utils,                   ONLY: gs_ortho,&
                                              gs_ortho_c
   USE ions,                            ONLY: ions0,&
                                              ions1
-  USE kinds,                           ONLY: real_8
+  USE kinds,                           ONLY: real_8,&
+                                             int_8
   USE kpclean_utils,                   ONLY: c_clean
   USE kpts,                            ONLY: tkpts
-  USE ksmat_dist_utils,                ONLY: dist_ksmat,&
-                                             give_scr_dist_ksmat
-  USE ksmat_utils,                     ONLY: give_scr_ksmat,&
-                                             ksmat
+  USE ksmat_dist_utils,                ONLY: dist_ksmat
+  USE ksmat_utils,                     ONLY: ksmat
   USE mp_interface,                    ONLY: mp_bcast,&
                                              mp_sum
   USE nlcc,                            ONLY: corel
@@ -47,15 +49,13 @@ MODULE atomwf_utils
   USE reshaper,                        ONLY: reshape_inplace
   USE rgs_utils,                       ONLY: rgs,&
                                              rgs_c
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE sfac,                            ONLY: fnl
   USE sphe,                            ONLY: tsphere
   USE spin,                            ONLY: clsd,&
                                              lspin2,&
                                              spin_mod
-  USE summat_utils,                    ONLY: give_scr_summat,&
-                                             summat
+  USE summat_utils,                    ONLY: summat
   USE system,                          ONLY: cntl,&
                                              kpbeg,&
                                              ncpw,&
@@ -67,6 +67,10 @@ MODULE atomwf_utils
   USE vofrho_utils,                    ONLY: give_scr_vofrho,&
                                              vofrho
   USE zeroing_utils,                   ONLY: zeroing
+#ifdef _USE_SCRATCHLIBRARY
+  USE scratch_interface,               ONLY: request_scratch,&
+                                             free_scratch
+#endif
 
   IMPLICIT NONE
 
@@ -89,39 +93,49 @@ CONTAINS
     ! == MOREOVER, IF EIGENSTATES ARE DEGENERATED, IN THE SUBSPACE    ==
     ! == EIGENVECTORS ARE DIFFERENT.                                  ==
     ! ==--------------------------------------------------------------==
-    COMPLEX(real_8)                          :: c0(:,:,:)
-    INTEGER                                  :: nstate
-    REAL(real_8)                             :: tau0(:,:,:), fion(:,:,:), &
-                                                rhoe(:,:)
-    COMPLEX(real_8)                          :: psi(:,:)
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: c0(:,:,:)
+    INTEGER,INTENT(IN)                       :: nstate
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: tau0(:,:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: rhoe(:,:)
+    COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS :: psi(:,:)
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'atomwf'
     COMPLEX(real_8), PARAMETER               :: zone = (1._real_8, 0._real_8),&
                                                 zzero = (0._real_8, 0._real_8)
 
-    COMPLEX(real_8), ALLOCATABLE             :: cx(:,:), zorkat(:)
-    COMPLEX(real_8), ALLOCATABLE, TARGET     :: zmatat(:,:)
-    INTEGER :: ierr, ikind, ikk, ikpt, il_eivat, il_workat, il_xmatat, iopt, &
-      isub, kbeg, kend, kinc, nkpoint, nleft, nn, nsmat
+#ifdef _USE_SCRATCHLIBRARY
+    COMPLEX(real_8), POINTER __CONTIGUOUS    :: cx(:,:), zorkat(:), zmatat(:,:)
+    REAL(real_8), POINTER __CONTIGUOUS       :: eivat(:), rscr(:), workat(:)
+#else
+    COMPLEX(real_8), ALLOCATABLE             :: cx(:,:), zorkat(:), zmatat(:,:)
+    REAL(real_8), ALLOCATABLE                :: eivat(:), rscr(:), workat(:)
+#endif
+    INTEGER :: ierr, ikind, ikk, ikpt, iopt, isub, kbeg, kend, kinc, nkpoint, nleft, nn, &
+         nsmat, il_xmatat
+    INTEGER(int_8) :: il_eivar(1), il_workat(1), il_rscr(1), il_xxmat(2), il_xsmat(2), &
+         il_catom(2), il_zxmat(2), il_zsmat(2), il_zorkat(1), il_cx(2), il_zmatat(2), &
+         il_eivat(1), i
     LOGICAL                                  :: debug, tdmal_tmp, tlsd2, &
                                                 tlse2, ttau2
     REAL(real_8)                             :: dummy
-    REAL(real_8), ALLOCATABLE                :: eivat(:), rscr(:), workat(:)
     REAL(real_8), POINTER                    :: xmatat(:,:)
 
-    CALL phfac(tau0)
+    CALL phfac(tau0,force_update=.TRUE.)
     ! ==--------------------------------------------------------------==
     IF (nstate.EQ.0) RETURN
     ! ==--------------------------------------------------------------==
-    CALL tiset('    ATOMWF',isub)
+    CALL tiset(procedureN,isub)
     ! ==--------------------------------------------------------------==
     tdmal_tmp = cntl%tdmal
     ! vw>>>
     ! vw using always cntl%tdmal = T:
     ! vw    1) still bugs with cntl%cdft = T
     ! vw    2) not yet implemented with TKPNT = T 
+    ! TK    3) not yet implemented with USPP
     ! vw so we hack...
-    IF (.NOT.tkpts%tkpnt.AND..NOT.cntl%cdft) cntl%tdmal = .TRUE.
+    IF (.NOT.tkpts%tkpnt.AND..NOT.cntl%cdft.AND..NOT.pslo_com%tivan) &
+         cntl%tdmal = .TRUE.
     ! vw<<<
     IF (cntl%tdmal.AND.paral%io_parent) THEN
        WRITE(6,*)&
@@ -134,56 +148,109 @@ CONTAINS
     ELSE
        il_xmatat=imagp*atwp%nattot*atwp%nattot
     ENDIF
-
-    ALLOCATE(zmatat(atwp%nattot, atwp%nattot), stat=ierr) ! FIXME deallocate
+    il_zmatat(1)=atwp%nattot
+    il_zmatat(2)=atwp%nattot
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_zmatat,zmatat,procedureN//'_zmatat',ierr)
+#else
+    ALLOCATE(zmatat(il_zmatat(1),il_zmatat(2)), stat=ierr)
+#endif
     IF (ierr /= 0) CALL stopgm('atomwf.F90','Error allocating ZMATAT',& 
          __LINE__,__FILE__)
     ! XMATAT is real(8) :: alias to ZMATAT (C*16)
     CALL reshape_inplace(zmatat, (/atwp%nattot, atwp%nattot/), xmatat)
 
     ! EIVAT is eigenvalues.
-    il_eivat=imagp*atwp%nattot
+    il_eivat(1)=imagp*atwp%nattot
     ! WORKAT is an auxiliary array.
-    il_workat=3*atwp%nattot
+    il_workat(1)=3*atwp%nattot
     ! Assignation
-    ALLOCATE(eivat(il_eivat), stat=ierr) 
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_eivat,eivat,procedureN//'_eivat',ierr)
+#else
+    ALLOCATE(eivat(il_eivat(1)), stat=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
-    ALLOCATE(workat(il_workat), stat=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_workat,workat,procedureN//'_workat',ierr)
+#else    
+    ALLOCATE(workat(il_workat(1)), stat=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
     IF (tkpts%tkpnt) THEN
-       ALLOCATE(zorkat(il_workat), stat=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-            __LINE__,__FILE__)
+       il_zorkat=il_workat
     ELSE
-       ALLOCATE(zorkat(1), stat=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-            __LINE__,__FILE__)
-    ENDIF
+       il_zorkat=1
+    END IF
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_zorkat,zorkat,procedureN//'_zorkat',ierr)
+#else    
+    ALLOCATE(zorkat(il_zorkat(1)), stat=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
+         __LINE__,__FILE__)
     ! ==--------------------------------------------------------------==
-    ALLOCATE(cx(nkpt%ngwk,atwp%numaormax),STAT=ierr)
+    il_cx(1)=nkpt%ngwk
+    il_cx(2)=atwp%numaormax
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_cx,cx,procedureN//'_cx',ierr)
+#else
+    ALLOCATE(cx(il_cx(1),il_cx(2)),STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
     CALL zeroing(cx)!,nkpt%ngwk*atwp%numaormax)
     ! ==--------------------------------------------------------------==
-    ALLOCATE(catom(nkpt%ngwk,atwp%nattot),STAT=ierr)
+    il_catom(1)=nkpt%ngwk
+    il_catom(2)=atwp%nattot
+#ifdef _USE_SCRATCHLIBRARY
+    CALL request_scratch(il_catom,catom,procedureN//'_catom',ierr)
+#else
+    ALLOCATE(catom(il_catom(1),il_catom(2)),STAT=ierr)
+#endif
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
     CALL zeroing(catom)
     IF (tkpts%tkpnt) THEN
-       ALLOCATE(zxmat(atwp%nattot,atwp%nattot),STAT=ierr)
+       il_zxmat(1)=atwp%nattot
+       il_zxmat(2)=atwp%nattot
+#ifdef _USE_SCRATCHLIBRARY
+       CALL request_scratch(il_zxmat,zxmat,procedureN//'_zxmat',ierr)
+#else
+       ALLOCATE(zxmat(il_zxmat(1),il_zxmat(2)),STAT=ierr)
+#endif
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
-       ALLOCATE(zsmat(atwp%nattot,atwp%nattot),STAT=ierr)
+       il_zsmat(1)=atwp%nattot
+       il_zsmat(2)=atwp%nattot
+#ifdef _USE_SCRATCHLIBRARY
+       CALL request_scratch(il_zsmat,zsmat,procedureN//'_zsmat',ierr)
+#else
+       ALLOCATE(zsmat(il_zsmat(1),il_zsmat(2)),STAT=ierr)
+
+#endif
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
     ELSE
        IF (.NOT.cntl%tdmal) THEN
-          ALLOCATE(xxmat(atwp%nattot,atwp%nattot),STAT=ierr)
+          il_xxmat(1)=atwp%nattot
+          il_xxmat(2)=atwp%nattot
+#ifdef _USE_SCRATCHLIBRARY
+          CALL request_scratch(il_xxmat,xxmat,procedureN//'_xxmat',ierr)
+#else
+          ALLOCATE(xxmat(il_xxmat(1),il_xxmat(2)),STAT=ierr)
+#endif
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
-          ALLOCATE(xsmat(atwp%nattot,atwp%nattot),STAT=ierr)
+          il_xsmat(1)=atwp%nattot
+          il_xsmat(2)=atwp%nattot
+#ifdef _USE_SCRATCHLIBRARY
+          CALL request_scratch(il_xsmat,xsmat,procedureN//'_xsmat',ierr)
+#else
+          ALLOCATE(xsmat(il_xsmat(1),il_xsmat(2)),STAT=ierr)
+#endif
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
        ENDIF
@@ -216,13 +283,18 @@ CONTAINS
        IF (tkpts%tkpnt) CALL stopgm('ATOMWF','DISTRIBUTED INITIALIZATION '//&
             'NOT AVAILABLE WITH K-POINTS',& 
             __LINE__,__FILE__)
-       CALL gs_disortho(atwp%nattot, catom(1,1))
+       CALL gs_disortho(atwp%nattot, catom)
     ENDIF
     ! The other kpoints are the same atomic wf (CATOM).
     IF (tkpts%tkpnt) CALL setkwf(ncpw%ngw,atwp%nattot,catom)
     ! Local potential
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update to(rhoe)
+#endif
     CALL vofrho(tau0,fion,rhoe,psi,.FALSE.,.FALSE.)
-
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target update from(rhoe)
+#endif
     ! SUM ETOT, EKIN, EHT, EPSEU, ENL and EXC.
     CALL mp_sum(ener_com%etot,parai%allgrp)
     CALL mp_sum(ener_com%ekin,parai%allgrp)
@@ -279,11 +351,24 @@ CONTAINS
                WRITE(6,*)"INITIALISING WAVEFUNCTION WITH",&
                " PRIMITIVE PSEUDO ATOMIC ORBITALS"
           CALL primao(c0)
-          ALLOCATE(rscr(2*nkpt%ngwk*MAX(nstate,atwp%nattot)),STAT=ierr)
+          il_rscr(1)=2*nkpt%ngwk*MAX(nstate,atwp%nattot)
+#ifdef _USE_SCRATCHLIBRARY
+          CALL request_scratch(il_rscr,rscr,procedureN//'_rscr',ierr)
+#else
+          ALLOCATE(rscr(il_rscr(1)),STAT=ierr)
+#endif
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
           CALL rgs(c0(:,:,1),spin_mod%nsup,rscr)
           CALL rgs(c0(:,spin_mod%nsup+1:,1),spin_mod%nsdown,rscr)
+#ifdef _USE_SCRATCHLIBRARY
+          CALL free_scratch(il_rscr,rscr,procedureN//'_rscr',ierr)
+#else
+          DEALLOCATE(rscr,STAT=ierr)
+#endif
+          IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
+               __LINE__,__FILE__)
+
           GOTO 100
        ELSE
           IF (paral%io_parent)&
@@ -307,9 +392,31 @@ CONTAINS
           IF (pslo_com%tivan) THEN
              CALL fnl_set('SAVE')
              CALL fnlalloc(atwp%nattot,.FALSE.,.FALSE.)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             update_first_to_gpu  =.FALSE.
+             update_second_to_gpu =.FALSE.
+             update_third_to_gpu  =.FALSE.
+             update_result_to_host=.FALSE.
+             !$omp target enter data map (alloc:catom,xsmat,xxmat)
+             !$omp target update to(catom,xsmat,xxmat)
+#endif
              CALL rnlsm(catom,atwp%nattot,ikpt,ikind,.FALSE.)
-             CALL csmat(xsmat,catom,fnl,atwp%nattot,ikind)
-             CALL summat(xxmat,atwp%nattot)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             comm_buffers_on_host =.FALSE.
+#endif
+             CALL csmat(xsmat,catom,atwp%nattot,ikind,full=.FALSE.,store_nonort=.FALSE.,&
+                  only_parent=.TRUE.)
+             CALL summat(xxmat,atwp%nattot,symmetrization=.false.,parent=.true.)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+             update_first_to_gpu  =.TRUE.
+             update_second_to_gpu =.TRUE.
+             update_third_to_gpu  =.TRUE.
+             update_result_to_host=.TRUE.
+             comm_buffers_on_host =.TRUE.
+             !$omp target update from(xxmat,xsmat)
+             !$omp target exit data map (release:catom,xsmat,xxmat)
+#endif
+
              CALL fnldealloc(.FALSE.,.FALSE.)
              CALL fnl_set('RECV')
           ELSE
@@ -326,7 +433,7 @@ CONTAINS
           ! XMATAT,EIVAT,WORKAT and ZORKAT are needed only here
           CALL zeroing(xmatat)!,il_xmatat)
           iopt=1
-          IF (paral%parent) THEN
+          IF (paral%io_parent) THEN
              IF (tkpts%tkpnt) THEN
                 CALL zsygvx(iopt,zxmat,atwp%nattot,zsmat,atwp%nattot,eivat,&
                      zmatat,atwp%nattot,atwp%nattot,zorkat,3*atwp%nattot,workat)
@@ -476,47 +583,86 @@ CONTAINS
        ENDIF
     ENDDO
 100 CONTINUE
-    DEALLOCATE(zmatat, stat=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
-    DEALLOCATE(eivat, stat=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
-    DEALLOCATE(workat, stat=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
-    DEALLOCATE(zorkat, stat=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
+
     IF (tkpts%tkpnt) THEN
-       DEALLOCATE(zxmat,STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+       CALL free_scratch(il_zsmat,zsmat,procedureN//'_zsmat',ierr)
+#else
+       DEALLOCATE(zsmat,STAT=ierr)
+#endif
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
             __LINE__,__FILE__)
-       DEALLOCATE(zsmat,STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+       CALL free_scratch(il_zxmat,zxmat,procedureN//'_zxmat',ierr)
+#else
+       DEALLOCATE(zxmat,STAT=ierr)
+#endif
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
             __LINE__,__FILE__)
     ELSE
        IF (.NOT.cntl%tdmal) THEN
-          DEALLOCATE(xxmat,STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+          CALL free_scratch(il_xsmat,xsmat,procedureN//'_xsmat',ierr)
+#else
+          DEALLOCATE(xsmat,STAT=ierr)
+#endif
           IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
                __LINE__,__FILE__)
-          DEALLOCATE(xsmat,STAT=ierr)
+#ifdef _USE_SCRATCHLIBRARY
+          CALL free_scratch(il_xxmat,xxmat,procedureN//'_xxmat',ierr)
+#else
+          DEALLOCATE(xxmat,STAT=ierr)
+#endif
           IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
                __LINE__,__FILE__)
        ENDIF
     ENDIF
-    DEALLOCATE(catom,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
-    DEALLOCATE(cx,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
 
-    IF (ALLOCATED(rscr)) THEN
-       DEALLOCATE(rscr,STAT=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-            __LINE__,__FILE__)
-    ENDIF
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_catom,catom,procedureN//'_catom',ierr)
+#else
+    DEALLOCATE(catom,STAT=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+         __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_cx,cx,procedureN//'_cx',ierr)
+#else
+    DEALLOCATE(cx,STAT=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+         __LINE__,__FILE__)
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_zorkat,zorkat,procedureN//'_zorkat',ierr)
+#else
+    DEALLOCATE(zorkat, stat=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+         __LINE__,__FILE__)
+    
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_workat,workat,procedureN//'_workat',ierr)
+#else
+    DEALLOCATE(workat, stat=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+         __LINE__,__FILE__)
+    
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_eivat,eivat,procedureN//'_eivat',ierr)
+#else
+    DEALLOCATE(eivat, stat=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+         __LINE__,__FILE__)
+    
+#ifdef _USE_SCRATCHLIBRARY
+    CALL free_scratch(il_zmatat,zmatat,procedureN//'_zmatat',ierr)
+#else
+    DEALLOCATE(zmatat, stat=ierr)
+#endif
+    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+         __LINE__,__FILE__)
 
     ! Spin polarization flag
     cntl%tlsd=tlsd2
@@ -527,7 +673,7 @@ CONTAINS
        cntl%tgc = .TRUE.
     ENDIF
     cntl%tdmal = tdmal_tmp
-    CALL tihalt('    ATOMWF',isub)
+    CALL tihalt(procedureN,isub)
     ! ==--------------------------------------------------------------==
     RETURN
   END SUBROUTINE atomwf
@@ -538,8 +684,8 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
     INTEGER                                  :: nstate
 
-    INTEGER                                  :: latrho, lcopot, lksmat, &
-                                                lrnlsm, lsummat, lvofrho, &
+    INTEGER                                  :: latrho, lcopot, &
+                                                lvofrho, &
                                                 ngso, nleft
     LOGICAL                                  :: tlsd2, tlse2
 
@@ -548,8 +694,6 @@ CONTAINS
     tlse2=lspin2%tlse
     lspin2%tlse=.FALSE.
     lcopot=0
-    lksmat=0
-    lrnlsm=0
     ! 
     CALL give_scr_atrho(latrho,tag)
     ! COPOT
@@ -558,14 +702,6 @@ CONTAINS
     ENDIF
     ! VOFRHO
     CALL give_scr_vofrho(lvofrho,tag)
-    IF (cntl%tdmal) THEN
-       CALL give_scr_dist_ksmat(lksmat,tag)
-    ELSE
-       CALL give_scr_ksmat(lksmat,tag)
-    ENDIF
-    IF (pslo_com%tivan) THEN
-       CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
-    ENDIF
     IF (cntl%tdmal) THEN
        latomwf=imagp*atwp%nattot +           & ! OBSOLETE: XMATAT or ZMATAT
             imagp*atwp%nattot+                    & ! EIVAT
@@ -581,12 +717,7 @@ CONTAINS
        ngso=MAX(nleft**2,nleft*atwp%nattot)+nleft
        latomwf=MAX(latomwf,ngso)
     ENDIF
-    IF (cntl%tdmal) THEN
-       lsummat=0
-    ELSE
-       CALL give_scr_summat(lsummat,tag,atwp%nattot)
-    ENDIF
-    latomwf=MAX(latrho,latomwf,lcopot,lvofrho,lrnlsm,lsummat,lksmat)
+    latomwf=MAX(latrho,latomwf,lcopot,lvofrho)
     ! 
     cntl%tlsd=tlsd2
     lspin2%tlse=tlse2

@@ -1,0 +1,46 @@
+#INFO#
+#INFO# Configuration to build a parallel executable for a HPE-Cray
+#INFO# AMD EPYC 7713 under Intel Fortran compiler and and Cray SciLib (slower than MKL!)
+#INFO# Modules: craype-x86-trento libfabric/1.15.2.0 craype-network-ofi perftools-base/23.02.0
+#INFO#          intel/2022.1.0 craype/2.7.19 cray-dsmml/0.2.2 cray-mpich/8.1.23 cray-libsci/23.02.1.1
+#INFO#          PrgEnv-intel/8.3.3 intel-classic/2022.1.0
+#INFO#
+#INFO# WARNING: For Intel-ONEapi the incomplete Fortran standards support is a serious bug
+#INFO#          Intel classic from 2021.3 to 2021.6 should be preferred
+#INFO#
+#INFO# M. Boero (Strasbourg-Nagoya 2023)
+#INFO#
+     FC='mpif90'
+     CC='mpicc'
+     LD='mpif90'
+     NVCC=''
+     CPP='/usr/bin/cpp -P -traditional'
+     CPPFLAGS='-D__INTEL -D__HAS_FFT_DEFAULT -D__ALPHALINUX -D__HPC -D__PARALLEL -D__HASNT_OMP_SET_NESTED \
+               -D__HAS_SIZEOF -D__HASNT_F08_ISO_FORTRAN_ENV -D__HAS_BF_STREAM_IO'
+     CPPFLAGS_GROMOS='-DEWALD -DEWATCUT -DHAT_SHAPE -DUNPACKED_GRID \
+               -D__INTEL -D__HAS_FFT_DEFAULT -D__ALPHALINUX -D__HPC -D__PARALLEL\
+               -D__HAS_SIZEOF -D__HASNT_F08_ISO_FORTRAN_ENV -D__HAS_BF_STREAM_IO'
+     FFLAGS_GROMOS='  $(FFLAGS)'
+     FFLAGS_GROMOS_MODULES='  $(FFLAGS)'
+     AR='ar -r'
+     RANLIB='ranlib'
+     if [ $debug ]; then
+       FFLAGS='-e m'
+       CFLAGS=''
+     else
+       FFLAGS='-O2 -pc64 -funroll-loops -heap-arrays 64 -align array64byte -assume byterecl \
+               -axMIC-AVX512 -fma -ftz -finline-functions -fpp'
+       CFLAGS='-O2 -Wall'
+     fi
+     if [ $omp ]; then
+       FFLAGS=${FFLAGS}' -fopenmp'
+       OMP3_DISABLED='false'
+#select your own SciLib
+#       LIBS=' -L/opt/cray/pe/libsci/23.02.1.1/INTEL/2022.2/x86_64/lib -lsci_intel_mp -lsci_intel_mpi -lsci_intel_mpi_mp -lsci_intel -lm'
+       LIBS=' -L/opt/cray/pe/libsci/23.02.1.1/INTEL/2022.2/x86_64/lib -lsci_intel -lm'
+     else
+       echo "Non-OMP settings not available!"
+       exit 1
+       LIBS=''
+     fi
+     LFLAGS=''${LIBS}

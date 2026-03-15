@@ -1333,7 +1333,7 @@ CONTAINS
              ENDDO
 
              !ivano
-             IF (debug) WRITE(6,'(/,100(1X,E12.6),/)') (nabdyvec%ddnaact(ia,is,k),k=1,nabdyvar%ntrajbd)
+             IF (debug) WRITE(6,'(/,100(1X,E13.6),/)') (nabdyvec%ddnaact(ia,is,k),k=1,nabdyvar%ntrajbd)
 
              CALL naderivs(time_l,yterm,dydx,wint,xint,ia,is,nabdyvar%ntrajbd,icall) !(eq40)
              CALL rungesh(yterm,dydx,nabdyvar%ntrajbd,time_l,deltat,yterm,wint,xint, &
@@ -1415,7 +1415,7 @@ CONTAINS
        !      ampli_mol(k)=nabdyvec%naampl(1,1,k)*nabdyvec%naampl(2,1,k)
        !   ENDDO
        !   OPEN(unit=666,file='aplitudes_molecular.dat')
-       !   WRITE(666,'(F12.4,100(2X,E15.9))')  &
+       !   WRITE(666,'(F12.4,100(2X,E16.9))')  &
        !        time_l,(ampli_mol(k),k=1,nabdyvar%ntrajbd)
        !   CLOSE(666)
        !ENDIF
@@ -1424,14 +1424,14 @@ CONTAINS
        IF (icall.EQ.1) THEN
           DO is=1,ions1%nsp
              DO ia=1,ions0%na(is)
-                WRITE(668,'(1000(E15.9,2X))')  &
+                WRITE(668,'(1000(E16.9,2X))')  &
                      (nabdyvec%naampl_temp(ia,is,i),i=1,nabdyvar%ntrajbd)
              ENDDO
           ENDDO
        ELSE
           DO is=1,ions1%nsp
              DO ia=1,ions0%na(is)
-                WRITE(669,'(1000(E15.9,2X))') (nabdyvec%naampl(ia,is,i),i=1,nabdyvar%ntrajbd)
+                WRITE(669,'(1000(E16.9,2X))') (nabdyvec%naampl(ia,is,i),i=1,nabdyvar%ntrajbd)
              ENDDO
           ENDDO
        ENDIF

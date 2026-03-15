@@ -855,10 +855,10 @@ CONTAINS
        WRITE(6,'(1X,64("-"),/)')
        WRITE(6,'(1X,A)') '*** CDFT FINAL RESULTS ***'
        IF (.NOT.cdftlog%tcall) THEN
-          WRITE(6,'(2X,A,T54,D10.4)') "FINAL V: ",cdftcom%oldv(1)
+          WRITE(6,'(2X,A,T54,D11.4)') "FINAL V: ",cdftcom%oldv(1)
        ELSE
-          WRITE(6,'(2X,A,T54,D10.4)') "FINAL V: ",cdftcom%oldv(1)
-          WRITE(6,'(2X,T54,D10.4)') cdftcom%oldv(2)
+          WRITE(6,'(2X,A,T54,D11.4)') "FINAL V: ",cdftcom%oldv(1)
+          WRITE(6,'(2X,T54,D11.4)') cdftcom%oldv(2)
        ENDIF
        WRITE(6,'(2X,A,T54,E10.2E1)') "VGRAD: ",finalchrg(2)-&
             finalchrg(1)-cdftcom%cdft_nc

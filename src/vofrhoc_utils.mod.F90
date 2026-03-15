@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE vofrhoc_utils
   USE cnst,                            ONLY: pi
   USE cofor_utils,                     ONLY: cofor
@@ -83,9 +85,11 @@ CONTAINS
     ! ==  RHOE(.,2) RHO(ab)                                           ==
     ! ==  RHOE(.,3) "Ground state" density                            ==
     ! ==--------------------------------------------------------------==
-    REAL(real_8)                             :: tau0(:,:,:), rhoe(:,:)
-    COMPLEX(real_8)                          :: v(:,:), vtemp(:,:)
-    LOGICAL                                  :: tfor, tstress
+    REAL(real_8),INTENT(IN) __CONTIGUOUS     :: tau0(:,:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: rhoe(:,:)
+    COMPLEX(real_8),INTENT(INOUT)&
+         __CONTIGUOUS                        :: v(:,:), vtemp(:,:)
+    LOGICAL,INTENT(IN)                       :: tfor, tstress
 
     CHARACTER(*), PARAMETER                  :: procedureN = 'vofrhoc'
 
@@ -491,7 +495,7 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ==  COMPILES THE TOTAL FORCES FOR THE CAS22 METHOD              ==
     ! ==--------------------------------------------------------------==
-    REAL(real_8)                             :: fion(:,:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:)
 
     INTEGER                                  :: ia, is
     REAL(real_8)                             :: ca, sa, x, y, z
@@ -522,7 +526,7 @@ CONTAINS
     ! ==                        COMPUTES                              ==
     ! == POTENTIAL ENERGY CONTRIBUTIONS TO THE FORCES ON THE IONS     ==
     ! ==--------------------------------------------------------------==
-    REAL(real_8)                             :: fion(:,:,:)
+    REAL(real_8),INTENT(INOUT) __CONTIGUOUS  :: fion(:,:,:)
     COMPLEX(real_8)                          :: v(fpar%nnr1), eirop(ncpw%nhg)
 
     COMPLEX(real_8)                          :: ei123, gx, gy, gz, rhets, &

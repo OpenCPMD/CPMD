@@ -52,8 +52,7 @@ MODULE rinforce_nuc_utils
                                              nsplpo,&
                                              qspl1
   USE ragg,                            ONLY: raggio
-  USE rinforce_utils,                  ONLY: give_scr_putwnl,&
-                                             putps,&
+  USE rinforce_utils,                  ONLY: putps,&
                                              putwnl,&
                                              setspline
   USE rnlin_utils,                     ONLY: nlin
@@ -91,9 +90,9 @@ CONTAINS
 
     CHARACTER(len=30)                        :: tag
     INTEGER                                  :: ierr, im, is, istep, isub, &
-                                                iv, jv, lmaxv, lp, lscr, &
+                                                iv, jv, lmaxv, lp, &
                                                 lval, mrscr, nylmb
-    REAL(real_8), ALLOCATABLE                :: rs1(:), rs2(:), rs3(:), scr(:)
+    REAL(real_8), ALLOCATABLE                :: rs1(:), rs2(:), rs3(:)
 
     CALL tiset(procedureN,isub)
 
@@ -291,13 +290,7 @@ CONTAINS
        nylmb=0
     ENDIF
 
-    ! CALL MEMORY(IP_TWNL,maxsys%nsx*maxsys%nhxs*NGWK*NKPTALL,'TWNL')
-
     CALL zeroing(twnl)!,maxsys%nsx*maxsys%nhxs*nkpt%ngwk*kpts_com%nkptall)
-    CALL give_scr_putwnl(lscr,tag)
-    ALLOCATE(scr(lscr),STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
-         __LINE__,__FILE__)
     CALL putwnl
     ! ==--------------------------------------------------------------==
     ! ==  NONLINEAR CORE CORRECTION                                   ==
@@ -380,11 +373,6 @@ CONTAINS
     ! call freem(ip_twns)
     ! call freem(ip_twnl)
 
-    DEALLOCATE(scr,STAT=ierr)
-    IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-         __LINE__,__FILE__)
-
-    IF (tkpts%tkpnt) DEALLOCATE(scr,STAT=ierr)
     IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
          __LINE__,__FILE__)
     IF (pslo_com%tivan) THEN

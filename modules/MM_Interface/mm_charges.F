@@ -1,9 +1,6 @@
 #if defined(__BG)
 #define __VECTOR
 #endif
-#if defined(__SR11000)
-*option OPT(O(ss))
-#endif
 c     =================================================================
       SUBROUTINE mm_charges(mm_rhoe,TAU_mi,ch,q_eff,F_ch,
      .          nn_sr,nn_atom,nn_sp,EXTF)
@@ -11,7 +8,7 @@ c     =================================================================
       use error_handling, only: stopgm
       use mp_interface, only: mp_sum
 C     ----------------------------------------------------------------==
-cmb - Revised on 25 May 2007
+cmb - Revised on 14 March 2024
       use prmem_utils, only: prmem
       use system
       use parac
@@ -100,9 +97,6 @@ C     Sum density
               OCCU=atwf_mod%OC(ISH,IS)/fourpi
             ENDIF
 !$OMP parallel do private(IR) shared(OCCU)
-#ifdef __SR11000
-*poption parallel, tlocal(IR)
-#endif 
             DO IR=1,MMAX
               ARHO_tmp(IR)=ARHO_tmp(IR)+OCCU*
      .             (ATWFR(IR,ISH,IS)/ATRG(IR,IS))**2
@@ -119,9 +113,6 @@ C     Sum density
           c2=0.5d0*alpha
 !$OMP parallel do private(i,r,rsq,ir,r1,r2,f1,f2,fv) 
 !$OMP+ shared(ARHO_save)
-#ifdef __SR11000
-*poption parallel, tlocal(i,r,rsq,ir,r1,r2,f1,f2,fv)
-#endif 
           DO i=1,NGR_RHO-2
             r=DBLE(i-1)*dr_RHO
             rsq=max(r*r,1.d-8)
@@ -139,10 +130,6 @@ C     Sum density
 !  normalization
           intf=0.d0
 !$OMP parallel do private(ir,f1,f2,r1,r2,bb,aa) reduction(+:intf)
-#ifdef __SR11000
-*poption parallel, tlocal(ir,f1,f2,r1,r2,bb,aa)
-*poption psum(intf)
-#endif 
           DO IR=1,NGR_RHO-1
             f1=ARHO_save(IR,IS)
             f2=ARHO_save(IR+1,IS)
@@ -154,9 +141,6 @@ C     Sum density
           ENDDO
           intf=ions0%ZV(IS)/(fourpi*intf)
 !$OMP parallel do private(IR) shared(intf)
-#ifdef __SR11000
-*poption parallel, tlocal(IR)
-#endif 
           DO IR=1,NGR_RHO
             ARHO_save(IR,IS)=ARHO_save(IR,IS)*intf
           ENDDO
@@ -201,9 +185,6 @@ cmb      CALL azzero(F_ch,3*NATq)
 cmb      CALL azzero(F_ch_l,3*NATq)
 cmb-> ...do zeroing locally and in one shot
 !$OMP parallel do private(i)
-#ifdef __SR11000
-*poption parallel, tlocal(i)
-#endif
 #ifdef _vpp_
 !OCL NOALIAS
 #endif
@@ -263,10 +244,6 @@ cmb-> ...do zeroing locally and in one shot
         efld=0.d0
 !$OMP parallel do private(ia,qq,wwia,rhoqq) reduction(+:efld)
 !$OMP+ shared(ch_l,F_ch_l,fionx,fiony,fionz)
-#ifdef __SR11000
-*poption parallel, tlocal(ia,qq,wwia,rhoqq) 
-*poption psum(efld)
-#endif 
         DO ia=1,mmdim%NATq
            qq=q_eff_l(ia)
            wwia=ww(ia)
@@ -293,12 +270,6 @@ cmb-> ...do zeroing locally and in one shot
 !$OMP+ private(qq,ddx,ddy,ddz,is,wwti)
 !$OMP+ shared(ARHO_save,fionx,fiony,fionz,ww)
 !$OMP+ reduction(+:qqt,wwt)
-#ifdef __SR11000
-*poption parallel 
-*poption tlocal(ia,rsq,rr,ir,r1,r2,f1,f2,dfdr,fv)
-*poption tlocal(qq,ddx,ddy,ddz,is,wwti)
-*poption psum(qqt,wwt)
-#endif
             DO ia=1,mmdim%NATq
               qq=q_eff_l(ia)
               ddx=rx-TAU_q(1,ia)

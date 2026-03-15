@@ -28,11 +28,9 @@ MODULE phonons_p_utils
                                              response1,&
                                              rho0
   USE rhoofr_p_utils,                  ONLY: give_scr_rhoofr_p
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr
   USE rmas,                            ONLY: rmass
   USE rnlsm_p_utils,                   ONLY: rnlsm3
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm,&
-                                             rnlsm
+  USE rnlsm_utils,                     ONLY: rnlsm
   USE ropt,                            ONLY: ropt_mod
   USE rscpot_utils,                    ONLY: give_scr_rscpot
   USE rwfopt_p_utils,                  ONLY: rwfopt_p
@@ -338,7 +336,7 @@ CONTAINS
             //'trans/rot elimination'
        WRITE (6,*) ' Harmonic frequencies in cm^-1:'
        WRITE (6,'(4(f12.1))') (vibe(i),i=1,3*ions1%nat)
-       WRITE (6,'(A,e11.5)') ' ChkSum(PHONON) = ',SUM(ABS(vibe))
+       WRITE (6,'(A,e12.5)') ' ChkSum(PHONON) = ',SUM(ABS(vibe))
        CALL vibeig(vibe,eigen,3*ions1%nat,.TRUE.)
        ! ---  Purification, version 2 (original phonons_p) --------
        IF (response1%projout) THEN
@@ -644,22 +642,19 @@ CONTAINS
     CHARACTER(len=*)                         :: tag
     INTEGER                                  :: nstate
 
-    INTEGER                                  :: lforce1, lrho, lrhoofr, &
-                                                lrnlsm, lrscpot
+    INTEGER                                  :: lforce1, lrhoofr, &
+                                                lrscpot
 
 ! ==--------------------------------------------------------------==
 
     lphonon=nstate
     ropt_mod%calste=.FALSE.
-    CALL give_scr_rnlsm(lrnlsm,tag,nstate,.TRUE.)
-    CALL give_scr_rhoofr(lrho,tag)
     CALL give_scr_rscpot(lrscpot,tag,ropt_mod%calste)
     CALL give_scr_rhoofr_p(lrhoofr,tag)
     CALL give_scr_forces_p(lforce1,tag,nstate)
-    lrho=lrho+2*ncpw%nhg*clsd%nlsd
     lrhoofr=lrhoofr+2*ncpw%nhg*clsd%nlsd
     lforce1=lforce1
-    lphonon=MAX(lrho,lrscpot,lrnlsm,lrhoofr,lphonon,lforce1)
+    lphonon=MAX(lrscpot,lrhoofr,lphonon,lforce1)
     lphonon=lphonon+nstate*ncpw%ngw*2
     ! ==--------------------------------------------------------------==
     RETURN

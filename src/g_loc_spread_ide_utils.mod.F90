@@ -194,13 +194,13 @@ CONTAINS
     IF (glocal%tg_antisymm .AND. icont .LE. 100  )  THEN
        icont = icont+1
        IF (paral%io_parent)&
-            WRITE(10,'(I10,3(2x,1PE12.6),I6,2x,1PE12.6)') nstep,gloc_re%gmax,gloc_re%ofun,&
+            WRITE(10,'(I10,3(2x,1PE13.6),I6,2x,1PE13.6)') nstep,gloc_re%gmax,gloc_re%ofun,&
             grmax,igrmax,gloc_re%omega_tot
        IF (paral%io_parent)&
             WRITE(12,'(I10,16f10.4)') nstep,(omega_n(i),i=1,16)
     ELSE
        IF (paral%io_parent)&
-            WRITE(10,'(I10,3(2x,1PE12.6),I6,2x,1PE12.6,2x,1PE12.6)')&
+            WRITE(10,'(I10,3(2x,1PE13.6),I6,2x,1PE13.6,2x,1PE13.6)')&
             nstep,gloc_re%gmax,gloc_re%ofun,grmax,igrmax,gloc_re%ggnorm,step_fac/10._real_8
     ENDIF
     ! ==--------------------------------------------------------------==
@@ -594,7 +594,7 @@ CONTAINS
        ELSEIF (ABS(gloc_re%dif_fun) .LT. 1.e-10_real_8) THEN
           IF (paral%parent) THEN
              IF (paral%io_parent)&
-                  WRITE(6,'(/,A,1PE12.6)') '     OFUN-OFUN0 = ',&
+                  WRITE(6,'(/,A,1PE13.6)') '     OFUN-OFUN0 = ',&
                   gloc_re%dif_fun
              IF (paral%io_parent)&
                   WRITE(6,'(A,/)') '   G_LOC_UPDATE: CONVERGENCE'
@@ -606,7 +606,7 @@ CONTAINS
     ENDDO                     ! IREP
 
 500 IF (soft_com%exsoft.AND.paral%io_parent)&
-         WRITE(6,'(A,1E12.6)')&
+         WRITE(6,'(A,1E13.6)')&
          ' G_LOC_SPREAD_IDE|SOFTWERE EXIT (OFUNC)',gloc_re%ofun
     IF ((irep .EQ. maxrep).AND.paral%io_parent)&
          WRITE(6,'(A,I10)')&

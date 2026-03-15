@@ -505,9 +505,6 @@ CONTAINS
     cntl%prec=.TRUE.
     CALL ksdiag(vpp)
     !$omp parallel do private(IG,VP)
-#ifdef __SR11000
-    !poption parallel, tlocal(IG,VP)
-#endif
     DO ig=1,ncpw%ngw
        vp=vpp(ig)
        vpp(ig)=MAX(vp,lr02%lr_hthrs)

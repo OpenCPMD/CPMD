@@ -241,7 +241,7 @@ CONTAINS
             ' *** GNMAX=',gnmax,'  ETOT=',etot,'  ***'
     ELSE
        IF (paral%io_parent)&
-            WRITE(6,'(A,1PE14.6,A,1PE8.2,T36,A11,0PF14.6,A5)')&
+            WRITE(6,'(A,1PE14.6,A,1PE9.2,T36,A11,0PF14.6,A5)')&
             ' *** GNMAX=',gnmax,' [',dxmax,']     ETOT=',etot,'  ***'
     ENDIF
     IF (paral%io_parent)&

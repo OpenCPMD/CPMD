@@ -14,7 +14,7 @@ MODULE graden_utils
   USE mp_interface,                    ONLY: mp_max
   USE nvtx_utils
   USE parac,                           ONLY: parai
-  USE state_utils,                     ONLY: copy_to_re
+  USE state_utils,                     ONLY: set_to_re
   USE system,                          ONLY: cntl,&
                                              cntr,&
                                              fpar,&
@@ -66,8 +66,9 @@ CONTAINS
 
     CALL setfftn(0)
 
-    CALL zeroing ( v )
-    CALL copy_to_re ( fpar%nnr1, rhoe, v )
+!    CALL zeroing ( v )
+    !    CALL copy_to_re ( fpar%nnr1, rhoe, v )
+    CALL set_to_re ( fpar%nnr1, rhoe, v )
 !!$omp parallel do private(IR)
     !DO ir=1,fpar%nnr1
     !   v(ir) = CMPLX(rhoe(ir),0.0_real_8,kind=real_8)
@@ -92,21 +93,35 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ==  FFT OF RHO AND NABLA(X)*RHOE                                ==
     ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do private (ir)
+    DO ir=1,fpar%nnr1
+       v(ir)=CMPLX(0.0_real_8,0.0_real_8)
+    END DO
+#else
     CALL zeroing(v)!,maxfft)
+#endif
     !ocl novrec(v)
-    !$omp parallel do private(IG)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(IG)
 #ifdef __NEC
     !CDIR NODEP
-#endif
-#ifdef __SR8000
-    !poption parallel
 #endif
     DO ig=1,ncpw%nhg
        v(nzh(ig))=vtmp(ig)-parm%tpiba*gk(1,ig)*vtmp(ig)
        v(indz(ig))=CONJG(vtmp(ig)+parm%tpiba*gk(1,ig)*vtmp(ig))
     ENDDO
     CALL  invfftn(v,.FALSE.,parai%allgrp)
-    !$omp parallel do private(IR)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(IR)
     DO ir=1,fpar%nnr1
        rhoe(ir)=REAL(v(ir))
        grad(ir,1)=AIMAG(v(ir))*AIMAG(v(ir))
@@ -115,7 +130,14 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     ! ==  FFT OF NABLA(Y)*RHO AND NABLA(Z)*RHOE                       ==
     ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do private(ir)
+    DO ir=1,fpar%nnr1
+       v(ir)=CMPLX(0.0_real_8,0.0_real_8)
+    END DO
+#else
     CALL zeroing(v)!,maxfft)
+#endif
 #ifdef __ES  
     !CDIR NODEP(V)
     DO ig=1,nhg
@@ -124,17 +146,24 @@ CONTAINS
     ENDDO
 #else 
     !ocl novrec(v)
-    !$omp parallel do private(IG)
-#ifdef __SR8000
-    !poption parallel
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
 #endif
+    !$omp& private(IG)
     DO ig=1,ncpw%nhg
        v(nzh(ig))=parm%tpiba*(uimag*gk(2,ig)-gk(3,ig))*vtmp(ig)
        v(indz(ig))=parm%tpiba*(-uimag*gk(2,ig)+gk(3,ig))*CONJG(vtmp(ig))
     ENDDO
 #endif 
     CALL  invfftn(v,.FALSE.,parai%allgrp)
-    !$omp parallel do private(IR)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(IR)
     DO ir=1,fpar%nnr1
        grad(ir,1)=grad(ir,1)+REAL(v(ir)*CONJG(v(ir)))
        grad(ir,3)=REAL(v(ir))

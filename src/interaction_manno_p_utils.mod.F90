@@ -249,7 +249,7 @@ CONTAINS
        IF (paral%io_parent)&
             WRITE(6,*) '----- PERFORMING',dmbi%bptscfiter,'SCF iterations -----'
        IF (paral%io_parent)&
-            WRITE(6,fmt='(1X,A,E8.3,A)') '----- SCF-PT CONVERGENCE: ',&
+            WRITE(6,fmt='(1X,A,E10.3,A)') '----- SCF-PT CONVERGENCE: ',&
             dmbr%scf_tol,' -----'
        IF (paral%io_parent)&
             WRITE(6,*) '----------------------------------------'
@@ -396,7 +396,7 @@ CONTAINS
     IF (dmbi%torthog_wannier.AND..NOT.dmbi%tsimple_model) THEN
        ! IF (TORTHOG_WANNIER.OR.TSIMPLE_MODEL) THEN
        CALL forces(c0,h1psi0,tau0,fion,rhoe,psi,&
-            nstate,1,.FALSE.,.FALSE.)
+            nstate,1,.FALSE.,.FALSE.,.TRUE.)
        IF (paral%parent) THEN
           IF (paral%io_parent)&
                WRITE(6,*)
@@ -424,7 +424,7 @@ CONTAINS
        CALL csize(h1psi0,nstate,scf_gemax,scf_cnorm)
        IF (paral%parent) THEN
           IF (paral%io_parent)&
-               WRITE(6,'(a,E10.4,a,E10.4)')&
+               WRITE(6,'(a,E11.4,a,E11.4)')&
                'INITIAL GRADIENT OF W0: Gemax = ',scf_gemax,&
                ' Cnorm = ',scf_cnorm
        ENDIF
@@ -455,7 +455,7 @@ CONTAINS
 
        ! Total energy of the starting Wannier orbitals (W0)
        CALL forces(c0,h1psi0,tau0,fion,rhoe,psi,&
-            nstate,1,.FALSE.,.FALSE.)
+            nstate,1,.FALSE.,.FALSE.,.TRUE.)
 
        ! copying original F back to its normal location
        !vw>>>
@@ -575,7 +575,7 @@ CONTAINS
        IF (dmbi%bptscfiter.LE.1) THEN
           ! Total energy of the non-orthogonalised W0+W1 if we don t do SCF
           CALL forces(C0plusC1,h1psi0,tau0,fion,rhoe,psi,&
-               nstate,1,.FALSE.,.FALSE.)
+               nstate,1,.FALSE.,.FALSE.,.TRUE.)
           IF (paral%parent) THEN
              IF (paral%io_parent)&
                   WRITE(6,*)
@@ -610,7 +610,7 @@ CONTAINS
        ! Now calculating the total energy of the orthogonalised w0+w1
 
        CALL forces(C0plusC1,h1psi0,tau0,fion,rhoe,psi,&
-            nstate,1,.TRUE.,.FALSE.)
+            nstate,1,.TRUE.,.FALSE.,.TRUE.)
        IF (paral%parent) THEN
           IF (paral%io_parent)&
                WRITE(6,*)
@@ -657,7 +657,7 @@ CONTAINS
           time2 =m_walltime()
           tcpu = (time2 - time1)*0.001_real_8
           IF (paral%io_parent)&
-               WRITE(6,'(a,E10.4,a,E10.4,a,f8.2,a)')&
+               WRITE(6,'(a,E11.4,a,E11.4,a,f9.2,a)')&
                '  1: Gemax =',scf_gemax,&
                ' Cnorm =',scf_cnorm,' Time: ',tcpu,' seconds'
        ENDIF
@@ -750,7 +750,7 @@ CONTAINS
 
              ! Now calculating the total energy of the orthogonalised w0+w1
              CALL forces(C0plusC1,h1psi0,tau0,fion,rhoe,psi,&
-                  nstate,1,.TRUE.,.FALSE.)
+                  nstate,1,.TRUE.,.FALSE.,.TRUE.)
              IF (paral%parent) THEN
                 IF (paral%io_parent)&
                      WRITE(6,*)'TOTAL ENERGY of orthog. W0+W1 at step',&
@@ -770,7 +770,7 @@ CONTAINS
                 time2 =m_walltime()
                 tcpu = (time2 - time1)*0.001_real_8
                 IF (paral%io_parent)&
-                     WRITE(6,'(i3,a,E10.4,a,E10.4,a,f8.2,a)') ISCF_step,&
+                     WRITE(6,'(i3,a,E11.4,a,E11.4,a,f9.2,a)') ISCF_step,&
                      ': Gemax =',scf_gemax,&
                      ' Cnorm =',scf_cnorm,' Time: ',tcpu,' seconds'
                 IF (paral%io_parent)&
@@ -859,7 +859,7 @@ CONTAINS
 
           ! Total energy of the non-orthogonalised W0+W1
           CALL forces(C0plusC1,h1psi0,tau0,fion,rhoe,psi,&
-               nstate,1,.FALSE.,.FALSE.)
+               nstate,1,.FALSE.,.FALSE.,.TRUE.)
           IF (paral%parent)  THEN
              IF (paral%io_parent)&
                   WRITE(6,*)
@@ -879,7 +879,7 @@ CONTAINS
           ! Now calculating the total energy of w0+w1
 
           CALL forces(C0plusC1,h1psi0,tau0,fion,rhoe,psi,&
-               nstate,1,.FALSE.,.FALSE.)
+               nstate,1,.FALSE.,.FALSE.,.TRUE.)
           IF (paral%parent) THEN
              IF (paral%io_parent)&
                   WRITE(6,*)

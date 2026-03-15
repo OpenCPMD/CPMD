@@ -64,10 +64,6 @@ CONTAINS
     t4=(0.0_real_8,0.0_real_8)
     t5=(0.0_real_8,0.0_real_8)
     t6=(0.0_real_8,0.0_real_8)
-#ifdef __SR8000
-    !poption parallel, tlocal(IG) 
-    !poption psum(T1,T2,T3,T4,T5,T6)
-#endif 
     !$omp parallel do private(IG) &
     !$omp  reduction(+:T1,T2,T3,T4,T5,T6)
     DO ig=1,ncpw%nhg
@@ -99,9 +95,6 @@ CONTAINS
           IF (delta(alpha(kk),beta(kk)).GT.0.5_real_8) THEN
 #ifdef __VECTOR 
              temp=(0.0_real_8,0.0_real_8)
-#ifdef __SR8000
-             !poption parallel, tlocal(IG), psum(TEMP)
-#endif 
              !$omp parallel do private(IG) reduction(+:TEMP)
              DO ig=ig1,ncpw%nhg
                 temp=temp+CONJG(drhovg(ig,kk))*eivps(ig)

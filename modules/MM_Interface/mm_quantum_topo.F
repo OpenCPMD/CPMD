@@ -9,7 +9,7 @@
       use error_handling, only: stopgm
 !     ----------------------------------------------------------------==
 !cmb - Revised on 29 January 2008 after J. Blumberger's request
-!cmb - Revised on 25 October 2016
+!cmb - Revised on 14 March 2024
 ! GROMOSDIP
       use prmem_utils, only: prmem
       use system
@@ -310,17 +310,11 @@ C_FM]
                   IF(ij_excl(ia,ic).lt.ja
      &                 .and.ij_excl(ia,ic+1).gt.ja)THEN
 !$OMP parallel do private(icc) shared(ia)
-#ifdef __SR11000
-*poption parallel, tlocal(icc)
-#endif 
                     DO icc=ic+1,ine(ia)
                       saved(icc)=ij_excl(ia,icc)
                     ENDDO
                     ij_excl(ia,ic+1)=ja
 !$OMP parallel do private(icc) shared(ia)
-#ifdef __SR11000
-*poption parallel, tlocal(icc)
-#endif
                     DO icc=ic+1,ine(ia)
                       ij_excl(ia,icc+1)=saved(icc)
                     ENDDO

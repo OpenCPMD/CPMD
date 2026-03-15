@@ -1,0 +1,34 @@
+#INFO#
+#INFO# Configuration for AMD Linux HPC cluster 
+#INFO# Intel LLVM-Based oneAPI Compilers (oneAPI-2024 or later) - OpenMPI/IntelMPI + OMP 5.0 (or later)
+#INFO# (IPCMS/Nagoya University, 12 March 2024)
+#INFO#
+     IRAT=2
+     FC='mpiifx'
+     CC='mpiicx'
+     LD='mpiifx'
+     CPP='/lib/cpp -P -traditional'
+     CPPFLAGS='-D__HAS_FFT_DEFAULT -D__ALPHALINUX -D__AMD -D__HPC -D__HASNT_OMP_SET_NESTED \
+         -D__PARALLEL -D__HAS_SIZEOF -D__HAS_BF_STREAM_IO -D__HASNT_MULTITHREAD_MPI_SUPPORT'
+     CPPFLAGS_GROMOS='-DEWALD -DEWATCUT -DHAT_SHAPE -DUNPACKED_GRID \
+              -D__HAS_FFT_DEFAULT -D__ALPHALINUX -D__AMD -D__HPC -D__HASNT_OMP_SET_NESTED \
+             -D__PARALLEL -D__HAS_SIZEOF -D__HAS_BF_STREAM_IO -D__HASNT_MULTITHREAD_MPI_SUPPORT'
+     FFLAGS_GROMOS='-fixed $(FFLAGS)'
+     FFLAGS_GROMOS_MODULES=' $(FFLAGS)'
+     AR='xiar -r'
+     RANLIB='/usr/bin/ranlib'
+     if [ $debug ]; then
+       FFLAGS='-g '
+       CFLAGS='-g  -Wno-error=int-conversion'
+     else
+       FFLAGS='-O2 -pc64 -funroll-loops -heap-arrays 64 -align array64byte -finline-functions'
+       CFLAGS='-O2  -Wno-error=int-conversion -Wall'
+     fi
+     if [ $omp ]; then
+       FFLAGS=${FFLAGS}' -qopenmp'
+       OMP3_DISABLED='false'
+       LIBS='-qmkl=parallel'
+     else
+       LIBS='-static-intel -qmkl=sequential'
+     fi
+     LFLAGS=${LIBS}

@@ -13,12 +13,6 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
-#if defined(__SR11000)
-!option OPT(O(ss))
-#endif
-
-
 MODULE azzero_utils
   USE kinds,                           ONLY: int_8,&
                                              real_8
@@ -81,9 +75,6 @@ CONTAINS
     INTEGER                                  :: i
 
     !$omp parallel do private (I)
-#ifdef __SR8000
-    !poption parallel
-#endif
 #ifdef _vpp_
     !OCL NOALIAS
 #endif

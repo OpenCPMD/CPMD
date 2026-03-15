@@ -1,4 +1,7 @@
 MODULE mm_parallel
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
   INTEGER, PARAMETER ::  mmbcston=1678,&
        mmbcstoff=91783,&
        mmbcstrev=-2916
@@ -25,7 +28,11 @@ MODULE mm_parallel
      INTEGER :: mmmepos
      INTEGER :: mmncpu
      INTEGER :: mmnproc
+#ifdef __PARALLEL
+     type(MPI_COMM) :: mmgrp
+#else
      INTEGER :: mmgrp
+#endif
      INTEGER :: mmsource
   END TYPE gparai_t
   TYPE (gparai_t) :: gparai
@@ -56,8 +63,13 @@ MODULE mm_parallel
      INTEGER :: nlsnodes
      INTEGER :: rspos
      INTEGER :: lspos
+#ifdef __PARALLEL
+     type(MPI_COMM) :: rsgrp
+     type(MPI_COMM) :: lsgrp
+#else
      INTEGER :: rsgrp
      INTEGER :: lsgrp
+#endif
   END TYPE irslspar_t
   TYPE (irslspar_t) :: irslspar
 END MODULE mm_parallel

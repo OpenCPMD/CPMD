@@ -16,7 +16,6 @@ MODULE frsblk_c_utils
   USE prng_utils,                      ONLY: repprngu_vec_cmplx
   USE rgs_utils,                       ONLY: rgs,&
                                              rgs_c
-  USE summat_utils,                    ONLY: give_scr_summat
   USE system,                          ONLY: cnti,&
                                              cntl,&
                                              cntr,&
@@ -429,11 +428,10 @@ CONTAINS
     CHARACTER(len=30)                        :: tag
     INTEGER                                  :: ndiag
 
-    INTEGER                                  :: lhpsi, lsummat
+    INTEGER                                  :: lhpsi
 
     CALL give_scr_hpsi(lhpsi,tag,ndiag)
-    CALL give_scr_summat(lsummat,tag,ndiag)
-    lfrsblk=MAX(lhpsi,lsummat,23*ndiag*cnti%nkry_block)+10
+    lfrsblk=MAX(lhpsi,23*ndiag*cnti%nkry_block)+10
     tag='MAX(LHPSI,LSUMHMAT,23*NDIAG...' 
     ! ==--------------------------------------------------------------==
     RETURN

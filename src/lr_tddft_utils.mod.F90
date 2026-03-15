@@ -41,9 +41,7 @@ MODULE lr_tddft_utils
                                              ptau,&
                                              rhoo,&
                                              rtau
-  USE rhoofr_utils,                    ONLY: give_scr_rhoofr,&
-                                             rhoofr
-  USE rnlsm_utils,                     ONLY: give_scr_rnlsm
+  USE rhoofr_utils,                    ONLY: rhoofr
   USE ropt,                            ONLY: infi
   USE sh_tddft_utils,                  ONLY: &
        adjustphase, adjustphase_lr, ecoupl, getsigma, lz_trans, &
@@ -242,7 +240,7 @@ CONTAINS
        ENDIF
     ELSE
        CALL forcedr(c0(:,1:nstate),c2(:,1:nstate),sc0,rhoe,psi,tau0,fion,eigv,&
-            nstate,1,.FALSE.,tfor)
+            nstate,1,.FALSE.,tfor,.TRUE.)
     ENDIF
     ! transform to canonical orbitals and get eigenvalues
     CALL canon(c0,c2,crge%f,nstate,eigv)
@@ -274,7 +272,7 @@ CONTAINS
                eigv,nstate,1,.FALSE.,.FALSE.,.TRUE.)
        ELSE
           CALL forcedr(c0(:,1:nstate),c2(:,1:nstate),sc0,rhoe,psi,tau0,fion,eigv,&
-               nstate,1,.FALSE.,.FALSE.)
+               nstate,1,.FALSE.,.FALSE.,.TRUE.)
        ENDIF
        DO is=1,nstate
           CALL dscal(2*ncpw%ngw,1._real_8/crge%f(is,1),c2(1,is),1)
@@ -611,15 +609,13 @@ CONTAINS
 
     INTEGER                                  :: l_diag, l_for, lcanon, &
                                                 lforces, llocal, llr_diag, &
-                                                lortho, lrhoofr, lrnlsm, &
+                                                lortho, &
                                                 nstate
 
     l_diag=0
     nstate=crge%n
-    CALL give_scr_rhoofr(lrhoofr,tag)
     CALL give_scr_forcedr(lforces,tag,nstate,.FALSE.,tfor)
     CALL give_scr_canon(lcanon,tag,nstate)
-    CALL give_scr_rnlsm(lrnlsm,tag,nstate,.FALSE.)
     CALL give_scr_lr_diag(llr_diag,tag)
     nstate=crge%n+MAX(td01%ns_tri,td01%ns_sin,td01%ns_mix)
     CALL give_scr_ortho(lortho,tag,nstate)
@@ -637,7 +633,7 @@ CONTAINS
        llocal=MAX(llocal,ncpw%nhg)
     ENDIF
     ! 
-    lspectra=MAX(lrhoofr,lforces,lcanon,lrnlsm,&
+    lspectra=MAX(lforces,lcanon,&
          llr_diag,l_diag,lortho,llocal,l_for)
     ! ==--------------------------------------------------------------==
   END SUBROUTINE give_scr_lr_tddft
@@ -666,9 +662,6 @@ CONTAINS
           CALL dcopy(2*ncpw%ngw*tdsp1%ndoel,c0(1,spin_mod%nsup+1),1,cs(1,1),1)
           CALL dcopy(2*ncpw%ngw*tdsp1%ndoel,cs(1,1),1,c0(1,tdsp1%nupel+1),1)
           !$omp parallel do private(I)
-#ifdef __SR8000
-          !poption parallel
-#endif
 #ifdef _vpp_
           !OCL NOALIAS
 #endif
@@ -678,9 +671,6 @@ CONTAINS
           spin_mod%nsup=tdsp1%nupel
           spin_mod%nsdown=tdsp1%ndoel
           !$omp parallel do private(I)
-#ifdef __SR8000
-          !poption parallel
-#endif
 #ifdef _vpp_
           !OCL NOALIAS
 #endif
@@ -692,9 +682,6 @@ CONTAINS
           spin_mod%nsup=tdsp1%nupel+(nx+1)/2
           spin_mod%nsdown=tdsp1%ndoel+nx/2
           !$omp parallel do private(I)
-#ifdef __SR8000
-          !poption parallel
-#endif
 #ifdef _vpp_
           !OCL NOALIAS
 #endif
@@ -702,9 +689,6 @@ CONTAINS
              crge%f(i,1)=0._real_8
           ENDDO
           !$omp parallel do private(I)
-#ifdef __SR8000
-          !poption parallel
-#endif
 #ifdef _vpp_
           !OCL NOALIAS
 #endif
@@ -712,9 +696,6 @@ CONTAINS
              crge%f(i,1)=1._real_8
           ENDDO
           !$omp parallel do private(I)
-#ifdef __SR8000
-          !poption parallel
-#endif
 #ifdef _vpp_
           !OCL NOALIAS
 #endif

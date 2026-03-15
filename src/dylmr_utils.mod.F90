@@ -23,9 +23,6 @@ MODULE dylmr_utils
 
 CONTAINS
 
-#ifdef __SR8000
-  !option MP(P(0)), LANGLVL(SAVE(0))
-#endif
   ! ==================================================================
   SUBROUTINE dylmr(l,gk,dylm,kk)
     ! ==--------------------------------------------------------------==

@@ -17,8 +17,7 @@ MODULE friesner_utils
                                              paral
   USE randtowf_utils,                  ONLY: randtowf
   USE sort_utils,                      ONLY: sort2
-  USE summat_utils,                    ONLY: give_scr_summat,&
-                                             summat
+  USE summat_utils,                    ONLY: summat
   USE system,                          ONLY: cnti,&
                                              cntl,&
                                              cntr,&
@@ -657,17 +656,15 @@ CONTAINS
     INTEGER                                  :: ndiag
 
     INTEGER                                  :: ldiag, lhpsi, lkrylov_ref, &
-                                                lscr, lsummat
+                                                lscr
 
     lscr=0
     ldiag=0
     lkrylov_ref=0
-    lsummat=0
     lhpsi=0
     IF (.NOT.fint1%ttrot) THEN
        CALL give_scr_hpsi(lhpsi,tag,ndiag)
     ENDIF
-    CALL give_scr_summat(lsummat,tag,ndiag)
     CALL give_scr_krylov_ref(lkrylov_ref,tag,ndiag)
     IF (tkpts%tkpnt) THEN
        ldiag=((3*ndiag-2) + 5*(2*ndiag))! ZHEEV
@@ -677,7 +674,7 @@ CONTAINS
        lscr=ndiag/2+1+ndiag*ndiag+2*ndiag ! INDEX ADAV ALPHA0 BETA1
     ENDIF
     ldiag=MAX(ldiag,2*ndiag)  ! CONVFRIE
-    lfriesner=lscr+MAX(lhpsi,lsummat,lkrylov_ref,ldiag)+10
+    lfriesner=lscr+MAX(lhpsi,lkrylov_ref,ldiag)+10
     tag='LSCR+MAX(HPSI,SUMHMAT,...)' 
     ! ==--------------------------------------------------------------==
     RETURN

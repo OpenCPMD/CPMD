@@ -130,9 +130,6 @@ CONTAINS
                 ! ANALYTICAL FORM
                 cpi=(pi/corer%enlcc(is))**1.5_real_8
                 !$omp parallel do private(IG,ARG)
-#ifdef __SR8000
-                !poption parallel, tlocal(IG,ARG)
-#endif 
                 DO ig=1,nsplpo
                    arg=parm%tpiba2*ggnh(ig)/corer%enlcc(is)/4.0_real_8
                    rhocspl(ig,1,is)=(corer%anlcc(is)+corer%bnlcc(is)/corer%enlcc(is)*(1.5_real_8-&
@@ -154,9 +151,6 @@ CONTAINS
     DO is=1,ions1%nsp
        IF (corel%tnlcc(is)) THEN
           !$omp parallel do private(IG) shared(NSPLPO)
-#ifdef __SR8000
-          !poption parallel, tlocal(IG)
-#endif 
           DO ig=1,ncpw%nhg
              rhoc(ig,is)=vol*curv2(hg(ig),nsplpo,ggnh(1),rhocspl(1,1,is),&
                   rhocspl(1,2,is),0._real_8)

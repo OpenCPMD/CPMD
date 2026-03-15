@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE hubbardu_utils
 
 USE atom,                           ONLY: ecpfiles
@@ -46,15 +48,15 @@ USE qspl,                           ONLY: ggng,&
                                           nsplpo
 USE readsr_utils,                   ONLY: xstring
 USE recpnew_utils,                  ONLY: ckgrid,tgrid
-USE rnlsm_utils,                    ONLY: give_scr_rnlsm,rnlsm
+USE rnlsm_utils,                    ONLY: rnlsm
 USE ropt,                           ONLY: iteropt
 USE sfac,                           ONLY: dfnl,&
                                           eigr,&
                                           ei1,ei2,ei3,eigrb,&
-                                          fnl
+                                          fnl,&
+                                          fnl_packed
 USE spin,                           ONLY: spin_mod
-USE spsi_utils,                     ONLY: spsi,&
-                                          give_scr_spsi
+USE spsi_utils,                     ONLY: spsi
 USE sphe,                           ONLY: gcutka
 USE system,                         ONLY: cntl,&
                                           iatpt,&
@@ -99,10 +101,16 @@ USE zeroing_utils,                  ONLY: zeroing
     !     == -------------------------------------------------------------- ==
           IMPLICIT NONE
     !
-          INTEGER, INTENT(IN)            ::  nstate,ispin0
-          COMPLEX(real_8), INTENT(IN)    ::  c0(:,:),psi(:),c2u(:,:)
+          INTEGER,INTENT(IN)             ::  nstate,ispin0
+          COMPLEX(real_8),INTENT(IN)&
+               __CONTIGUOUS              ::  c0(:,:)
+          COMPLEX(real_8),INTENT(OUT)&
+               __CONTIGUOUS              :: psi(:),c2u(:,:)
 
-          REAL(real_8) , INTENT(INOUT)   ::  tau0(:,:,:),fion(:,:,:)
+          REAL(real_8) , INTENT(IN)&
+               __CONTIGUOUS              ::  tau0(:,:,:)
+          REAL(real_8) , INTENT(INOUT)&
+               __CONTIGUOUS              ::  fion(:,:,:)
           LOGICAL ,INTENT(IN)            ::  tfor
 
           CHARACTER(*), PARAMETER        ::  procedureN = 'hubbardUcorrection'
@@ -271,13 +279,14 @@ USE zeroing_utils,                  ONLY: zeroing
 !     == -------------------------------------------------------------- ==
       IMPLICIT NONE
       INTEGER, INTENT(IN)           ::   NSTATE,ISPIN0
-      COMPLEX(real_8)               ::   C0(:,:),PSI(:)
-      REAL(real_8)                  ::   TAU0(:,:,:)
-      LOGICAL                       ::   TFOR
+      COMPLEX(real_8) __CONTIGUOUS  ::   C0(:,:),PSI(:)
+      REAL(real_8),INTENT(IN)&
+      __CONTIGUOUS                  ::   TAU0(:,:,:)
+      LOGICAL,INTENT(IN)            ::   TFOR
       CHARACTER(len=30)             ::   TAG
       CHARACTER(*), PARAMETER       ::   procedureN = 'occmat'
     
-      INTEGER    ISUB,L_RNLSM,L_ORTHO,NOMAX,L_OCCMAT,ISPIN,ISTATE,&
+      INTEGER    ISUB,L_ORTHO,NOMAX,L_OCCMAT,ISPIN,ISTATE,&
                 IUATM,M1,M2,M10,M20,M0,MOFF,MM1,MM2
 !
       REAL(real_8)                  ::   FFI,FQQ(2)
@@ -298,10 +307,8 @@ USE zeroing_utils,                  ONLY: zeroing
 !
 !  Scratch for orthogonalization of C0
       L_ORTHO=1
-      L_RNLSM=1
       CALL GIVE_SCR_ORTHO(L_ORTHO,TAG,NOMAX)
-      CALL GIVE_SCR_RNLSM(L_RNLSM,TAG,NOMAX,.FALSE.)
-      L_OCCMAT=MAX(L_ORTHO,L_RNLSM)
+      L_OCCMAT=L_ORTHO
 !
       allocate(myc0(ncpw%ngw,nstate),STAT=ierr)
       IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
@@ -314,7 +321,7 @@ USE zeroing_utils,                  ONLY: zeroing
       IF(pslo_com%tivan)THEN
         CALL rnlsm(myc0,nstate,1,1,.false.)
 !       |S|psi>
-        CALL spsi(nstate,myc0)
+        CALL spsi(nstate,myc0,fnl_packed,redist=.TRUE.)
       END IF
 !
 ! Load atomic orbitals and store it for further use
@@ -404,8 +411,11 @@ USE zeroing_utils,                  ONLY: zeroing
      IMPLICIT NONE
 !
       INTEGER, INTENT(IN)           ::  NSTATE
-      REAL(real_8), INTENT(IN)      ::  TAU0(:,:,:)
-      COMPLEX(real_8), INTENT(IN)   ::  PSI(:)
+      REAL(real_8), INTENT(IN)&
+            __CONTIGUOUS            ::  TAU0(:,:,:)
+      ! PSI is not used
+      COMPLEX(real_8), INTENT(INOUT)&
+      __CONTIGUOUS                  ::  PSI(:)
       LOGICAL                       ::  TFOR
       CHARACTER(*), PARAMETER       ::  procedureN = 'orthocatom'
 !
@@ -467,7 +477,7 @@ USE zeroing_utils,                  ONLY: zeroing
         CALL FNL_SET('SAVE')
         CALL FNLALLOC(hubbu%nuproj,.FALSE.,.FALSE.)
         CALL rnlsm(myscr,hubbu%nuproj,1,1,.false.)
-        CALL spsi(hubbu%nuproj,myscr)
+        CALL spsi(hubbu%nuproj,myscr,fnl_packed,redist=.TRUE.)
         CALL FNLDEALLOC(.FALSE.,.FALSE.)
         CALL FNL_SET('RECV')
         cntl%tlsd=TLSD_BAK
@@ -589,12 +599,15 @@ USE zeroing_utils,                  ONLY: zeroing
 !     == -------------------------------------------------------------- ==
       IMPLICIT NONE
       CHARACTER(*), PARAMETER   ::  procedureN = 'hubbe'
-      INTEGER                   ::  NSTATE,ISPIN0
-      LOGICAL                   ::  TFOR
-      REAL(real_8)              ::  TAU0(:,:,:),FION(:,:,:)
+      INTEGER,INTENT(IN)        ::  NSTATE,ISPIN0
+      LOGICAL,INTENT(IN)        ::  TFOR
+      REAL(real_8),INTENT(IN)&
+      __CONTIGUOUS              ::  TAU0(:,:,:)
+      REAL(real_8),INTENT(INOUT)&
+      __CONTIGUOUS              ::  FION(:,:,:)
 ! NS TODO:  Was REAL variable! check this
-      COMPLEX(real_8)           ::  PSI(:)
-      COMPLEX(real_8)           ::  C0(:,:),C2U(:,:)!ncpw%ngw,:)
+      COMPLEX(real_8)__CONTIGUOUS ::  PSI(:)
+      COMPLEX(real_8)__CONTIGUOUS ::  C0(:,:),C2U(:,:)!ncpw%ngw,:)
 !
       REAL(real_8)              ::  OMSUMM2,OM1M2,OM2M1,OM1M1,OMSUM,FUI(3),&
                                     FOM1M1(3),FOM1M2(3),FOM2M1(3),FOMSUMM2(3),&
@@ -713,11 +726,12 @@ USE zeroing_utils,                  ONLY: zeroing
 !     == -------------------------------------------------------------- ==
       IMPLICIT NONE
 !
-      COMPLEX(real_8)             ::    C0(:,:),CA(:,:),C2U(:,:)
-      REAL(real_8)                ::    TAU0(:,:,:)
+      COMPLEX(real_8) __CONTIGUOUS::    C0(:,:),CA(:,:),C2U(:,:)
+      REAL(real_8),INTENT(IN) &
+           __CONTIGUOUS           ::    TAU0(:,:,:)
       CHARACTER(*), PARAMETER     ::    procedureN = 'deudpsi2'
       
-      INTEGER                     ::    NSTATE,ISPIN0,ISUB
+      INTEGER,INTENT(IN)          ::    NSTATE,ISPIN0
 !
       COMPLEX(real_8),ALLOCATABLE ::    SCA(:,:)
       COMPLEX(real_8)             ::    PSI(:)
@@ -725,7 +739,7 @@ USE zeroing_utils,                  ONLY: zeroing
       REAL(real_8)                ::    KD,PAR,FAC,TMP,FFI
       COMPLEX(real_8)             ::    UUU,UAA,FC,PAC,IM1M2,IM2M1,IM1M1,IFAC
       INTEGER                     ::    M1,M2,M10,M20,MM1,MM2,MOFF,IG,ISTATE,&
-                                        ISPIN,IUATM,ISPIN_MIN,ISPIN_MAX
+                                        ISPIN,IUATM,ISPIN_MIN,ISPIN_MAX,ISUB
       LOGICAL                     ::    TLSD_BAK
 !
       INTEGER                     ::    FIRSTCALL,ierr
@@ -758,7 +772,7 @@ USE zeroing_utils,                  ONLY: zeroing
         CALL FNLALLOC(hubbu%nuproj,.FALSE.,.FALSE.)
 !GM FIXME fix the call
         CALL rnlsm(sca,hubbu%nuproj,1,1,.false.)
-        CALL spsi(hubbu%nuproj,sca)
+        CALL spsi(hubbu%nuproj,sca,fnl_packed,redist=.TRUE.)
         CALL FNLDEALLOC(.FALSE.,.FALSE.)
         CALL FNL_SET('RECV')
         cntl%tlsd=TLSD_BAK
@@ -1040,9 +1054,9 @@ USE zeroing_utils,                  ONLY: zeroing
 !     == -------------------------------------------------------------- ==
       IMPLICIT NONE
 !
-      INTEGER                       ::  NSTATE
+      INTEGER,INTENT(IN)            ::  NSTATE
       CHARACTER(*), PARAMETER       ::  procedureN = 'DFTPLUSU_NUMDER'
-      COMPLEX(real_8)               ::  C0(:,:),PSI(:),C2U(:,:)
+      COMPLEX(real_8) __CONTIGUOUS  ::  C0(:,:),PSI(:),C2U(:,:)
       REAL(real_8)                  ::  TAU0(3,maxsys%nax,maxsys%nsx),&
                                         FION(3,maxsys%nax,maxsys%nsx)     
       LOGICAL                       ::  TFOR,TIVAN_BAK
@@ -1148,16 +1162,12 @@ USE zeroing_utils,                  ONLY: zeroing
     CHARACTER(*), PARAMETER     ::  procedureN = 'give_scr_hubbardu'
     CHARACTER(len=30)           ::  TAG
 
-    INTEGER                     ::  L_ORTHO,L_RNLSM,L_SPSI,NOMAX
+    INTEGER                     ::  L_ORTHO,NOMAX
 !  ==--------------------------------------------------------------==
   IF(cntl%thubb)THEN 
     NOMAX=MAX(hubbu%nuproj,NSTATE)
     CALL GIVE_SCR_ORTHO(L_ORTHO,TAG,NOMAX)
-    CALL GIVE_SCR_RNLSM(L_RNLSM,TAG,NOMAX,.FALSE.)
-    CALL GIVE_SCR_SPSI(L_SPSI,TAG)
     L_DFTU=MAX(1,L_ORTHO)
-    L_DFTU=MAX(L_DFTU,L_RNLSM)
-    L_DFTU=MAX(L_DFTU,L_SPSI)
   ELSE
     L_DFTU=0
   END IF

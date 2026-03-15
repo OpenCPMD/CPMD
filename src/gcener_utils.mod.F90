@@ -22,6 +22,7 @@ MODULE gcener_utils
   USE gcxctbl_utils,                   ONLY: &
        gcgga, gcpbe, gcrevpbe, gcspbe, gcsrevpbe, gcsxlyp, gcsxonly, gcsxp86, &
        gcxlyp, gcxonly, gcxp86
+  USE gpu
   USE kinds,                           ONLY: real_8
   USE lsd_func_utils,                  ONLY: gc_lsd
   USE metafun_utils,                   ONLY: taufun,&
@@ -102,8 +103,19 @@ CONTAINS
     ! ==  V1 = dF/dn stored in V(*)                                   ==
     ! ==  V2 = (1/Nabla.n) dF/d(Nabla.n) stored in VTMP(*)            ==
     ! ==--------------------------------------------------------------==
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do private(ir)
+    DO ir=1,fpar%nnr1
+       v(ir,1)=CMPLX(0.0_real_8,0.0_real_8)
+    END DO
+    !$omp target teams distribute parallel do private(ir)
+    DO ir=1,fpar%nnr1
+       vtmp(ir)=CMPLX(0.0_real_8,0.0_real_8)
+    END DO
+#else
     CALL zeroing(v(:,1))!,nnr1)
     CALL zeroing(vtmp)!,nnr1)
+#endif
     sgcx = 0.0_real_8
     sgcc = 0.0_real_8
     flops=0.0_real_8
@@ -148,7 +160,13 @@ CONTAINS
        !
     ELSE
        IF (toldcode) THEN
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update from(rhoe(:,1),v(:,1),vtmp,grad)
+#endif
           CALL gcold(sgcx,sgcc,rhoe(:,1),v(:,1),vtmp,grad,flops)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+          !$omp target update to(rhoe(:,1),v(:,1),vtmp,grad)
+#endif
        ELSE
           IF (func1%mgcx == mgcx_is_becke88) THEN
              IF (func1%mgcc == mgcc_is_skipped) THEN
@@ -206,11 +224,25 @@ CONTAINS
     ENDIF
     ! ==--------------------------------------------------------------==
     ! FFT of V1 and V2*RHOx to G-Space
-    !$omp parallel do private(IR)
+
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do&
+#endif
+    !$omp& private(IR)
     DO ir=1,fpar%nnr1
        v(ir,1) = v(ir,1) + CMPLX(0.0_real_8,vtmp(ir)*grad(ir,2),kind=real_8)
     ENDDO
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu=.false.
+    update_second_to_gpu=.false.
+    update_third_to_gpu=.false.
+    update_result_to_host=.false.
+    comm_buffers_on_host=.false.
+#endif
     CALL  fwfftn(v(:,1),.FALSE.,parai%allgrp)
+
     gcs=cntr%smf*hg(ncpw%nhg)
     IF (cntl%tsmooth) THEN
        gmax=hg(ncpw%nhg)
@@ -231,7 +263,12 @@ CONTAINS
           vtemp(ig) = vtemp(ig) + smfac*vg1 - vfac*uimag*vg2
        ENDDO
     ELSE
-       !$omp parallel do private(IG,VFAC,vnz,vin,FA,FB,VG1,VG2)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do &
+#else
+       !$omp parallel do &
+#endif
+       !$omp& private(IG,VFAC,vnz,vin,FA,FB,VG1,VG2)
        DO ig=1,ncpw%nhg
           vfac=parm%tpiba*gk(1,ig)
           ! !        FA  = V(NZH(IG)) + V(INDZ(IG))
@@ -246,8 +283,13 @@ CONTAINS
        ENDDO
     ENDIF
     ! FFT of V2*RHOy and V2*RHOz to G-Space
-    CALL zeroing(v(:,1))!,nnr1)
-    !$omp parallel do private(IR)
+!    CALL zeroing(v(:,1))!,nnr1)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do &
+#else
+    !$omp parallel do &
+#endif
+    !$omp& private(IR)
     DO ir=1,fpar%nnr1
        v(ir,1) = CMPLX(vtmp(ir)*grad(ir,3),vtmp(ir)*grad(ir,4),kind=real_8)
     ENDDO
@@ -273,7 +315,12 @@ CONTAINS
           vtemp(ig) = vtemp(ig) - vfac2*uimag*vg1 - vfac3*uimag*vg2
        ENDDO
     ELSE
-       !$omp parallel do private(IG,VFAC2,VFAC3,vnz,vin,FA,FB,VG1,VG2)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+       !$omp target teams distribute parallel do &
+#else
+       !$omp parallel do &
+#endif
+       !$omp& private(IG,VFAC2,VFAC3,vnz,vin,FA,FB,VG1,VG2)
        DO ig=1,ncpw%nhg
           vfac2=parm%tpiba*gk(2,ig)
           vfac3=parm%tpiba*gk(3,ig)
@@ -288,15 +335,34 @@ CONTAINS
           vtemp(ig) = vtemp(ig) - vfac2*uimag*vg1 - vfac3*uimag*vg2
        ENDDO
     ENDIF
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do private(ir)
+    DO ir=1,fpar%nnr1
+       v(ir,1)=CMPLX(0.0_real_8,0.0_real_8)
+    END DO
+#else
     CALL zeroing(v(:,1))!,maxfft)
+#endif
     !CDIR NODEP
     !ocl novrec
-    !$omp parallel do private(IG)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    !$omp target teams distribute parallel do&
+#else
+    !$omp parallel do &
+#endif
+    !$omp &private(IG)
     DO ig=1,ncpw%nhg
        v(nzh(ig),1) = vtemp(ig)
        v(indz(ig),1) = CONJG(vtemp(ig))
     ENDDO
     CALL invfftn(v(:,1),.FALSE.,parai%allgrp)
+#if defined(_HAS_OMP_TARGET_OFFLOAD)
+    update_first_to_gpu=.true.
+    update_second_to_gpu=.true.
+    update_third_to_gpu=.true.
+    update_result_to_host=.true.
+    comm_buffers_on_host=.true.
+#endif
 
     __NVTX_TIMER_STOP
     CALL tihalt(procedureN,isub)
@@ -529,9 +595,7 @@ CONTAINS
     CALL zeroing(v(:,1))!,nnr1)
     !CDIR NODEP
     !ocl novrec
-#if defined(__SR11000) || defined(__PRIMERGY) || defined(__PRIMEHPC)
     !$omp parallel do private(IG)
-#endif
     DO ig=1,ncpw%nhg
        v(nzh(ig),1) = vtemp(ig,1)
        v(indz(ig),1) = CONJG(vtemp(ig,1))
@@ -624,9 +688,7 @@ CONTAINS
     CALL zeroing(v(:,2))!,nnr1)
     !CDIR NODEP
     !ocl novrec
-#if defined(__SR11000) || defined(__PRIMERGY) || defined(__PRIMEHPC)
     !$omp parallel do private(IG)
-#endif
     DO ig=1,ncpw%nhg
        v(nzh(ig),2) = vtemp(ig,2)
        v(indz(ig),2) = CONJG(vtemp(ig,2))
@@ -655,13 +717,6 @@ CONTAINS
        !$omp             private(SXSR,V1XSR,V2XSR) &
        !$omp             shared(GRAD,V,VTMP,fpar,RHOE) &
        !$omp             reduction(+:SGCX,SGCC)
-#ifdef __SR8000
-       !poption parallel
-       !poption tlocal(SX,SC,V1X,V2X,V1C,V2C)
-#endif
-#if defined (__SR11000)
-       !poption psum(SGCX,SGCC)
-#endif
        DO ir=1,fpar%nnr1
           rho   = MAX(rhoe(ir),0.0_real_8)
           IF (rho.GT.0.1_real_8*cntr%gceps) THEN
@@ -761,15 +816,6 @@ CONTAINS
        !$omp       private(SXSR,V1XASR,V2XASR,V1XBSR,V2XBSR,V2XABSR) &
        !$omp       shared(GRAD,V,VTMP,fpar,RHOE) &
        !$omp       reduction(+:SGCX,SGCC)
-#ifdef __SR8000
-       !poption parallel
-       !poption tlocal(SX,SC)
-       !poption tlocal(V1XA,V2XA,V1XB,V2XB,V1CA,V2CA,V1CB,V2CB)
-       !poption tlocal(V2XAB,V2CAB)
-#endif
-#if defined (__SR11000)
-       !poption psum(SGCX,SGCC)
-#endif
        DO ir=1,fpar%nnr1
           rhoa   = MAX(rhoe(ir,1),0.0_real_8)
           rhob   = MAX(rhoe(ir,2),0.0_real_8)

@@ -223,7 +223,7 @@ CONTAINS
                   WRITE(iuldos,'(I4,I4,1X,2F10.4,1X,F10.5)')&
                   ik,i,we(i,ik)*2._real_8*ry,crge%f(i,ik),wk(ik)
              IF (paral%io_parent)&
-                  WRITE(iuldos,'(8E10.4)') (dldos(ii,i,ik),ii=1,cldos%nlayer)
+                  WRITE(iuldos,'(8E11.4)') (dldos(ii,i,ik),ii=1,cldos%nlayer)
           ENDDO
        ENDDO
        DO i=1,cldos%nlayer

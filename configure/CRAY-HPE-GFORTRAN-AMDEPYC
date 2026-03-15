@@ -1,0 +1,44 @@
+#INFO#
+#INFO# Configuration to build a parallel MPI/OMP QM/MM executable for a CRAY HPE
+#INFO# using GNU Fortran/C ver. 12.2.0 or later and MPICH 8.1.24 (or later)
+#INFO# Note:The options "-ffast-math"i and "-fstrength-reduce" might allow the code
+#INFO#      to run faster, or die trying (especially the last one !).
+#INFO#      Older GFortran versions are unable to interpret -fallow-argument-mismatch
+#INFO#      and this option has to be suppressed.
+#INFO# More information at https://gcc.gnu.org/onlinedocs/gfortran/Fortran-Dialect-Options.html
+#INFO# Strasbourg/Nagoya - June 2023
+#INFO#
+
+     IRAT=2
+     FC='mpif90'
+     CC='mpicc'
+     LD='mpif90'
+     CPP='cpp -P -traditional'
+     CPPFLAGS='-D__Linux -D__GNU -D__HAS_FFT_DEFAULT -D__HAS_SIZEOF -D__HASNT_OMP_45 \
+               -D__PARALLEL -D__HPC -D__HAS_BF_STREAM_IO'
+     FFLAGS_GROMOS='-ffixed-form  $(FFLAGS)' 
+     FFLAGS_GROMOS_MODULES='$(FFLAGS)' 
+     if [ $debug ]; then
+       FFLAGS='-g -O0 -fcheck=all -Wuninitialized -Wall'
+       CFLAGS='-g -O0 -Wall'
+     else
+       FFLAGS='-O2 -Wall -ffree-line-length-none -falign-commons -funroll-loops -fallow-argument-mismatch -ftree-vectorize -mtune=native'
+       CFLAGS='-O2 -Wall -ffree-line-length-none -falign-commons -funroll-loops -fallow-argument-mismatch -ftree-vectorize -mtune=native'
+     fi
+     if [ $omp ]; then
+       FFLAGS=${FFLAGS}' -fopenmp'
+       OMP3_DISABLED='false'
+#select your own SciLib
+#       LIBS='-static-libgfortran -L/opt/cray/pe/libsci/23.02.1.1/GNU/9.1/x86_64/lib -lsci_gnu_82 -lsci_gnu_82_mp -lsci_gnu_82_mpi -lsci_gnu_82_mpi_mp'
+#       LIBS='-static-libgfortran -L/opt/cray/pe/libsci/23.02.1.1/GNU/9.1/x86_64/lib -lsci_gnu_82 -lm'
+       LIBS='-static-libgfortran -L/lus/home/CT9/gem6092/boero/lib -llapack -lblas -lm'
+     else
+       echo "Non-OMP settings not available!"
+       exit 1
+       LIBS=''
+     fi
+     LFLAGS=' '${LIBS}
+     if [ $coverage ]; then
+       FFLAGS=${FFLAGS}' --coverage'
+       LFLAGS='--coverage '${LFLAGS}
+     fi

@@ -350,7 +350,7 @@ CONTAINS
     WRITE(6,'(1X,4(">"),A,I4)')&
          ' PRINT LEVEL:',pimd3%levprt
     IF (tolds.GT.0.0_real_8)&
-         WRITE(6,'(1X,4(">"),A,1PE12.6)')&
+         WRITE(6,'(1X,4(">"),A,1PE13.6)')&
          ' CONVERGENCE CRITERIA FOR STRING POSITIONS: ',tolds
     IF (mfepi%ncvsp.LT.cotr007%mrestr) THEN
        WRITE(6,'(1X,4(">"),A,I3)')&

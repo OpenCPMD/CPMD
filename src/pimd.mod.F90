@@ -1,7 +1,9 @@
 MODULE pimd
   USE kinds,                           ONLY: real_8
   USE system,                          ONLY: maxsp
-
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
   IMPLICIT NONE
 
   ! ==================================================================
@@ -86,7 +88,12 @@ MODULE pimd
   ! == IPCURR                                                       ==
   ! == GRANDPARENT                                                  ==
   ! ==--------------------------------------------------------------==
+#ifdef __PARALLEL
+  INTEGER :: supersource
+  type(MPI_COMM) :: supergroup,parentgroup
+#else
   INTEGER :: supergroup,supersource,parentgroup
+#endif
   INTEGER, ALLOCATABLE, DIMENSION(:) :: pc_grp
   INTEGER :: pc_groups,pcg_pos,nproc_tot,ipcurr
   LOGICAL :: grandparent,PARENT_PARENTGROUP

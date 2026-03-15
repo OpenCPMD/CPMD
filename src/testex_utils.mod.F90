@@ -13,6 +13,9 @@ MODULE testex_utils
   USE system,                          ONLY: cntl
   USE timer,                           ONLY: tilimex,&
                                              tilimit
+#ifdef __PARALLEL
+  USE mpi_f08
+#endif
 
   IMPLICIT NONE
 
@@ -36,7 +39,12 @@ CONTAINS
     CHARACTER(*), PARAMETER                  :: procedureN = 'testex'
 
     CHARACTER(LEN=default_path_length)       :: filen
+#ifdef __PARALLEL
+    INTEGER                                  :: in, out, unit
+    type(MPI_COMM)                           :: mpigroup
+#else
     INTEGER                                  :: in, mpigroup, out, unit
+#endif
     LOGICAL                                  :: exist, opened, t_io_node, &
                                                 test1
     LOGICAL, SAVE                            :: test2 = .FALSE.

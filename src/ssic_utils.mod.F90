@@ -85,11 +85,6 @@ CONTAINS
     ENDIF
     !$omp  parallel do private(IG,RHET,RHETS) &
     !$omp  reduction(+:EHSICG)
-#ifdef __SR11000
-    !poption parallel
-    !poption tlocal(IG,RHET,RHETS)
-    !poption psum(EHSICG)
-#endif 
     DO ig=ig1,ncpw%nhg
        ! ==------------------------------------------------------------==
        ! == In VSICT we store temporarily the potential in G-space     ==

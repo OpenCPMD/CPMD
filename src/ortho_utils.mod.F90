@@ -1,3 +1,5 @@
+#include "cpmd_global.h"
+
 MODULE ortho_utils
   USE cp_cuda_types,                   ONLY: cp_cuda_devices_blas,&
                                              cp_cuda_env
@@ -19,7 +21,8 @@ MODULE ortho_utils
   USE geq0mod,                         ONLY: geq0
   USE gsortho_utils,                   ONLY: gs_ortho
   USE jrotation_utils,                 ONLY: set_orbdist
-  USE kinds,                           ONLY: real_8
+  USE kinds,                           ONLY: real_8, &
+                                             int_8
   USE kpts,                            ONLY: tkpts
   USE lowdin_utils,                    ONLY: give_scr_lowdin,&
                                              lowdin
@@ -31,7 +34,6 @@ MODULE ortho_utils
   USE rgs_utils,                       ONLY: rgs,&
                                              rgs_c
   USE rgsvan_utils,                    ONLY: rgsvan
-  USE sfac,                            ONLY: fnl
   USE spin,                            ONLY: spin_mod
   USE system,                          ONLY: cnti,&
                                              cntl,&
@@ -42,6 +44,10 @@ MODULE ortho_utils
                                              tiset
   USE utils,                           ONLY: zclean,&
                                              zclean_k
+#ifdef _USE_SCRATCHLIBRARY
+  USE scratch_interface,               ONLY: request_scratch,&
+                                             free_scratch
+#endif
 
   IMPLICIT NONE
 
@@ -131,10 +137,14 @@ CONTAINS
     CHARACTER(*), PARAMETER                  :: procedureN = 'ortho'
 
     COMPLEX(real_8), ALLOCATABLE             :: csmat(:)
-    INTEGER                                  :: ierr, isub, lsmat
+    INTEGER                                  :: ierr, isub
+    INTEGER(int_8)                           :: il_smat(1)
     LOGICAL                                  :: debug
+#ifdef _USE_SCRATCHLIBRARY
+    REAL(real_8), POINTER __CONTIGUOUS       :: smat(:)
+#else
     REAL(real_8), ALLOCATABLE                :: smat(:)
-
+#endif
     CALL tiset(procedureN,isub)
     ! ==--------------------------------------------------------------==
     debug=.FALSE.
@@ -193,33 +203,27 @@ CONTAINS
        CALL lowdin(c0,cscr,nstate)
     ELSE
        IF (pslo_com%tivan) THEN
-          IF (cntl%tlsd) THEN
-             lsmat=MAX(spin_mod%nsup,spin_mod%nsdown)**2
-             ALLOCATE(smat(lsmat),STAT=ierr)
-             IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
-                  __LINE__,__FILE__)
-             CALL rgsvan(c0(:,1:spin_mod%nsup),  &
-                  fnl(:,:,:,1:spin_mod%nsup,1),spin_mod%nsup,  smat)
-             CALL rgsvan(c0(:,spin_mod%nsup+1:spin_mod%nsup+spin_mod%nsdown),&
-                  fnl(:,:,:,spin_mod%nsup+1:,1),spin_mod%nsdown,smat)
-             DEALLOCATE(smat,STAT=ierr)
-             IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-                  __LINE__,__FILE__)
-          ELSE
-             lsmat=nstate*nstate
-             ALLOCATE(smat(lsmat),STAT=ierr)
-             IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
-                  __LINE__,__FILE__)
-             CALL rgsvan(c0,fnl(:,:,:,:,1),nstate,smat)
-             DEALLOCATE(smat,STAT=ierr)
-             IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
-                  __LINE__,__FILE__)
-          ENDIF
+          il_smat(1)=nstate*nstate
+#ifdef _USE_SCRATCHLIBRARY
+          CALL request_scratch(il_smat,smat,procedureN//'_smat',ierr)
+#else
+          ALLOCATE(smat(il_smat(1)),STAT=ierr)
+#endif
+          IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
+               __LINE__,__FILE__)
+          CALL rgsvan(c0,nstate,smat,store_nonort=.FALSE.)
+#ifdef _USE_SCRATCHLIBRARY
+          CALL free_scratch(il_smat,smat,procedureN//'_smat',ierr)
+#else
+          DEALLOCATE(smat,STAT=ierr)
+#endif
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
+               __LINE__,__FILE__)
        ELSE
           IF (cntl%tlsd) THEN
              IF (tkpts%tkpnt) THEN
-                lsmat=MAX(spin_mod%nsup,spin_mod%nsdown)**2
-                ALLOCATE(csmat(lsmat),STAT=ierr)
+                il_smat(1)=MAX(spin_mod%nsup,spin_mod%nsdown)**2
+                ALLOCATE(csmat(il_smat(1)),STAT=ierr)
                 IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
                      __LINE__,__FILE__)
                 CALL rgs_c(c0(:,:),spin_mod%nsup,csmat)
@@ -228,8 +232,8 @@ CONTAINS
                 IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
                      __LINE__,__FILE__)
              ELSE
-                lsmat=MAX(spin_mod%nsup,spin_mod%nsdown)**2
-                ALLOCATE(smat(lsmat),STAT=ierr)
+                il_smat(1)=MAX(spin_mod%nsup,spin_mod%nsdown)**2
+                ALLOCATE(smat(il_smat(1)),STAT=ierr)
                 IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
                      __LINE__,__FILE__)
                 CALL rgs(c0,spin_mod%nsup,smat)
@@ -240,8 +244,8 @@ CONTAINS
              ENDIF
           ELSE
              IF (tkpts%tkpnt) THEN
-                lsmat=nstate*nstate
-                ALLOCATE(csmat(lsmat),STAT=ierr)
+                il_smat(1)=nstate*nstate
+                ALLOCATE(csmat(il_smat(1)),STAT=ierr)
                 IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
                      __LINE__,__FILE__)
                 CALL rgs_c(c0,nstate,csmat)
@@ -249,8 +253,8 @@ CONTAINS
                 IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem', &
                      __LINE__,__FILE__)
              ELSE
-                lsmat=nstate*nstate
-                ALLOCATE(smat(lsmat),STAT=ierr)
+                il_smat(1)=nstate*nstate
+                ALLOCATE(smat(il_smat(1)),STAT=ierr)
                 IF(ierr/=0) CALL stopgm(procedureN,'allocation problem', &
                      __LINE__,__FILE__)
                 CALL rgs(c0,nstate,smat)

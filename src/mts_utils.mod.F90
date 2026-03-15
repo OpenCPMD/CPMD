@@ -11,6 +11,7 @@ module mts_utils
   USE func,                            ONLY: func1,&
                                              func2,&
                                              func3
+   use ace_hfx, only: use_ace !SM
 
 #include "sizeof.h"
 
@@ -81,6 +82,7 @@ contains
          mts%print_forces = .false.
          mts%low_dft_func = ' '
          mts%high_dft_func = ' '
+         use_ace=.false.   !SM
          !
          ! If the MTS section is not there, we simply move on.
          !
@@ -124,6 +126,9 @@ contains
                   ELSE
                      mts%print_forces = .true.
                   ENDIF
+
+               ELSE IF ( keyword_contains(line,'USE_ACE') ) THEN  !SM
+                  use_ace=.TRUE.
 
                ELSE IF ( keyword_contains(line,'LOW_LEVEL_FORCES') ) THEN
 
@@ -208,6 +213,7 @@ contains
             write(output_unit,'(4x,a,t40,i4)') 'TIMESTEP FACTOR:', mts%timestep_factor
             write(output_unit,'(4x,a,t40,a)')  'LOW LEVEL FROM :', mts%low_level
             write(output_unit,'(4x,a,t40,a)')  'HIGH LEVEL FROM:', mts%high_level
+            write(output_unit,'(4x,a,t40,l1)')  'USING ACE APPROACH:', use_ace  !SM
             if (mts%print_forces) then
                write(output_unit,'(4x,a)')  'HIGH AND LOW LEVEL FORCES WILL BE PRINTED TO FILE'
             end if
@@ -218,6 +224,7 @@ contains
 
       CALL mp_bcast(cnti%npdip,parai%io_source,parai%cp_grp)
       CALL mp_bcast_byte(mts, size_in_bytes_of(mts),parai%io_source,parai%cp_grp)
+      CALL mp_bcast(use_ace,parai%io_source,parai%cp_grp)  !SM
 
    end subroutine read_mts_input
 
