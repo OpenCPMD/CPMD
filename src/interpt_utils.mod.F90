@@ -92,10 +92,10 @@ CONTAINS
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
     ELSE IF (cntl%diis) THEN
-       ALLOCATE(pme((ncpw%ngw*crge%n+8)*cnti%mdiis/2),STAT=ierr)
+       ALLOCATE(pme((ncpw%ngw*crge%n+8)*cnti%mdiis*2),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
-       ALLOCATE(gde(((ncpw%ngw*crge%n+8)*cnti%mdiis)/2),STAT=ierr)
+       ALLOCATE(gde(((ncpw%ngw*crge%n+8)*cnti%mdiis)*2),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
        ALLOCATE(vpp(ncpw%ngw),STAT=ierr)

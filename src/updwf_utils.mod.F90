@@ -15,6 +15,7 @@ MODULE updwf_utils
   USE mm_input,                        ONLY: clc
   USE mm_qmmm_forcedr_utils,           ONLY: mm_qmmm_forcedr
   USE norm,                            ONLY: gemax
+  USE odiis_utils,                     ONLY: odiis
   USE ortho_utils,                     ONLY: give_scr_ortho,&
                                              ortho,&
                                              preortho
@@ -59,7 +60,7 @@ CONTAINS
     REAL(real_8),INTENT(INOUT) __CONTIGUOUS    :: tau0(:,:,:)
     REAL(real_8),INTENT(OUT) __CONTIGUOUS      :: fion(:,:,:), rhoe(:,:)
     REAL(real_8),INTENT(OUT)                   :: vpp(nkpt%ngwk)
-    COMPLEX(real_8),INTENT(OUT)                :: pme(*), gde(*)
+    COMPLEX(real_8),INTENT(INOUT)              :: pme(*), gde(*)
     COMPLEX(real_8),INTENT(OUT) __CONTIGUOUS   :: psi(:,:)
     INTEGER,INTENT(IN)                         :: nstate
     REAL(real_8),INTENT(OUT)                   :: eigv(nstate)

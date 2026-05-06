@@ -1,6 +1,10 @@
 #include "cpmd_global.h"
 
 MODULE odiis_utils
+  USE cp_grp_utils,                    ONLY : cp_grp_redist,&
+                                              cp_grp_get_sizes
+  USE elct,                            ONLY: crge
+  USE ener,                            ONLY: ener_com
   USE error_handling,                  ONLY: stopgm
   USE kinds,                           ONLY: int_1,&
                                              int_2,&
@@ -8,9 +12,17 @@ MODULE odiis_utils
                                              int_8,&
                                              real_4,&
                                              real_8
+  USE mp_interface,                    ONLY: mp_sum,&
+                                             mp_bcast
+  USE nvtx_utils
   USE parac,                           ONLY: parai,&
                                              paral
-  USE system,                          ONLY: maxdis
+  USE reshaper,                        ONLY: reshape_inplace
+  USE system,                          ONLY: cnti,&
+                                             cntl,&
+                                             ncpw,&
+                                             nkpt,&
+                                             maxdis
   USE timer,                           ONLY: tihalt,&
                                              tiset
   USE zeroing_utils,                   ONLY: zeroing
@@ -19,7 +31,7 @@ MODULE odiis_utils
 
   PRIVATE
 
-  !!public :: odiis
+  PUBLIC :: odiis
   PUBLIC :: updis
   PUBLIC :: solve
   !public :: grimax
@@ -32,7 +44,269 @@ MODULE odiis_utils
   !public :: intpcoef
 
 CONTAINS
+  ! ==================================================================
+  SUBROUTINE odiis(c0,c2,vpp,nstate,pme,gde,svar2,reinit)
+    ! ==--------------------------------------------------------------==
+    IMPLICIT NONE
+    REAL(real_8),INTENT(INOUT)                 :: vpp(*)
+    INTEGER,INTENT(IN)                         :: nstate
+    COMPLEX(real_8),INTENT(INOUT)              :: c2(ncpw%ngw,nstate), &
+         c0(ncpw%ngw,nstate), &
+         pme(ncpw%ngw*nstate+8,*), &
+         gde((ncpw%ngw*nstate+8)/4,*)
+    REAL(real_8),INTENT(IN)                    :: svar2
+    LOGICAL,INTENT(INOUT)                      :: reinit
 
+    CHARACTER(*), PARAMETER                    :: procedureN = 'odiis'
+
+    INTEGER                                    :: ibeg_c0, iend_c0, ierr, &
+         isub, isub3, i, &
+         nempty, ngw_local, nowm, nsize
+    INTEGER, SAVE                              :: istate = 0, ndiis, nocc, nowv
+    LOGICAL                                    :: einc1, geq0_local
+    REAL(real_8)                               :: de1, e1thr, g1, g2, raim, &
+         ratio, ration
+    REAL(real_8), SAVE                         :: diism(maxdis,maxdis), eold, &
+         gamma, gimax(maxdis), &
+         gnorm(maxdis), grmax(maxdis)
+    REAL(real_8),POINTER __CONTIGUOUS          :: c0_r(:,:,:), c2_r(:,:,:),&
+         pme_r(:,:,:,:),gde_r(:,:,:,:)
+
+    CALL tiset(proceduren,isub)
+    __NVTX_TIMER_START ( procedureN )
+
+    IF (reinit.OR.istate.EQ.0) THEN
+       ! Reinitialization of cntl%diis procedure
+       istate=0
+       eold=9999._real_8
+       gamma=0._real_8
+       reinit=.FALSE.
+       nocc=0
+       ndiis=0
+       DO i=1,nstate
+          IF (crge%f(i,1).GT.1.e-5_real_8) THEN
+             nocc=nocc+1
+          ENDIF
+       ENDDO
+    ENDIF
+    ! >>>>>>> cp_grp trick
+    CALL cp_grp_get_sizes(ngw_l=ngw_local,geq0_l=geq0_local,&
+         first_g=ibeg_c0,last_g=iend_c0)
+    ! <<<<<<<
+    ! Empirical rules to assure convergence
+    IF (istate.NE.0) THEN
+       ! Check for an increase in energy
+       e1thr=1.0_real_8
+       de1=ener_com%etot-eold
+       einc1=.FALSE.
+       IF (de1.GT.e1thr) einc1=.TRUE.
+       IF (.NOT. cntl%tfrho_upw) THEN
+          ! Trust region parameter
+          IF (geq0_local) THEN
+             IF (de1.GT.0.0_real_8) THEN
+                gamma=gamma+1._real_8/vpp(1)
+             ELSE
+                gamma=0.75_real_8*gamma
+             ENDIF
+          ENDIF
+       ENDIF
+       CALL mp_bcast(gamma,parai%igeq0,parai%cp_grp)
+       reinit=.FALSE.
+       IF (ndiis.GT.cnti%nreset.AND.cnti%nreset.GE.3) THEN
+          ! ..restart if there was no progress over the last steps 
+          nowm=nowv+1
+          IF (nowv.EQ.cnti%mdiis) nowm=1
+          g1=SQRT(grmax(nowv)**2 + gimax(nowv)**2)
+          g2=SQRT(grmax(nowm)**2 + gimax(nowm)**2)
+          ratio=g1/g2
+          ration=gnorm(nowv)/gnorm(nowm)
+          raim=1.0_real_8-REAL(cnti%mdiis,kind=real_8)/100._real_8
+          IF (ratio.GT.raim.AND.ration.GT.raim) reinit=.TRUE.
+          IF (reinit.AND.paral%io_parent)&
+               WRITE(6,'(A)') ' ODIIS| Insufficient progress; reset! '
+          IF (reinit) THEN
+             istate=0
+             gamma=0.0_real_8
+             ! REINIT=.FALSE. ! we need this info in UPDWF, reset there
+          ENDIF
+       ENDIF
+    ENDIF
+    IF (istate.EQ.0) CALL updis(ndiis,nowv,nsize,cnti%mdiis,0)
+    istate=2
+    ! Perform an electronic cntl%diis step
+    CALL updis(ndiis,nowv,nsize,cnti%mdiis,1)
+    CALL reshape_inplace(c0,(/2,ncpw%ngw,nstate/),c0_r)
+    CALL reshape_inplace(c2,(/2,ncpw%ngw,nstate/),c2_r)
+    CALL reshape_inplace(pme,(/2,ncpw%ngw,nstate,cnti%mdiis*nkpt%nkpnt/),pme_r)
+    CALL reshape_inplace(gde,(/2,ncpw%ngw,nstate,cnti%mdiis*nkpt%nkpnt/),gde_r)
+
+    call odiis_work(svar2,gamma,ncpw%ngw,ngw_local,nowv,nocc,nstate,nsize,ibeg_c0,iend_c0,geq0_local,c0_r,c2_r,gde_r,pme_r,vpp,diism)
+    eold=ener_com%etot
+    ! >>>>>>> cp_grp trick
+    CALL tiset(proceduren//'_grps_b',isub3)
+    ! we need to zero the C0 that we can do the reduce
+    ! we reduce so that we get back the cp_grp distribution of C0
+    CALL cp_grp_zero_g(c0,ncpw%ngw,nstate,ibeg_c0,iend_c0)
+    CALL cp_grp_redist(c0,ncpw%ngw,nstate)
+    CALL tihalt(proceduren//'_grps_b',isub3)
+    ! <<<<<<<
+
+    __NVTX_TIMER_STOP
+    CALL tihalt(proceduren,isub)
+    ! ==--------------------------------------------------------------==
+  END SUBROUTINE odiis
+  
+  ! ==================================================================
+  SUBROUTINE odiis_work(svar2,gamma,ngw,ngw_local,nowv,nocc,nstate,nsize,&
+       ibeg_c0,iend_c0,geq0_local,c0_r,c2_r,gde_r,pme_r,vpp,diism)
+    IMPLICIT NONE
+    INTEGER,INTENT(IN)                 :: ngw,ngw_local,nowv, ibeg_c0,&
+                                          iend_c0, nocc, nstate,nsize
+    REAL(real_8),INTENT(IN)            :: gamma, svar2
+    REAL(real_8),INTENT(INOUT)         :: c0_r(2,ngw,*), c2_r(2,ngw,*),&
+                                          pme_r(2,ngw,nstate,*), &
+                                          gde_r(2,ngw,nstate,*), diism(:,:),&
+                                          vpp(ngw)
+    LOGICAL,INTENT(IN)                 :: geq0_local
+    INTEGER                            :: ig,k,i,j,nempty
+    REAL(real_8)                       :: ff,temp,bc(maxdis+1,maxdis+1),&
+                                          vc(maxdis+1)
+
+    IF (gamma.NE.0.0_real_8) THEN
+       !$omp parallel do private(ig)
+       DO ig=ibeg_c0,iend_c0
+          vpp(ig)=vpp(ig)/(1.0_real_8+vpp(ig)*gamma)
+       ENDDO
+       !$omp end parallel do
+    ENDIF
+    ! Update cntl%diis buffers
+
+    !$omp parallel do &
+    !$omp& private(k,ig)
+    DO k=1,nocc
+       DO ig=ibeg_c0,iend_c0
+          pme_r(1,ig,k,nowv)=c0_r(1,ig,k)
+          pme_r(2,ig,k,nowv)=c0_r(2,ig,k)
+       END DO
+    END DO
+
+
+    !$omp parallel do private(K,FF,IG)
+    DO k=1,nocc
+       IF (cntl%prec.AND.crge%f(k,1).GT.0.1_real_8) THEN
+          ff=1.0_real_8/crge%f(k,1)
+       ELSE
+          ff=1.0_real_8
+       ENDIF
+       ff=ff*ff*2.0_real_8
+       DO ig=ibeg_c0,iend_c0
+          gde_r(1,ig,k,nowv)=-c2_r(1,ig,k)
+          gde_r(2,ig,k,nowv)=-c2_r(2,ig,k)
+          c2_r(1,ig,k)=-c2_r(1,ig,k)*ff*vpp(ig)*vpp(ig)
+          c2_r(2,ig,k)=-c2_r(2,ig,k)*ff*vpp(ig)*vpp(ig)
+       ENDDO
+    ENDDO
+    !$omp end parallel do
+
+    ! Update cntl%diis matrix
+    DO i=1,nsize-1
+       diism(i,nowv)=0.0_real_8
+    ENDDO
+    IF (ngw_local.GT.0) THEN
+       DO i=1,nsize-1
+          temp=0.0_real_8
+          !$omp parallel do reduction(+:temp) &
+          !$omp& private(k,ig)
+          DO k=1,nocc
+             IF(geq0_local)THEN
+                temp=temp+gde_r(1,ibeg_c0,k,i)*c2_r(1,ibeg_c0,k)*0.5_real_8
+             ELSE
+                temp=temp+gde_r(1,ibeg_c0,k,i)*c2_r(1,ibeg_c0,k)
+                temp=temp+&
+                     gde_r(2,ibeg_c0,k,i)*c2_r(2,ibeg_c0,k)
+             END IF
+             DO ig=ibeg_c0+1,iend_c0
+                temp=temp+gde_r(1,ig,k,i)*c2_r(1,ig,k)
+                temp=temp+gde_r(2,ig,k,i)*c2_r(2,ig,k)
+             END DO
+          ENDDO
+          diism(i,nowv)=temp*2.0_real_8
+       ENDDO
+    ENDIF
+    CALL mp_sum(diism(:,nowv),nsize-1,parai%cp_grp)
+    DO i=1,nsize-1
+       diism(nowv,i)=diism(i,nowv)
+    ENDDO
+    ! Set up cntl%diis Matrix
+    !  CALL zeroing(bc)!,(maxdis+1)*(maxdis+1))
+    bc=0.0_real_8
+    DO i=1,nsize-1
+       DO j=1,nsize-1
+          bc(i,j)=diism(i,j)
+       ENDDO
+    ENDDO
+    DO i=1,nsize-1
+       vc(i)=0._real_8
+       bc(i,nsize)=-1._real_8
+       bc(nsize,i)=-1._real_8
+    ENDDO
+    vc(nsize)=-1._real_8
+    bc(nsize,nsize)=0._real_8
+    ! Solve System of Linear Equations
+    CALL solve(bc,maxdis+1,nsize,vc)
+    ! Compute Interpolated Coefficient Vectors
+    
+    !$omp parallel do &
+    !$omp& private(k,ig)
+    DO k=1,nocc
+       DO ig=ibeg_c0,iend_c0
+          c0_r(1,ig,k)=pme_r(1,ig,k,1)*vc(1)
+          c0_r(2,ig,k)=pme_r(2,ig,k,1)*vc(1)
+       END DO
+       DO i=2,nsize-1
+          DO ig=ibeg_c0,iend_c0
+             c0_r(1,ig,k)=c0_r(1,ig,k)+pme_r(1,ig,k,i)*vc(i)
+             c0_r(2,ig,k)=c0_r(2,ig,k)+pme_r(2,ig,k,i)*vc(i)
+          END DO
+       END DO
+    END DO
+
+    ! Estimate New Parameter Vectors 
+    !$omp parallel do &
+    !$omp& private(K,FF,IG)
+    DO k=1,nocc
+       IF (cntl%prec.AND.crge%f(k,1).GT.0.1_real_8) THEN
+          ff=1.0_real_8/crge%f(k,1)
+       ELSE
+          ff=1.0_real_8
+       ENDIF
+       DO i=1,nsize-1
+          DO ig=ibeg_c0,iend_c0
+             c0_r(1,ig,k)=c0_r(1,ig,k)-&
+                  vc(i)*ff*vpp(ig)*gde_r(1,ig,k,i)
+             c0_r(2,ig,k)=c0_r(2,ig,k)-&
+                  vc(i)*ff*vpp(ig)*gde_r(2,ig,k,i)
+          ENDDO
+       ENDDO
+    ENDDO
+
+    IF (nocc.LT.nstate) THEN
+       ! Use steepest descent for empty states
+       nempty=nstate-nocc
+       CALL daxpy(2*ngw_local*nempty,svar2,c2_r(1,1,nocc+1),1,&
+            c0_r(1,1,nocc+1),1)
+    ENDIF
+    IF (gamma.NE.0.0_real_8) THEN
+       !$omp parallel do private(ig)
+       DO ig=ibeg_c0,iend_c0
+          vpp(ig)=1._real_8/(1.0_real_8/vpp(ig)-gamma)
+       ENDDO
+       !$omp end parallel do
+    ENDIF
+
+  END SUBROUTINE odiis_work
+
+  
   SUBROUTINE updis(ndiis,nowv,nsize,mdiis,iact)
     ! ==--------------------------------------------------------------==
     ! == Update variables for cntl%diis if IACT=1                          ==
@@ -406,8 +680,8 @@ SUBROUTINE grimax(c2,ngw_l,n,grmax,gimax,gnorm)
   USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8
   USE error_handling, ONLY: stopgm
   USE timer, ONLY: tiset, tihalt
-  USE mp_interface, ONLY: mp_sum,mp_max
   USE system , ONLY:spar
+  USE mp_interface, only: mp_max, mp_sum
   USE parac, ONLY : paral,parai
   IMPLICIT NONE
   INTEGER                                    :: ngw_l, n
@@ -484,248 +758,3 @@ END SUBROUTINE dscopy
 ! ==================================================================
 
 
-! ==================================================================
-SUBROUTINE odiis(c0,c2,vpp,nstate,pme,gde,svar2,reinit)
-  ! ==--------------------------------------------------------------==
-  USE kinds, ONLY: real_4, real_8, int_1, int_2, int_4, int_8
-  USE error_handling, ONLY: stopgm
-  USE timer, ONLY: tiset, tihalt
-  USE mp_interface, ONLY: mp_sum, mp_bcast
-  USE system , ONLY:cnti,cntl,maxdis,ncpw
-  USE parac, ONLY : paral,parai
-  USE ener , ONLY:ener_com
-  USE elct , ONLY: crge
-  USE cp_grp_utils, ONLY : cp_grp_redist
-  USE cp_grp_utils, ONLY : cp_grp_get_sizes
-  USE odiis_utils, ONLY : updis, solve
-  USE zeroing_utils,                   ONLY: zeroing
-  USE nvtx_utils
-  IMPLICIT NONE
-  REAL(real_8)                               :: vpp(*)
-  INTEGER                                    :: nstate
-  COMPLEX(real_8)                            :: c2(ncpw%ngw,nstate), &
-                                                c0(ncpw%ngw,nstate)
-  REAL(real_8)                               :: pme(ncpw%ngw*nstate+8,*), &
-                                                gde((ncpw%ngw*nstate+8)/4,*), &
-                                                svar2
-  LOGICAL                                    :: reinit
-
-  CHARACTER(*), PARAMETER                    :: procedureN = 'odiis'
-
-  COMPLEX(real_8), ALLOCATABLE, &
-      DIMENSION(:, :)                        :: c0_local, c2_local
-  INTEGER                                    :: i, ibeg_c0, iend_c0, ierr, &
-                                                ig, isub, isub3, j, k, &
-                                                nempty, ngw_local, nowm, nsize
-  INTEGER, SAVE                              :: istate = 0, ndiis, nocc, nowv
-  LOGICAL                                    :: einc1, geq0_local
-  REAL(real_8)                               :: bc(maxdis+1,maxdis+1), de1, &
-                                                e1thr, ff, g1, g2, raim, &
-                                                ratio, ration, vc(maxdis+1)
-  REAL(real_8), EXTERNAL                     :: dotp
-  REAL(real_8), SAVE                         :: diism(maxdis,maxdis), eold, &
-                                                gamma, gimax(maxdis), &
-                                                gnorm(maxdis), grmax(maxdis)
-
-  CALL tiset(proceduren,isub)
-  __NVTX_TIMER_START ( procedureN )
-
-  IF (reinit.OR.istate.EQ.0) THEN
-     ! Reinitialization of cntl%diis procedure
-     istate=0
-     eold=9999._real_8
-     gamma=0._real_8
-     reinit=.FALSE.
-     nocc=0
-     ndiis=0
-     DO i=1,nstate
-        IF (crge%f(i,1).GT.1.e-5_real_8) THEN
-           nocc=nocc+1
-        ENDIF
-     ENDDO
-  ENDIF
-  ! >>>>>>> cp_grp trick
-  CALL cp_grp_get_sizes(ngw_l=ngw_local,geq0_l=geq0_local,&
-       first_g=ibeg_c0,last_g=iend_c0)
-  ALLOCATE(c0_local(ngw_local,nstate),c2_local(ngw_local,nstate),&
-       stat=ierr)
-  IF (ierr.NE.0) CALL stopgm(proceduren,'Allocation problem',& 
-       __LINE__,__FILE__)
-  CALL cp_grp_copy_wfn_to_local(c0,ncpw%ngw,c0_local,ngw_local,&
-       ibeg_c0,ngw_local,nstate)
-  CALL cp_grp_copy_wfn_to_local(c2,ncpw%ngw,c2_local,ngw_local,&
-       ibeg_c0,ngw_local,nstate)
-  ! <<<<<<<
-  ! Empirical rules to assure convergence
-  IF (istate.NE.0) THEN
-     ! Check for an increase in energy
-     e1thr=1.0_real_8
-     de1=ener_com%etot-eold
-     einc1=.FALSE.
-     IF (de1.GT.e1thr) einc1=.TRUE.
-     IF (.NOT. cntl%tfrho_upw) THEN
-        ! Trust region parameter
-        IF (geq0_local) THEN
-           IF (de1.GT.0.0_real_8) THEN
-              gamma=gamma+1._real_8/vpp(1)
-           ELSE
-              gamma=0.75_real_8*gamma
-           ENDIF
-        ENDIF
-     ENDIF
-     CALL mp_bcast(gamma,parai%io_source,parai%cp_grp)
-     reinit=.FALSE.
-     IF (ndiis.GT.cnti%nreset.AND.cnti%nreset.GE.3) THEN
-        ! ..restart if there was no progress over the last steps 
-        nowm=nowv+1
-        IF (nowv.EQ.cnti%mdiis) nowm=1
-        g1=SQRT(grmax(nowv)**2 + gimax(nowv)**2)
-        g2=SQRT(grmax(nowm)**2 + gimax(nowm)**2)
-        ratio=g1/g2
-        ration=gnorm(nowv)/gnorm(nowm)
-        raim=1.0_real_8-REAL(cnti%mdiis,kind=real_8)/100._real_8
-        IF (ratio.GT.raim.AND.ration.GT.raim) reinit=.TRUE.
-        IF (reinit.AND.paral%io_parent)&
-             WRITE(6,'(A)') ' ODIIS| Insufficient progress; reset! '
-        IF (reinit) THEN
-           istate=0
-           gamma=0.0_real_8
-           ! REINIT=.FALSE. ! we need this info in UPDWF, reset there
-        ENDIF
-     ENDIF
-  ENDIF
-  IF (istate.EQ.0) CALL updis(ndiis,nowv,nsize,cnti%mdiis,0)
-  istate=2
-  ! Perform an electronic cntl%diis step
-  CALL updis(ndiis,nowv,nsize,cnti%mdiis,1)
-  IF (gamma.NE.0.0_real_8) THEN
-     !$omp parallel do private(ig)
-     DO ig=ibeg_c0,iend_c0
-        vpp(ig)=vpp(ig)/(1.0_real_8+vpp(ig)*gamma)
-     ENDDO
-     !$omp end parallel do
-  ENDIF
-  ! Update cntl%diis buffers
-  CALL dscopy(ngw_local*nocc,c0_local,pme(1,nowv))
-  CALL dscal(2*ngw_local*nocc,-1.0_real_8,c2_local,1)
-  CALL grimax(c2_local,ngw_local,nocc,&
-       grmax(nowv),gimax(nowv),gnorm(nowv))
-  CALL dicopy(ngw_local*nocc,c2_local,gde(1,nowv),&
-       grmax(nowv),gimax(nowv))
-
-  !$omp parallel do private(K,FF,IG)
-  DO k=1,nocc
-     IF (cntl%prec.AND.crge%f(k,1).GT.0.1_real_8) THEN
-        ff=1.0_real_8/crge%f(k,1)
-     ELSE
-        ff=1.0_real_8
-     ENDIF
-     DO ig=1,ngw_local
-        c2_local(ig,k)=c2_local(ig,k)*&
-             2.0_real_8*ff*ff*vpp(ig+ibeg_c0-1)*vpp(ig+ibeg_c0-1)
-     ENDDO
-  ENDDO
-  !$omp end parallel do
-
-  ! Update cntl%diis matrix
-  DO i=1,nsize-1
-     diism(i,nowv)=0.0_real_8
-  ENDDO
-  IF (ngw_local.GT.0) THEN
-     DO i=1,nsize-1
-        CALL idcopy(ngw_local*nocc,c0_local,gde(1,i),&
-             grmax(i),gimax(i))
-        DO k=1,nocc
-           diism(i,nowv)=diism(i,nowv)+&
-                dotp(ngw_local,c0_local(1,k),c2_local(1,k))
-        ENDDO
-     ENDDO
-  ENDIF
-  CALL mp_sum(diism(:,nowv),nsize-1,parai%cp_grp)
-  DO i=1,nsize-1
-     diism(nowv,i)=diism(i,nowv)
-  ENDDO
-  ! Set up cntl%diis Matrix
-  CALL zeroing(bc)!,(maxdis+1)*(maxdis+1))
-
-  DO i=1,nsize-1
-     DO j=1,nsize-1
-        bc(i,j)=diism(i,j)
-     ENDDO
-  ENDDO
-  DO i=1,nsize-1
-     vc(i)=0._real_8
-     bc(i,nsize)=-1._real_8
-     bc(nsize,i)=-1._real_8
-  ENDDO
-  vc(nsize)=-1._real_8
-  bc(nsize,nsize)=0._real_8
-  ! Solve System of Linear Equations
-  CALL solve(bc,maxdis+1,nsize,vc)
-  ! Compute Interpolated Coefficient Vectors
-#if defined(__VECTOR)
-  CALL zeroing(c0_local)!,ngw_local*nocc)
-  DO i=1,nsize-1
-     CALL sdcopy(ngw_local*nocc,pme(1,i),c2_local)
-     CALL daxpy(2*ngw_local*nocc,vc(i),c2_local(1,1),1,&
-          c0_local(1,1),1)
-  ENDDO
-#else
-  ! do the above in one go and avoid having to use C2.
-  CALL intpcoef(ngw_local*nocc,nsize,&
-       ncpw%ngw*nstate+8,pme,vc,c0_local)
-#endif
-  ! Estimate New Parameter Vectors 
-  DO i=1,nsize-1
-     CALL idcopy(ngw_local*nocc,c2_local,gde(1,i),&
-          grmax(i),gimax(i))
-     ff=1.0_real_8
-     !$omp parallel do private(K,FF,IG)
-     DO k=1,nocc
-        IF (cntl%prec.AND.crge%f(k,1).GT.0.1_real_8) THEN
-           ff=1.0_real_8/crge%f(k,1)
-        ELSE
-           ff=1.0_real_8
-        ENDIF
-        DO ig=1,ngw_local
-           c0_local(ig,k)=c0_local(ig,k)-&
-                vc(i)*ff*vpp(ig+ibeg_c0-1)*c2_local(ig,k)
-        ENDDO
-     ENDDO
-     !$omp end parallel do
-  ENDDO
-
-  IF (nocc.LT.nstate) THEN
-     ! Use steepest descent for empty states
-     nempty=nstate-nocc
-     CALL daxpy(2*ngw_local*nempty,svar2,c2_local(1,nocc+1),1,&
-          c0_local(1,nocc+1),1)
-  ENDIF
-  eold=ener_com%etot
-  IF (gamma.NE.0.0_real_8) THEN
-     !$omp parallel do private(ig)
-     DO ig=ibeg_c0,iend_c0
-        vpp(ig)=1._real_8/(1.0_real_8/vpp(ig)-gamma)
-     ENDDO
-     !$omp end parallel do
-  ENDIF
-
-  ! >>>>>>> cp_grp trick
-  CALL tiset(proceduren//'_grps_b',isub3)
-  ! we need to zero the C0 that we can do the reduce
-  CALL cp_grp_copy_local_to_wfn(c0_local,ngw_local,c0,ncpw%ngw,&
-       ibeg_c0,ngw_local,nstate)
-  ! we reduce so that we get back the cp_grp distribution of C0
-  CALL cp_grp_zero_g(c0,ncpw%ngw,nstate,ibeg_c0,iend_c0)
-  CALL cp_grp_redist(c0,ncpw%ngw,nstate)
-  DEALLOCATE(c0_local,c2_local,stat=ierr)
-  IF (ierr.NE.0) CALL stopgm(proceduren,'Deallocation problem',& 
-       __LINE__,__FILE__)
-  CALL tihalt(proceduren//'_grps_b',isub3)
-  ! <<<<<<<
-
-  __NVTX_TIMER_STOP
-  CALL tihalt(proceduren,isub)
-  ! ==--------------------------------------------------------------==
-END SUBROUTINE odiis
-! ==================================================================

@@ -81,7 +81,7 @@ CONTAINS
           ALLOCATE(pme((ncpw%ngw*crge%n+8)*cnti%mdiis),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
-          ALLOCATE(gde(((ncpw%ngw*crge%n+8)*cnti%mdiis)/4),STAT=ierr)
+          ALLOCATE(gde(((ncpw%ngw*crge%n+8)*cnti%mdiis)),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
           ALLOCATE(vpp(ncpw%ngw),STAT=ierr)
@@ -104,7 +104,7 @@ CONTAINS
           ALLOCATE(pme((ncpw%ngw*crge%n+8)*cnti%mdiis),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
-          ALLOCATE(gde(((ncpw%ngw*crge%n+8)*cnti%mdiis)/4),STAT=ierr)
+          ALLOCATE(gde(((ncpw%ngw*crge%n+8)*cnti%mdiis)),STAT=ierr)
           IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
                __LINE__,__FILE__)
           ALLOCATE(vpp(ncpw%ngw),STAT=ierr)

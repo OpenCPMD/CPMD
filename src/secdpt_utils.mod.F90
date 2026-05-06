@@ -185,7 +185,7 @@ CONTAINS
           nvpp = 1
        ELSE IF (cntl%diis) THEN
           npme = (nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt
-          ngde = ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)/4
+          ngde = ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)
           nvpp = nkpt%ngwk
        ELSE IF (cntl%pcg) THEN
           npme = 2*nkpt%ngwk*nstate*nkpt%nkpnt

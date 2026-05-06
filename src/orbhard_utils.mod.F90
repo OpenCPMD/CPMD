@@ -116,7 +116,7 @@ CONTAINS
              ncn=1
           ELSE IF (cntl%diis) THEN
              ncm=(nkpt%ngwk*nstate+8)*cnti%mdiis
-             ncn=((nkpt%ngwk*nstate+8)*cnti%mdiis)/4
+             ncn=((nkpt%ngwk*nstate+8)*cnti%mdiis)
           ELSE IF (cntl%pcg) THEN
              ncm=2*nkpt%ngwk*nstate
              ncn=1

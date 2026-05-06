@@ -506,8 +506,8 @@ CONTAINS
        ngde = 1
        nvpp = 1
     ELSE IF (cntl%diis) THEN
-       npme = (ncpw%ngw*crge%n+8)*cnti%mdiis/2
-       ngde = ((ncpw%ngw*crge%n+8)*cnti%mdiis)/2
+       npme = (ncpw%ngw*crge%n+8)*cnti%mdiis*2
+       ngde = ((ncpw%ngw*crge%n+8)*cnti%mdiis)*2
        nvpp = ncpw%ngw
     ELSE IF (cntl%pcg) THEN
        npme = ncpw%ngw*crge%n

@@ -220,7 +220,7 @@ CONTAINS
        ALLOCATE(pme(nkpt%ngwk,cnti%mdiis*nstate),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
-       ALLOCATE(gde(nkpt%ngwk,cnti%mdiis*nstate/4),STAT=ierr)
+       ALLOCATE(gde(nkpt%ngwk,cnti%mdiis*nstate),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
        CALL zeroing(pme)!,nkpt%ngwk*nstate*cnti%mdiis)

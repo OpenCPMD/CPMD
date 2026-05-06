@@ -548,16 +548,16 @@ CONTAINS
        IF (cntl%tdiag) THEN
           IF (cntl%tlanc) nx=1
           IF (cntl%tdavi) nx=nkpt%ngwk*cnti%ndavv*nkpt%nkpnt+1
-          IF (cntl%diis)  nx=((nkpt%ngwk*crge%n+8)*cnti%mdiis*nkpt%nkpnt)/4
+          IF (cntl%diis)  nx=((nkpt%ngwk*crge%n+8)*cnti%mdiis*nkpt%nkpnt)
        ELSEIF (cntl%tsde) THEN
           nx=1
        ELSEIF (cntl%diis) THEN
-          nx=(nkpt%ngwk*crge%n+8)*cnti%mdiis/2+4
+          nx=(nkpt%ngwk*crge%n+8)*cnti%mdiis+4
        ELSEIF (cntl%pcg) THEN
           nx=1
        ENDIF
-       nxs0=(nkpt%ngwk*sh02%nst_s0+8)*cnti%mdiis/2+4
-       nxs1=(nkpt%ngwk*sh02%nst_s1+8)*cnti%mdiis/2+4
+       nxs0=(nkpt%ngwk*sh02%nst_s0+8)*cnti%mdiis+4
+       nxs1=(nkpt%ngwk*sh02%nst_s1+8)*cnti%mdiis+4
        ifcalc=0
 
        ! Initialize Metadynamics contributions

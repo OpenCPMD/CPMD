@@ -16,6 +16,7 @@ MODULE reshaper
 
      MODULE PROCEDURE reshape_inplace_c2_c2
      MODULE PROCEDURE reshape_inplace_c2_r3
+     MODULE PROCEDURE reshape_inplace_c2_r4
      MODULE PROCEDURE reshape_inplace_c2_c1
      MODULE PROCEDURE reshape_inplace_c3_c1
      MODULE PROCEDURE reshape_inplace_c1_c3
@@ -218,6 +219,18 @@ CONTAINS
     loc_x = C_LOC(tgt_x)
     CALL C_F_POINTER(loc_x, ptr_x, new_shape)
   END SUBROUTINE reshape_inplace_c2_r3
+
+  SUBROUTINE reshape_inplace_c2_r4(tgt_x, new_shape, ptr_x)
+    IMPLICIT NONE
+    COMPLEX(real_8), TARGET, INTENT(in) :: tgt_x(1,*)
+    INTEGER, INTENT(in) :: new_shape(:)
+    REAL(real_8), POINTER, INTENT(out) :: ptr_x(:,:,:,:)
+
+    TYPE(c_ptr) :: loc_x
+
+    loc_x = C_LOC(tgt_x)
+    CALL C_F_POINTER(loc_x, ptr_x, new_shape)
+  END SUBROUTINE reshape_inplace_c2_r4
 
   SUBROUTINE reshape_inplace_c2_c3(tgt_x, new_shape, ptr_x)
     IMPLICIT NONE

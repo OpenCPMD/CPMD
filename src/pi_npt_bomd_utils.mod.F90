@@ -564,7 +564,7 @@ CONTAINS
     ELSEIF (cntl%tsde) THEN
        nx=1
     ELSEIF (cntl%diis) THEN
-       nx=(nkpt%ngwk*crge%n+8)*cnti%mdiis/2+4
+       nx=(nkpt%ngwk*crge%n+8)*cnti%mdiis+4
     ELSEIF (cntl%pcg) THEN
        nx=1
     ENDIF

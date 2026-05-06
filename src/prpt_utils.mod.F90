@@ -98,7 +98,7 @@ CONTAINS
              ncm=nkpt%ngwk*MAX(nstate,(cnti%nkry_max+1)*cnti%nkry_block)+8
           ELSEIF (cntl%diis) THEN
              ncm=(nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt+&
-                  ((2*nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)/4
+                  ((2*nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)
           ELSE
              ncm=nkpt%ngwk*MAX(nstate,cnti%nkry_max*cnti%nkry_block)+8
           ENDIF
@@ -108,7 +108,7 @@ CONTAINS
           IF (cntl%tdavi)ncm=ncm*2
        ELSE 
           IF (cntl%diis) THEN
-             ncm=(nkpt%ngwk*nstate+8)*cnti%mdiis+((nkpt%ngwk*nstate+8)*cnti%mdiis)/4+100
+             ncm=(nkpt%ngwk*nstate+8)*cnti%mdiis+((nkpt%ngwk*nstate+8)*cnti%mdiis)+100
           ELSEIF (cntl%pcg) THEN
              ncm=2*nkpt%ngwk*nstate*nkpt%nkpnt+8
           ENDIF

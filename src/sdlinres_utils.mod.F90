@@ -312,8 +312,8 @@ CONTAINS
        ngde = 1
        nvpp = 1
     ELSE IF (cntl%diis) THEN
-       npme = (ncpw%ngw*crge%n+8)*cnti%mdiis/2 !vw rm 2*
-       ngde = ((ncpw%ngw*crge%n+8)*cnti%mdiis)/2 !vw rm 2*
+       npme = (ncpw%ngw*crge%n+8)*cnti%mdiis*2 !vw rm 2*
+       ngde = ((ncpw%ngw*crge%n+8)*cnti%mdiis)*2 !vw rm 2*
        nvpp = ncpw%ngw
     ELSE IF (cntl%pcg) THEN
        npme = ncpw%ngw*crge%n !vw rm 2*
@@ -419,10 +419,10 @@ CONTAINS
     ! ..additional memory for optimisers
     nvpp = ncpw%ngw
     IF (lr01%lopti.EQ.0) THEN
-       npme = MAX((ncpw%ngw*crge%n+8)*cnti%mdiis/2,ncpw%ngw*crge%n) !vw rm 2*
-       npme = MAX(ncpw%ngw*crge%n*lr01%mldiis,npme) !vw rm 2*
-       ngde = MAX(((ncpw%ngw*crge%n+8)*cnti%mdiis)/2,1) !vw rm 2*
-       ngde = MAX(ncpw%ngw*crge%n*lr01%mldiis,ngde) !vw rm 2*
+       npme = MAX((ncpw%ngw*crge%n+8)*cnti%mdiis*2,ncpw%ngw*crge%n) !vw rm 2*
+       npme = MAX(ncpw%ngw*crge%n*lr01%mldiis*4,npme) !vw rm 2*
+       ngde = MAX(((ncpw%ngw*crge%n+8)*cnti%mdiis)*2,1) !vw rm 2*
+       ngde = MAX(ncpw%ngw*crge%n*lr01%mldiis*4,ngde) !vw rm 2*
     ELSEIF (lr01%lopti.EQ.1) THEN
        npme = 1
        ngde = 1
@@ -430,8 +430,8 @@ CONTAINS
        npme = ncpw%ngw*crge%n !vw rm 2*
        ngde = 1
     ELSE IF (lr01%lopti.EQ.3) THEN
-       npme = (ncpw%ngw*crge%n+8)*cnti%mdiis/2 !vw rm 2*
-       ngde = ((ncpw%ngw*crge%n+8)*cnti%mdiis)/2 !vw rm 2*
+       npme = (ncpw%ngw*crge%n+8)*cnti%mdiis*2 !vw rm 2*
+       ngde = ((ncpw%ngw*crge%n+8)*cnti%mdiis)*2 !vw rm 2*
     ELSE
        IF (paral%io_parent)&
             WRITE(6,*) ' WRONG OPTION FOR LINEAR RESPONSE OPTIMIZATION'

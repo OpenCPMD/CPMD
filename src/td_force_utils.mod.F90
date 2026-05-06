@@ -233,10 +233,10 @@ CONTAINS
     ! Solve Z-Matrix equation
     nvpp = ncpw%ngw
     IF (lr01%lopti.EQ.0) THEN
-       npme = MAX((ncpw%ngw*nstate+8)*cnti%mdiis/2,ncpw%ngw*nstate) !vw rm *2
-       npme = MAX(ncpw%ngw*nstate*lr01%mldiis,npme) !vw rm *2
-       ngde = MAX(((ncpw%ngw*nstate+8)*cnti%mdiis)/2,1) !vw rm *2
-       ngde = MAX(ncpw%ngw*nstate*lr01%mldiis,ngde)!vw rm *2
+       npme = MAX((ncpw%ngw*nstate+8)*cnti%mdiis*2,ncpw%ngw*nstate) !vw rm *2
+       npme = MAX(ncpw%ngw*nstate*lr01%mldiis*4,npme) !vw rm *2
+       ngde = MAX(((ncpw%ngw*nstate+8)*cnti%mdiis)*22,1) !vw rm *2
+       ngde = MAX(ncpw%ngw*nstate*lr01%mldiis*4,ngde)!vw rm *2
     ELSEIF (lr01%lopti.EQ.1) THEN
        npme = 1
        ngde = 1
@@ -244,8 +244,8 @@ CONTAINS
        npme = ncpw%ngw*nstate !vw rm *2
        ngde = 1
     ELSE IF (lr01%lopti.EQ.3) THEN
-       npme = (ncpw%ngw*nstate+8)*cnti%mdiis/2 !vw rm *2
-       ngde = ((ncpw%ngw*nstate+8)*cnti%mdiis)/2 !vw rm *2
+       npme = (ncpw%ngw*nstate+8)*cnti%mdiis*2 !vw rm *2
+       ngde = ((ncpw%ngw*nstate+8)*cnti%mdiis)*2 !vw rm *2
     ELSE
        IF (paral%io_parent)&
             WRITE(6,*) ' WRONG OPTION FOR LINEAR RESPONSE OPTIMIZATION'

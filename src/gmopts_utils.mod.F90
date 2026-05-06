@@ -89,7 +89,7 @@ CONTAINS
           ncm=nkpt%ngwk*MAX(nstate,(cnti%nkry_max+1)*cnti%nkry_block)+8
        ELSEIF (cntl%diis) THEN
           ncm=(nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt+&
-               ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)/4
+               ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)
        ELSE
           ncm=nkpt%ngwk*MAX(nstate,cnti%nkry_max*cnti%nkry_block)+8
        ENDIF
@@ -189,8 +189,8 @@ CONTAINS
        npme = 1
        ngde = 1
     ELSE IF (cntl%diis .AND. .NOT. cntl%tdiag) THEN
-       npme = (nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt /2
-       ngde = ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)/8
+       npme = (nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt *2
+       ngde = ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)
     ELSE IF (cntl%pcg) THEN
        npme = nkpt%ngwk*nstate*nkpt%nkpnt
        ngde = 1

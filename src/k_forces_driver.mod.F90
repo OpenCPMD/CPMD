@@ -32,6 +32,7 @@ MODULE k_forces_driver
                                              gemax,&
                                              gnmax,&
                                              gnorm
+  USE odiis_utils,                     ONLY: odiis
   USE ortho_utils,                     ONLY: ortho,&
                                              preortho
   USE ovlap_utils,                     ONLY: ovlap

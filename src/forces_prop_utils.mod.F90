@@ -90,7 +90,7 @@ CONTAINS
        CALL set_b2l()
     ENDIF
     IF (cntl%tmdeh) THEN
-       ALLOCATE(gde(((nkpt%ngwk*nstate+8)*cnti%mdiis)/4),STAT=ierr)
+       ALLOCATE(gde(((nkpt%ngwk*nstate+8)*cnti%mdiis)),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
     ENDIF

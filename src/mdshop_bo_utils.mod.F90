@@ -497,23 +497,23 @@ CONTAINS
     IF (cntl%tdiag) THEN
        IF (cntl%tlanc) nx=1
        IF (cntl%tdavi) nx=nkpt%ngwk*cnti%ndavv*nkpt%nkpnt+1
-       IF (cntl%diis)  nx=((nkpt%ngwk*crge%n+8)*cnti%mdiis*nkpt%nkpnt)/4
+       IF (cntl%diis)  nx=((nkpt%ngwk*crge%n+8)*cnti%mdiis*nkpt%nkpnt)
     ELSEIF (cntl%tsde) THEN
        nx=1
     ELSEIF (cntl%diis) THEN
-       nx=(nkpt%ngwk*crge%n+8)*cnti%mdiis/2+4
+       nx=(nkpt%ngwk*crge%n+8)*cnti%mdiis+4
     ELSEIF (cntl%pcg) THEN
        nx=1
     ENDIF
-    nxs0=(nkpt%ngwk*sh02%nst_s0+8)*cnti%mdiis/2+4
-    nxs1=(nkpt%ngwk*sh02%nst_s1+8)*cnti%mdiis/2+4
+    nxs0=(nkpt%ngwk*sh02%nst_s0+8)*cnti%mdiis*2+4
+    nxs1=(nkpt%ngwk*sh02%nst_s1+8)*cnti%mdiis*2+4
     ifcalc=0
 
     ! McB ... surface hopping stuff ...
     ! ...   initial forces on s0: FION0
     CALL state_select("S0")
     ! NX=NXS0
-    nx=(nkpt%ngwk*sh02%nst_s0+8)*cnti%mdiis/2+4
+    nx=(nkpt%ngwk*sh02%nst_s0+8)*cnti%mdiis+4
     CALL forces_diag(sh02%nst_s0,c0,c2,cm,sc0,cm0(nx:),vpp,&
          EIGV,RHOE,PSI,&
          TAU0,VELP,TAUI,FION0,IFCALC,&
@@ -523,7 +523,7 @@ CONTAINS
     ifcalc=0
     CALL state_select("S1")
     ! NX=NXS1
-    nx=(nkpt%ngwk*sh02%nst_s1+8)*cnti%mdiis/2+4
+    nx=(nkpt%ngwk*sh02%nst_s1+8)*cnti%mdiis+4
     CALL forces_diag(sh02%nst_s1,c0(:,ns1:,:),c2(:,ns1),cm,sc0,cm1(nx:),&
          VPP1,&
          EIGV1,RHOE1,PSI1,&

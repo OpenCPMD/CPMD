@@ -493,7 +493,7 @@ SUBROUTINE rgmopt(c0,c1,c2,cm,sc0,pme,gde,vpp,eigv)
   IF (cntl%tdavi) THEN
      nx=nkpt%ngwk*cnti%ndavv*nkpt%nkpnt+1
   ELSEIF (cntl%tdiag .AND. cntl%diis) THEN
-     nx=((nkpt%ngwk*crge%n+8)*cnti%mdiis*nkpt%nkpnt)/4
+     nx=((nkpt%ngwk*crge%n+8)*cnti%mdiis*nkpt%nkpnt)
   ELSE
      nx=1
   ENDIF

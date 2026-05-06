@@ -78,7 +78,7 @@ CONTAINS
           ncm=8
        ELSE IF (cntl%diis) THEN
           ncm=(nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt+&
-               ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)/4+100
+               ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)+100
        ELSE IF (cntl%pcg) THEN
           ncm=2*nkpt%ngwk*nstate*nkpt%nkpnt+8
        ENDIF
