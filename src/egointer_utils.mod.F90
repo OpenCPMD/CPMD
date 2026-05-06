@@ -716,7 +716,8 @@ CONTAINS
     ! ==--------------------------------------------------------------==
     CALL tiset(' EXT_FIELD',isub)
     ! .. memory for EXTF already allocated in INTERFACE(): biswas
-    IKR1 = MOD(parm%nr1+1,2)   ! !added: biswas
+    IKR1 = fpar%kr1 - parm%nr1
+    !MOD(parm%nr1+1,2)   ! !added: biswas
 
     dk=(epot2%boxdum(6)-epot2%boxdum(5))/REAL(spar%nr3s,kind=real_8)
     dj=(epot2%boxdum(4)-epot2%boxdum(3))/REAL(spar%nr2s,kind=real_8)
@@ -1633,7 +1634,8 @@ CONTAINS
     di=(epot2%boxdum(2)-epot2%boxdum(1))/REAL(spar%nr1s,kind=real_8)
     ! ..   
     gfac=parm%omega/REAL(spar%nr1s*spar%nr2s*spar%nr3s,kind=real_8)
-    ikr1 = MOD(parm%nr1+1,2)
+    IKR1 = fpar%kr1 - parm%nr1
+    !ikr1 = MOD(parm%nr1+1,2)
     ! ..
     DO inr=1,nmm
        DO ndim=1,3
