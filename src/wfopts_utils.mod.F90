@@ -141,7 +141,7 @@ CONTAINS
           nvpp = MAX (nvpp, nkpt%ngwk)
        ELSE IF (cntl%diis) THEN
           npme = MAX (npme, (nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)
-          ngde = MAX (ngde, ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt))
+          ngde = MAX (ngde, ((nkpt%ngwk*nstate+8)*cnti%mdiis*nkpt%nkpnt)/4)
           nvpp = MAX (nvpp, nkpt%ngwk)
        ELSE IF (cntl%pcg) THEN
           npme = MAX (npme, nkpt%ngwk*nstate*nkpt%nkpnt)
