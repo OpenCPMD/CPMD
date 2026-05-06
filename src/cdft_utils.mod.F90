@@ -15,6 +15,7 @@ MODULE cdft_utils
                                              pi
   USE coor,                            ONLY: tau0
   USE cppt,                            ONLY: nzh
+  USE loadpa_utils,                    ONLY: leadim
   USE elct,                            ONLY: crge
   USE ener,                            ONLY: ener_com
   USE error_handling,                  ONLY: stopgm
@@ -893,7 +894,7 @@ CONTAINS
 
     COMPLEX(real_8), ALLOCATABLE             :: w2(:), wtemp(:)
     INTEGER                                  :: i, ierr, il, ip, ipp, j, k, &
-                                                ml, zslice
+                                                ml, mlorg, zslice
     REAL(real_8)                             :: da1(3,3), ws
     REAL(real_8), ALLOCATABLE                :: wbuff(:), wfull(:,:,:)
 
@@ -962,8 +963,8 @@ CONTAINS
           IF (paral%parent)THEN
              DO ipp=1,parai%nproc
                 ip=parap%pgroup(ipp)
-                ml=parap%sparm(5,ip)
-                ml=ml+MOD(ml+1,2)
+                mlorg=parap%sparm(5,ip)
+                CALL leadim(nr1=mlorg,kr1=ml)
                 !msglen=(ml*kr2s*kr3s)*8
                 IF (ip.NE.parai%me) THEN
                    CALL mp_recv(wbuff,ml*fpar%kr2s*fpar%kr3s,ip,ip,parai%allgrp)

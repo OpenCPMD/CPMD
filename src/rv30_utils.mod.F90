@@ -2590,6 +2590,7 @@ SUBROUTINE rd30pot(nr,irecord,nr1s0,nr2s0,nr3s0,potr)
   USE system , ONLY:fpar,spar, parap
   USE parac, ONLY : paral,parai
   USE zeroing_utils,                   ONLY: zeroing
+  USE loadpa_utils, ONLY: leadim
   IMPLICIT NONE
   INTEGER                                    :: nr, irecord, nr1s0, nr2s0, &
                                                 nr3s0
@@ -2610,9 +2611,7 @@ SUBROUTINE rd30pot(nr,irecord,nr1s0,nr2s0,nr3s0,potr)
   ! Added to avoid a bug in T3E (Thierry Deutsch 28/04/97)
   CALL zeroing(potr)!,kr1*kk)
   ! Dimensions for POT in reading file.
-  kr1s0=nr1s0+MOD(nr1s0+1,2)
-  kr2s0=nr2s0+MOD(nr2s0+1,2)
-  kr3s0=nr3s0+MOD(nr3s0+1,2)
+  CALL leadim(nr1s0,nr2s0,nr3s0,kr1s0,kr2s0,kr3s0)
   kks0=kr2s0*kr3s0
   kkmax=MAX(kks0,kk)
   ALLOCATE(pscr(kkmax),STAT=ierr)

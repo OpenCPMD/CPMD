@@ -487,7 +487,7 @@ CONTAINS
   ! ==================================================================
   SUBROUTINE leadim(nr1,nr2,nr3,kr1,kr2,kr3)
     ! ==--------------------------------------------------------------==
-    INTEGER                                  :: nr1, nr2, nr3, kr1, kr2, kr3
+    INTEGER,OPTIONAL                           :: nr1, nr2, nr3, kr1, kr2, kr3
 
 ! ==--------------------------------------------------------------==
 ! to align things properly for the fft we need that
@@ -497,13 +497,13 @@ CONTAINS
 ! instead off that
     !TK kr[123]=nr[123] seems to be much faster on Intel architectures...
 #ifdef _INTEL_MKL
-    kr1=nr1
-    kr2=nr2
-    kr3=nr3
+    IF(PRESENT(kr1))kr1=nr1
+    IF(PRESENT(kr2))kr2=nr2
+    IF(PRESENT(kr3))kr3=nr3
 #else
-    kr1=nr1+MOD(nr1+1,2)
-    kr2=nr2+MOD(nr2+1,2)
-    kr3=nr3+MOD(nr3+1,2)
+    IF(PRESENT(kr1))kr1=nr1+MOD(nr1+1,2)
+    IF(PRESENT(kr2))kr2=nr2+MOD(nr2+1,2)
+    IF(PRESENT(kr3))kr3=nr3+MOD(nr3+1,2)
 #endif
     ! ==--------------------------------------------------------------==
     RETURN
