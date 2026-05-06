@@ -90,6 +90,7 @@ CONTAINS
     REAL(real_8)                             :: alat_dummy,avec(3,3),bvec(3,3)                                
     REAL(real_8), ALLOCATABLE, SAVE          :: coorat(:,:),forces_d3(:,:)
     REAL(real_8), SAVE                       :: stress_d3(3,3), evdw_save
+    LOGICAL, SAVE                            :: first
     CHARACTER(*),PARAMETER                   :: procedureN='VDW_GRIMME'
 !     ==--------------------------------------------------------------==
     CALL tiset(procedureN,ISUB)
@@ -101,8 +102,11 @@ CONTAINS
        ALLOCATE(forces_d3(3,ions1%nat),STAT=ierr)
        IF (ierr /= 0) CALL stopgm(procedureN, 'Cannot allocate forces_d3',& 
             __LINE__,__FILE__)
-       coorat=0._real_8
-       forces_d3=0._real_8
+       coorat=-HUGE(0._real_8)
+       forces_d3=-HUGE(0._real_8)
+       stress_d3=-HUGE(0._real_8)
+       evdw_save=-HUGE(0._real_8)
+       first=.TRUE.
     END IF
 
     ALAT_DUMMY=1.d0
@@ -113,7 +117,9 @@ CONTAINS
     BVEC(1:3,2)=gvec_com%B2(1:3)/parm%ALAT
     BVEC(1:3,3)=gvec_com%B3(1:3)/parm%ALAT
 !
-    IF(.NOT.ANY(COORAT(1:3,1).EQ.TAU0(1:3,IATPT(1,1),IATPT(2,1))))THEN
+    IF(first.OR.&
+         (.NOT.ANY(COORAT(1:3,1).EQ.TAU0(1:3,IATPT(1,1),IATPT(2,1)))))THEN
+       first=.FALSE.
        new_atom_positions=1
     ELSE
        new_atom_positions=0

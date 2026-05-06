@@ -67,6 +67,7 @@ CONTAINS
         thresh, rckj_inv
     REAL(real_8),ALLOCATABLE, SAVE           :: tau0_save(:,:,:)
     REAL(real_8),SAVE                        :: esr_save
+    LOGICAL,SAVE                             :: first
 #ifdef _USE_SCRATCHLIBRARY
     REAL(real_8),POINTER __CONTIGUOUS        :: ftmp(:,:,:,:),rxlm(:,:,:),erre2(:,:,:),&
                                                 ht(:,:)
@@ -91,11 +92,15 @@ CONTAINS
 
     IF(.NOT.ALLOCATED(tau0_save))THEN
        ALLOCATE(tau0_save(3,maxsys%nax,maxsys%nsx),STAT=ierr)
-       tau0_save=0._real_8
+       tau0_save=-HUGE(0._real_8)
+       esr_save=-HUGE(0._real_8)
+       first=.TRUE.
     END IF
-    IF(.NOT.ANY(tau0_save(1:3,1,1).EQ.tau0(1:3,1,1)))THEN
+    IF(first.OR.&
+         (.NOT.ANY(tau0_save(1:3,1,1).EQ.tau0(1:3,1,1))))THEN
+       first=.FALSE.
        new_atom_positions=1
-       !$omp parallel do private(ia,is) reduction(+:new_atom_positions)
+       !$omp parallel do private(ia,is)
        DO is=1,ions1%nsp
           DO ia=1,ions0%na(is)
              tau0_save(1:3,ia,is)=tau0(1:3,ia,is)
