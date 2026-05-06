@@ -67,7 +67,7 @@ CONTAINS
     REAL(real_8)                               :: de1, e1thr, g1, g2, raim, &
          ratio, ration
     REAL(real_8), SAVE                         :: diism(maxdis,maxdis), eold, &
-         gimax(maxdis), &
+         gamma, gimax(maxdis), &
          gnorm(maxdis), grmax(maxdis)
     REAL(real_8),POINTER __CONTIGUOUS          :: c0_r(:,:,:), c2_r(:,:,:),&
          pme_r(:,:,:,:),gde_r(:,:,:,:)
@@ -79,6 +79,7 @@ CONTAINS
        ! Reinitialization of cntl%diis procedure
        istate=0
        eold=9999._real_8
+       gamma=0._real_8
        reinit=.FALSE.
        nocc=0
        ndiis=0
@@ -99,6 +100,17 @@ CONTAINS
        de1=ener_com%etot-eold
        einc1=.FALSE.
        IF (de1.GT.e1thr) einc1=.TRUE.
+       IF (.NOT. cntl%tfrho_upw) THEN
+          ! Trust region parameter
+          IF (geq0_local) THEN
+             IF (de1.GT.0.0_real_8) THEN
+                gamma=gamma+1._real_8/vpp(1)
+             ELSE
+                gamma=0.75_real_8*gamma
+             ENDIF
+          ENDIF
+       ENDIF
+       CALL mp_bcast(gamma,parai%igeq0,parai%cp_grp)
        reinit=.FALSE.
        IF (ndiis.GT.cnti%nreset.AND.cnti%nreset.GE.3) THEN
           ! ..restart if there was no progress over the last steps 
@@ -114,6 +126,7 @@ CONTAINS
                WRITE(6,'(A)') ' ODIIS| Insufficient progress; reset! '
           IF (reinit) THEN
              istate=0
+             gamma=0.0_real_8
              ! REINIT=.FALSE. ! we need this info in UPDWF, reset there
           ENDIF
        ENDIF
@@ -127,7 +140,7 @@ CONTAINS
     CALL reshape_inplace(pme,(/2,ncpw%ngw,nstate,cnti%mdiis*nkpt%nkpnt/),pme_r)
     CALL reshape_inplace(gde,(/2,ncpw%ngw,nstate,cnti%mdiis*nkpt%nkpnt/),gde_r)
 
-    call odiis_work(svar2,ncpw%ngw,ngw_local,nowv,nocc,nstate,nsize,ibeg_c0,iend_c0,geq0_local,c0_r,c2_r,gde_r,pme_r,vpp,diism)
+    call odiis_work(svar2,gamma,ncpw%ngw,ngw_local,nowv,nocc,nstate,nsize,ibeg_c0,iend_c0,geq0_local,c0_r,c2_r,gde_r,pme_r,vpp,diism)
     eold=ener_com%etot
     ! >>>>>>> cp_grp trick
     CALL tiset(proceduren//'_grps_b',isub3)
@@ -144,12 +157,12 @@ CONTAINS
   END SUBROUTINE odiis
   
   ! ==================================================================
-  SUBROUTINE odiis_work(svar2,ngw,ngw_local,nowv,nocc,nstate,nsize,&
+  SUBROUTINE odiis_work(svar2,gamma,ngw,ngw_local,nowv,nocc,nstate,nsize,&
        ibeg_c0,iend_c0,geq0_local,c0_r,c2_r,gde_r,pme_r,vpp,diism)
     IMPLICIT NONE
     INTEGER,INTENT(IN)                 :: ngw,ngw_local,nowv, ibeg_c0,&
                                           iend_c0, nocc, nstate,nsize
-    REAL(real_8),INTENT(IN)            :: svar2
+    REAL(real_8),INTENT(IN)            :: gamma, svar2
     REAL(real_8),INTENT(INOUT)         :: c0_r(2,ngw,*), c2_r(2,ngw,*),&
                                           pme_r(2,ngw,nstate,*), &
                                           gde_r(2,ngw,nstate,*), diism(:,:),&
@@ -159,6 +172,13 @@ CONTAINS
     REAL(real_8)                       :: ff,temp,bc(maxdis+1,maxdis+1),&
                                           vc(maxdis+1)
 
+    IF (gamma.NE.0.0_real_8) THEN
+       !$omp parallel do private(ig)
+       DO ig=ibeg_c0,iend_c0
+          vpp(ig)=vpp(ig)/(1.0_real_8+vpp(ig)*gamma)
+       ENDDO
+       !$omp end parallel do
+    ENDIF
     ! Update cntl%diis buffers
 
     !$omp parallel do &
@@ -275,6 +295,13 @@ CONTAINS
        nempty=nstate-nocc
        CALL daxpy(2*ngw_local*nempty,svar2,c2_r(1,1,nocc+1),1,&
             c0_r(1,1,nocc+1),1)
+    ENDIF
+    IF (gamma.NE.0.0_real_8) THEN
+       !$omp parallel do private(ig)
+       DO ig=ibeg_c0,iend_c0
+          vpp(ig)=1._real_8/(1.0_real_8/vpp(ig)-gamma)
+       ENDDO
+       !$omp end parallel do
     ENDIF
 
   END SUBROUTINE odiis_work
