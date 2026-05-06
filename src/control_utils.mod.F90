@@ -3691,7 +3691,7 @@ CONTAINS
                 IF ( keyword_contains(line,'WRITE8' )) cnti%wcompb=8
              ELSEIF ( keyword_contains(line,'MEMORY') ) THEN
                 ! Use small memory version of Vanderbilt code
-                IF ( keyword_contains(line,'SMALL')) cntl%bigmem=.FALSE.
+                IF ( keyword_contains(line,'SMALL')) cntl%bigmem=.TRUE.
                 IF ( keyword_contains(line,'BIG')) cntl%bigmem=.TRUE.
                 ! Check memory frequently
                 IF ( keyword_contains(line,'CHECK')) cntl%tmemchk=.TRUE.

@@ -261,11 +261,7 @@ CONTAINS
     cntl%timing=.TRUE.
     cntl%rcomp=.FALSE.
     cntl%wcomp=.FALSE.
-#if defined (__NEC) 
     cntl%bigmem=.TRUE.
-#else
-    cntl%bigmem=.FALSE.
-#endif
     cntl%fcnstr=.FALSE.
     cntl%krwfn=.FALSE.
     cntl%posver=.FALSE.
