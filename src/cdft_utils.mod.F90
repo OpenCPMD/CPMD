@@ -970,7 +970,7 @@ CONTAINS
                    DO i=1,parap%sparm(5,ip)
                       DO j=1,fpar%kr2s
                          DO k=1,fpar%kr3s
-                            wfull(parap%nrxpl(ip,1)+i,j,k)&
+                            wfull(parap%nrxpl(ip,1)+i-1,j,k)&
                                  =wbuff(i+(j-1)*ml+(k-1)*ml*fpar%kr2)
                          ENDDO
                       ENDDO
