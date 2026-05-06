@@ -591,7 +591,7 @@ CONTAINS
                    fac=cii
                 END IF
                 !$omp parallel do private(IG)
-                DO  ig=1,ncpw%ngw
+                DO  ig=1,nkpt%ngwk
                    twnl_nghtol(ig,iv,is,ik)=twnl(ig,iv,is,ik)*fac
                 END DO
                 ci=(0.0_real_8,-1.0_real_8)**(nghtol(iv,is)+1)
