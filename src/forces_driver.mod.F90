@@ -194,7 +194,7 @@ CONTAINS
           END IF
        END IF
     END IF
-    IF(case4)THEN
+    IF(case4.OR.case2)THEN
        IF (lspin2%tlse) CALL stopgm('NOFORCE','NO LSE ALLOWED HERE',&
             __LINE__,__FILE__)
        IF (imagp.EQ.2) CALL stopgm('NOFORCE','K-POINT NOT IMPLEMENTED',&
@@ -537,7 +537,7 @@ CONTAINS
              ENDIF
           ENDIF
        ENDIF
-       IF(cntl%nonort.AND.pslo_com%tivan.AND.cntl%tmdcp)THEN
+       IF(case4.or.case2) THEN
           ! ==--------------------------------------------------------------==
           ! ==   ROTATE ELECTRONIC FORCE BACK INTO NONORTHOGONAL BASIS      ==
           ! ==--------------------------------------------------------------==
