@@ -562,8 +562,9 @@ CONTAINS
       PARAMETER                              :: shln = (/'S','P','D','F','G'/)
     INTEGER, PARAMETER                       :: ifnum = 21 
 
-    CHARACTER(len=120)                       :: ecplib
-    CHARACTER(len=200)                       :: filen, fnames
+    CHARACTER(len=1024)                      :: ecplib
+    CHARACTER(len=1104)                      :: filen
+    CHARACTER(len=200)                       :: fnames
     CHARACTER(len=80)                        :: line
     INTEGER :: i, ia, iaa, ias, iatom, ie, ieold, ierr, iform, il, ins, iout, &
       ir, is, iunit, j, l, lenecp, lgmax, lsold(m1shlx), meshat2, nalp(4), &

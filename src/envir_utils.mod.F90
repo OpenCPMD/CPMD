@@ -13,6 +13,7 @@ MODULE envir_utils
                                              m_getpid,&
                                              m_getuid,&
                                              m_hostname
+  USE system,                          ONLY: cnts
 
   IMPLICIT NONE
 
@@ -36,7 +37,13 @@ CONTAINS
     CALL m_hostname(hname)
     CALL m_getcwd(curdir)
     tjlimit=0._real_8
-    CALL m_getenv('TMPDIR',tmpdir)
+    ! cnts%tmpdir is the host's scratch directory. Blank falls through
+    ! to TMPDIR, then the working directory.
+    IF (LEN_TRIM(cnts%tmpdir).GT.0) THEN
+       tmpdir=TRIM(cnts%tmpdir)
+    ELSE
+       CALL m_getenv('TMPDIR',tmpdir)
+    ENDIF
     IF (tmpdir(1:1).EQ.' ') tmpdir=curdir
     ! ==--------------------------------------------------------------==
     RETURN

@@ -58,8 +58,8 @@ MODULE control_def_utils
                                              bond,&
                                              dihedral
   USE system,                          ONLY: &
-       acc, cnti, cntl, cntr, cp_trace, group, locpot2, nacc, nacx, nssel, &
-       restf
+       acc, cnti, cntl, cntr, cnts, cp_trace, group, locpot2, nacc, nacx, &
+       nssel, restf
   USE time,                            ONLY: tname
   USE vdwcmod,                         ONLY: vdwl
   USE wann,                            ONLY: wan05,&
@@ -429,7 +429,13 @@ CONTAINS
     cp_cuda_env%blas_n_devices_per_task = 1
     ! ==--------------------------------------------------------------==
     fo_info%fpath=' '
-    CALL m_getenv('CPMD_FILEPATH',fo_info%fpath)
+    ! cnts%filepath is the host's directory. Blank falls through to
+    ! CPMD_FILEPATH, then the working directory.
+    IF (LEN_TRIM(cnts%filepath).GT.0) THEN
+       fo_info%fpath=TRIM(cnts%filepath)
+    ELSE
+       CALL m_getenv('CPMD_FILEPATH',fo_info%fpath)
+    ENDIF
     IF ((INDEX(fo_info%fpath,' ')-1).EQ.0) fo_info%fpath='./'
     ! ==--------------------------------------------------------------==
     cnti%nomore=10000

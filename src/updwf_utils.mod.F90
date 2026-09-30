@@ -95,59 +95,65 @@ CONTAINS
           ! DO NOTHING
        ELSE
           ! EHR]
-          IF (cntl%diis) THEN
-             IF (ropt_mod%sdiis) THEN
-                CALL hesele(dt2bye,vpp)
-             ENDIF
-             CALL odiis(c0,c2,vpp,nstate,pme,gde,dt2bye,ropt_mod%sdiis)
-             IF (ropt_mod%sdiis) THEN
-                iteropt%ndisrs=iteropt%ndisrs+1
-                iteropt%ndistp=0
-                ropt_mod%sdiis=.FALSE.
-             ELSE
-                iteropt%ndistp=iteropt%ndistp+1
-             ENDIF
-          ELSE IF (cntl%pcg) THEN
-             IF (ropt_mod%spcg) THEN
-                CALL hesele(dt2bye,vpp)
-             ENDIF
-             CALL pcgrad(c0,c2,sc0,vpp,pme,&
-                  rhoe,psi,tau0,nstate,ropt_mod%spcg)
-             ropt_mod%spcg=.FALSE.
-          ELSE IF (cntl%tsde) THEN
-             IF (cntl%prec) THEN
-                CALL hesele(dt2bye,vpp)
-                pf1=dt2_elec*cntr%hthrs/cntr%emass
-                DO i=1,nstate
-                   DO ig=1,ncpw%ngw
-                      c0(ig,i)=c0(ig,i)+vpp(ig)*pf1*c2(ig,i)
-                   ENDDO
-                ENDDO
-             ELSE
-                CALL daxpy(2*nstate*ncpw%ngw,dt2bye,c2,1,c0,1)
-             ENDIF
-             IF (cnti%iproj.LE.1) THEN
-                gemax=2.0_real_8*cntr%tolog
-             ENDIF
-          ENDIF
+          ! Steepest descent with iproj <= 1 never converges on gemax.
+          IF (.NOT.cntl%diis .AND. .NOT.cntl%pcg .AND. cntl%tsde .AND. &
+               cnti%iproj.LE.1) gemax=2.0_real_8*cntr%tolog
           IF (.NOT.soft_com%exsoft) CALL testex(soft_com%exsoft)
           CALL tol_chk_cnvgrad(ropt_mod%convwf,soft_com%exsoft,gemax)
+          ! A converged c0 is the state used by forcedr for energy and forces.
+          ! Optimizer updates are only applied to unconverged orbitals.
+          IF (.NOT.ropt_mod%convwf) THEN
+             IF (cntl%diis) THEN
+                IF (ropt_mod%sdiis) THEN
+                   CALL hesele(dt2bye,vpp)
+                ENDIF
+                CALL odiis(c0,c2,vpp,nstate,pme,gde,dt2bye,ropt_mod%sdiis)
+                IF (ropt_mod%sdiis) THEN
+                   iteropt%ndisrs=iteropt%ndisrs+1
+                   iteropt%ndistp=0
+                   ropt_mod%sdiis=.FALSE.
+                ELSE
+                   iteropt%ndistp=iteropt%ndistp+1
+                ENDIF
+             ELSE IF (cntl%pcg) THEN
+                IF (ropt_mod%spcg) THEN
+                   CALL hesele(dt2bye,vpp)
+                ENDIF
+                CALL pcgrad(c0,c2,sc0,vpp,pme,&
+                     rhoe,psi,tau0,nstate,ropt_mod%spcg)
+                ropt_mod%spcg=.FALSE.
+             ELSE IF (cntl%tsde) THEN
+                IF (cntl%prec) THEN
+                   CALL hesele(dt2bye,vpp)
+                   pf1=dt2_elec*cntr%hthrs/cntr%emass
+                   DO i=1,nstate
+                      DO ig=1,ncpw%ngw
+                         c0(ig,i)=c0(ig,i)+vpp(ig)*pf1*c2(ig,i)
+                      ENDDO
+                   ENDDO
+                ELSE
+                   CALL daxpy(2*nstate*ncpw%ngw,dt2bye,c2,1,c0,1)
+                ENDIF
+             ENDIF
+          ENDIF
           ! EHR[
        ENDIF
        ! EHR]
        ! ==--------------------------------------------------------------==
        ! ==  ORTHOGONALIZATION                                           ==
        ! ==--------------------------------------------------------------==
-       IF (cntl%nonort) THEN
-          IF (geq0) THEN
-             CALL zclean(c0,nstate,ncpw%ngw)
+       IF (.NOT.ropt_mod%convwf) THEN
+          IF (cntl%nonort) THEN
+             IF (geq0) THEN
+                CALL zclean(c0,nstate,ncpw%ngw)
+             ENDIF
+          ELSE
+             CALL preortho(c0,nstate)
+             IF (pslo_com%tivan) THEN
+                CALL rnlsm(c0,nstate,1,1,.FALSE.)
+             ENDIF
+             CALL ortho(nstate,c0,c2)
           ENDIF
-       ELSE
-          CALL preortho(c0,nstate)
-          IF (pslo_com%tivan) THEN
-             CALL rnlsm(c0,nstate,1,1,.FALSE.)
-          ENDIF
-          CALL ortho(nstate,c0,c2)
        ENDIF
     ENDIF
     ! ==--------------------------------------------------------------==

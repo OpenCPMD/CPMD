@@ -106,9 +106,124 @@ MODULE rwfopt_utils
 
   PUBLIC :: rwfopt
   PUBLIC :: give_scr_rwfopt
+  ! State for a program that calls rwfopt repeatedly in one process.
+  ! cntl%embed_need_forces defaults to .FALSE., cntl%embed_warm_orbitals
+  ! defaults to .FALSE., and cntl%embed_write_files defaults to .TRUE.
+  ! Those defaults are the cpmd.x behaviour, because cpmd.x never calls
+  ! the setters. The three fields are on cntl. control_def leaves them.
+  !   embed_need_forces: compute the ionic forces and leave fion allocated
+  !     after a converged rwfopt. An unconverged call leaves fion zero.
+  !     The next rwfopt frees a surviving fion.
+  !   embed_warm_orbitals: start the next rwfopt from orbitals saved after
+  !     convwf was set, instead of the generated guess. The first SCF
+  !     iteration builds the density from those orbitals.
+  !     embed_set_warm_orbitals(.FALSE.) frees the saved orbitals, as does
+  !     embed_reset_warm_orbitals. Call that after a caught stopgm or when
+  !     the system changes.
+  !   embed_write_files: .FALSE. skips the zhwwf RESTART writes and the
+  !     geofile GEOMETRY writes in rwfopt and in initrun. wrgeof still
+  !     prints coordinates.
+  ! The input name, the pseudopotential directory, the filepath, TMPDIR
+  ! and the Earth Simulator log path are cnts strings. Blank keeps the
+  ! command line and the environment.
+  PUBLIC :: embed_set_warm_orbitals
+  PUBLIC :: embed_set_need_forces
+  PUBLIC :: embed_reset_warm_orbitals
+  PUBLIC :: embed_set_write_files
+  LOGICAL, SAVE :: embed_have_orbitals = .FALSE.
+  COMPLEX(real_8), ALLOCATABLE, SAVE :: embed_c0_store(:,:,:)
+  INTEGER, SAVE :: embed_store_s1 = 0, embed_store_s2 = 0, embed_store_s3 = 0
   !public :: lseprof
 
 CONTAINS
+
+  ! ==================================================================
+  SUBROUTINE embed_set_warm_orbitals(flag)
+    ! ==--------------------------------------------------------------==
+    LOGICAL, INTENT(IN) :: flag
+    IF (flag) THEN
+       cntl%embed_warm_orbitals=.TRUE.
+    ELSE
+       CALL embed_reset_warm_orbitals
+    ENDIF
+  END SUBROUTINE embed_set_warm_orbitals
+
+  ! ==================================================================
+  SUBROUTINE embed_set_need_forces(flag)
+    ! ==--------------------------------------------------------------==
+    LOGICAL, INTENT(IN) :: flag
+    cntl%embed_need_forces = flag
+  END SUBROUTINE embed_set_need_forces
+
+  ! ==================================================================
+  SUBROUTINE embed_set_write_files(flag)
+    ! ==--------------------------------------------------------------==
+    LOGICAL, INTENT(IN) :: flag
+    cntl%embed_write_files = flag
+  END SUBROUTINE embed_set_write_files
+
+  ! ==================================================================
+  SUBROUTINE embed_reset_warm_orbitals()
+    ! ==--------------------------------------------------------------==
+    CHARACTER(*), PARAMETER :: procedureN = 'embed_reset_warm_orbitals'
+    INTEGER :: ierr
+
+    cntl%embed_warm_orbitals = .FALSE.
+    embed_have_orbitals = .FALSE.
+    IF (ALLOCATED(embed_c0_store)) THEN
+      DEALLOCATE(embed_c0_store,STAT=ierr)
+      IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+           __LINE__,__FILE__)
+    ENDIF
+    embed_store_s1 = 0
+    embed_store_s2 = 0
+    embed_store_s3 = 0
+  END SUBROUTINE embed_reset_warm_orbitals
+
+  ! ==================================================================
+  SUBROUTINE embed_save_orbitals(c0)
+    ! ==--------------------------------------------------------------==
+    COMPLEX(real_8), INTENT(IN) :: c0(:,:,:)
+    CHARACTER(*), PARAMETER :: procedureN = 'embed_save_orbitals'
+    INTEGER :: ierr, s1, s2, s3
+    s1 = SIZE(c0, 1); s2 = SIZE(c0, 2); s3 = SIZE(c0, 3)
+    IF (ALLOCATED(embed_c0_store)) THEN
+      IF (embed_store_s1 /= s1 .OR. embed_store_s2 /= s2 .OR. embed_store_s3 /= s3) THEN
+        DEALLOCATE(embed_c0_store,STAT=ierr)
+        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+             __LINE__,__FILE__)
+      ENDIF
+    ENDIF
+    IF (.NOT. ALLOCATED(embed_c0_store)) THEN
+      ALLOCATE(embed_c0_store(s1, s2, s3), STAT=ierr)
+      IF (ierr /= 0) THEN
+        embed_have_orbitals = .FALSE.
+        CALL stopgm('embed_save_orbitals', 'allocation problem', &
+             __LINE__, __FILE__)
+        RETURN
+      END IF
+      embed_store_s1 = s1; embed_store_s2 = s2; embed_store_s3 = s3
+    END IF
+    embed_c0_store = c0
+    embed_have_orbitals = .TRUE.
+  END SUBROUTINE embed_save_orbitals
+
+  ! ==================================================================
+  SUBROUTINE embed_restore_orbitals(c0)
+    ! ==--------------------------------------------------------------==
+    COMPLEX(real_8), INTENT(INOUT) :: c0(:,:,:)
+    IF (.NOT. embed_have_orbitals .OR. .NOT. ALLOCATED(embed_c0_store)) RETURN
+    IF (SIZE(c0, 1) /= embed_store_s1 .OR. SIZE(c0, 2) /= embed_store_s2 .OR. &
+        SIZE(c0, 3) /= embed_store_s3) THEN
+      ! The saved orbitals belong to another cutoff, cell or state count.
+      CALL stopgm('embed_restore_orbitals', &
+           'saved orbitals do not match c0; call embed_reset_warm_orbitals', &
+           __LINE__, __FILE__)
+      RETURN
+    END IF
+    c0 = embed_c0_store
+  END SUBROUTINE embed_restore_orbitals
+
 
   ! ==================================================================
   SUBROUTINE rwfopt(c0,c2,sc0,pme,gde,vpp,eigv)
@@ -180,7 +295,7 @@ CONTAINS
     IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
          __LINE__,__FILE__)
     ! ==--------------------------------------------------------------==
-    tfor = (cprint%iprint(iprint_force).EQ.1)
+    tfor = (cprint%iprint(iprint_force).EQ.1) .OR. cntl%embed_need_forces
     IF (lqmmm%qmmm) THEN
        IF (textfld) THEN
           ALLOCATE(extf(fpar%kr1*fpar%kr2s*fpar%kr3s),STAT=ierr)
@@ -196,6 +311,8 @@ CONTAINS
        ALLOCATE(taup(3,maxsys%nax,maxsys%nsx),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
+       ! fion survives the previous call when cntl%embed_need_forces was set.
+       IF (ALLOCATED(fion)) DEALLOCATE(fion)
        ALLOCATE(fion(3,maxsys%nax,maxsys%nsx),STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'allocation problem',&
             __LINE__,__FILE__)
@@ -305,7 +422,10 @@ CONTAINS
        CALL syscomb(c0,c2,sccomm%n_s0,sccomm%n_s1,sccomm%n_s0up,sccomm%n_s1up)
        GOTO 150
     ENDIF
+    ! initrun initializes iteration state and scratch arrays for every SCF.
+    ! Warm mode replaces only the generated starting orbitals with saved c0.
     CALL initrun(irec,c0,c2,sc0,rhoe,psi,eigv)
+    IF (cntl%embed_warm_orbitals .AND. embed_have_orbitals) CALL embed_restore_orbitals(c0)
     IF (cntl%tksham)THEN
        CALL write_ksham(c0,c2,sc0,rhoe,psi,eigv)
        GOTO 150
@@ -460,7 +580,7 @@ CONTAINS
                         infi.EQ.cnti%nomore_iter.OR.ropt_mod%convwf).AND.MOD(cdfti,store1%isctore).EQ.0)&
                         THEN
                       CALL mm_dim(mm_go_mm,statusdummy)
-                      CALL zhwwf(2,irec,c0,c2,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
+                      IF (cntl%embed_write_files) CALL zhwwf(2,irec,c0,c2,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
                       CALL mm_dim(mm_revert,statusdummy)
                    ENDIF
                    IF (ropt_mod%convwf) THEN
@@ -476,7 +596,7 @@ CONTAINS
                 IF (convtest) THEN
                    IF (.NOT.cntl%bsymm.AND.MOD(cdfti,store1%isctore).NE.0)THEN
                       CALL mm_dim(mm_go_mm,statusdummy)
-                      CALL zhwwf(2,irec,c0,c2,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
+                      IF (cntl%embed_write_files) CALL zhwwf(2,irec,c0,c2,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
                       CALL mm_dim(mm_revert,statusdummy)
                    ENDIF
                    ropt_mod%convwf=.TRUE.
@@ -551,7 +671,7 @@ CONTAINS
                 IF (.NOT.cntl%bsymm.AND.&
                      (MOD(infi,store1%istore).EQ.0.OR.infi.EQ.cnti%nomore_iter.OR.ropt_mod%convwf))THEN
                    CALL mm_dim(mm_go_mm,statusdummy)
-                   CALL zhwwf(2,irec,c0,c2,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
+                   IF (cntl%embed_write_files) CALL zhwwf(2,irec,c0,c2,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
                    CALL mm_dim(mm_revert,statusdummy)
                 ENDIF
                 IF (ropt_mod%convwf) THEN
@@ -863,7 +983,7 @@ CONTAINS
     IF (cntl%tpspec) THEN
        IF (rout1%rhoout) CALL rhopri(c0,tau0,rhoe,psi(:,1),crge%n,nkpt%nkpnt)
        CALL mm_dim(mm_go_mm,statusdummy)
-       CALL zhwwf(2,irec,c0,c2,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
+       IF (cntl%embed_write_files) CALL zhwwf(2,irec,c0,c2,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
     ENDIF
     ! EHR]
     !
@@ -882,7 +1002,7 @@ CONTAINS
        CALL prcplngs(cplion,cplcfg,.TRUE.)
        IF (tfor.AND.tcplfd.OR.tcpllr) THEN
           IF (tcplfd) irec(irec_phes) = 1
-          CALL zhwwf(2,irec,c0,cf_4d,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
+          IF (cntl%embed_write_files) CALL zhwwf(2,irec,c0,cf_4d,crge%n,eigv,tau0,velp,taup,iteropt%nfi)
        ENDIF
        DEALLOCATE(cplion,STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
@@ -913,16 +1033,23 @@ CONTAINS
     IF (paral%parent) THEN
        CALL prmem('    RWFOPT')
        IF (.NOT.cntl%bsymm.OR.ropt_mod%convwf) CALL finalp(tau0,fion,tau0,eigv)
-       CALL geofile(tau0,fion,'WRITE')
+       IF (cntl%embed_write_files) CALL geofile(tau0,fion,'WRITE')
     ENDIF
+    ! Every rank keeps its own slice of c0 for the next warm start. Only
+    ! converged orbitals are kept, so a call that stopped or did not converge
+    ! leaves the previous start in place.
+    IF (cntl%embed_warm_orbitals .AND. ropt_mod%convwf) CALL embed_save_orbitals(c0)
     ! CB: TAUP,FION handled by BS_WFO
     IF (.NOT.cntl%bsymm) THEN
        DEALLOCATE(taup,STAT=ierr)
        IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
             __LINE__,__FILE__)
-       DEALLOCATE(fion,STAT=ierr)
-       IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
-            __LINE__,__FILE__)
+       ! A caller that asked for forces reads fion after rwfopt returns.
+       IF (.NOT.cntl%embed_need_forces) THEN
+          DEALLOCATE(fion,STAT=ierr)
+          IF(ierr/=0) CALL stopgm(procedureN,'deallocation problem',&
+               __LINE__,__FILE__)
+       ENDIF
     ENDIF
     IF (cntl%tdiag) THEN
        DEALLOCATE(rin0,STAT=ierr)

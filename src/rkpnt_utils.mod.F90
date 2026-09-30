@@ -22,8 +22,7 @@ MODULE rkpnt_utils
   USE kpts,                            ONLY: kpts_com,&
                                              tkpts,&
                                              wvk0
-  USE machine,                         ONLY: m_datum,&
-                                             m_getarg
+  USE machine,                         ONLY: m_datum
   USE mp_interface,                    ONLY: mp_sum
   USE parac,                           ONLY: parai,&
                                              paral
@@ -37,7 +36,8 @@ MODULE rkpnt_utils
                                              ngwkps,&
                                              tsphere
   USE symm,                            ONLY: symmr
-  USE system,                          ONLY: kpbeg,&
+  USE system,                          ONLY: cnts,&
+                                             kpbeg,&
                                              ncpw,&
                                              nkpbl,&
                                              nkpt,&
@@ -235,7 +235,7 @@ CONTAINS
 
     CHARACTER(len=26)                        :: datx
     CHARACTER(len=30)                        :: fformat
-    CHARACTER(len=80)                        :: filename
+    CHARACTER(len=255)                       :: filename
     INTEGER                                  :: i, ia, ierr, ih1, ih2, ikind, &
                                                 iout, is, istriz, isum, iu1, &
                                                 iu2, l, nat0, nhash, ntvect
@@ -277,7 +277,8 @@ CONTAINS
          WRITE(iout,&
          '(" CPMD JOB - (",A,") PID= ",I7," ON ",A,10(" "))')&
          user(iu1:iu2), my_pid, hname(ih1:ih2)
-    CALL m_getarg(1,filename)
+    ! An embedding host keeps its own argv; the deck CPMD read is inputfile.
+    filename = cnts%inputfile
     CALL xstring(filename,iu1,iu2)
     IF (paral%io_parent)&
          WRITE(fformat,'(A,I2,A)') '(A,T',MAX(21,45-(iu2-iu1)),',A,/)'

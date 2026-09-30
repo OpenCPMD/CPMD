@@ -4163,6 +4163,10 @@ CONTAINS
 
     INTEGER                                  :: icarg
 
+    ! A host that already named the input keeps that name. cpmd.x
+    ! leaves the string blank, so the command line is still argument 1.
+    IF (LEN_TRIM(filename).GT.0) RETURN
+
     icarg=m_iargc()
     IF (icarg<1) THEN
        IF (paral%io_parent)&

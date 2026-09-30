@@ -61,8 +61,8 @@ CONTAINS
     INTEGER, PARAMETER                       :: iunit = 21 
 
     CHARACTER(len=1)                         :: endc
-    CHARACTER(len=120)                       :: ecplib
-    CHARACTER(len=200)                       :: fnames
+    CHARACTER(len=1024)                      :: ecplib
+    CHARACTER(len=1104)                      :: fnames
     CHARACTER(len=5000)                      :: longline
     CHARACTER(len=80)                        :: line
     INTEGER                                  :: i, ia, ibc, ie, ierr, iout, &

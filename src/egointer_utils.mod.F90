@@ -91,7 +91,7 @@ MODULE egointer_utils
   USE store_types,                     ONLY: cprint,&
                                              restart1
   USE system,                          ONLY: &
-       cnti, cntl, cntr, fpar, maxsys, ncpw, nkpt, parap, parm, spar
+       cnti, cntl, cntr, cnts, fpar, maxsys, ncpw, nkpt, parap, parm, spar
   USE testex_utils,                    ONLY: testex
   USE timer,                           ONLY: tihalt,&
                                              tiset
@@ -143,6 +143,7 @@ CONTAINS
     CHARACTER(*), PARAMETER                  :: procedureN = 'INTERFACE'
 
     CHARACTER(len=80)                        :: int_filen, line
+    CHARACTER(len=255)                       :: inname
     COMPLEX(real_8), ALLOCATABLE             :: psi(:,:)
     INTEGER                                  :: i, ierr, il_psi_1d, &
                                                 il_psi_2d, il_rhoe_1d, &
@@ -314,8 +315,14 @@ CONTAINS
     ! ..Calculate the dipole moment
     ! 
     IF (cntl%proper) THEN
-       CALL m_getarg(1,line)
-       IF (paral%io_parent) OPEN(unit=5,file=line,status='OLD',err=2)
+       ! cnts%inputfile is the host's deck. cpmd.x leaves it blank and
+       ! reopens argument 1.
+       IF (LEN_TRIM(cnts%inputfile).GT.0) THEN
+          inname=TRIM(cnts%inputfile)
+       ELSE
+          CALL m_getarg(1,inname)
+       ENDIF
+       IF (paral%io_parent) OPEN(unit=5,file=inname,status='OLD',err=2)
        CALL myproppt(c0,tau0,rhoe,psi)
        IF (paral%io_parent) CLOSE(5)
     ENDIF
@@ -375,23 +382,30 @@ CONTAINS
     REAL(real_8)                             :: tau0(:,:,:)
 
     CHARACTER(len=80)                        :: line
+    CHARACTER(len=255)                       :: inname
     INTEGER                                  :: i, ierr, imdum, isp, iunit, &
                                                 nait
 
     IF (paral%parent) THEN
        iunit=5
-       imdum=m_iargc()
-       IF (imdum.LT.1) THEN
-          IF (paral%io_parent)&
-               WRITE(6,*) ' INTERFACE| NO INPUT FILE NAME SPECIFIED '
-          CALL stopgm('INTERFACE',' ',& 
-               __LINE__,__FILE__)
+       ! cnts%inputfile is the host's deck. cpmd.x leaves it blank and
+       ! reads argument 1. line stays the coordinate record.
+       IF (LEN_TRIM(cnts%inputfile).GT.0) THEN
+          inname=TRIM(cnts%inputfile)
+       ELSE
+          imdum=m_iargc()
+          IF (imdum.LT.1) THEN
+             IF (paral%io_parent)&
+                  WRITE(6,*) ' INTERFACE| NO INPUT FILE NAME SPECIFIED '
+             CALL stopgm('INTERFACE',' ',& 
+                  __LINE__,__FILE__)
+          ENDIF
+          CALL m_getarg(1,inname)
        ENDIF
-       CALL m_getarg(1,line)
        IF (paral%io_parent)&
-            WRITE(6,*) ' INTERFACE| READING NEW COORDINATES FROM FILE ',line
+            WRITE(6,*) ' INTERFACE| READING NEW COORDINATES FROM FILE ',inname
        IF (paral%io_parent)&
-            OPEN(unit=iunit,file=line,status='OLD',err=300)
+            OPEN(unit=iunit,file=inname,status='OLD',err=300)
        ! 
        ! .......read atomic coordinates
        ! 

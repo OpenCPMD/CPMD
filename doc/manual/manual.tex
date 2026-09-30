@@ -766,6 +766,60 @@ The path to the pseudopotential library can be given in different ways:
   in the current directory
 \end{itemize}
 
+\subsection{Calling the library}\label{libcpmd}
+
+\texttt{make lib} writes \texttt{libcpmd.a}.
+A program that links that archive calls the wavefunction optimiser once
+per geometry.
+The host sets the fields below on every task.
+A blank string keeps the \texttt{cpmd.x} command line or environment
+variable named with that field.
+
+\begin{itemize}
+\item \texttt{cnts\%inputfile} is the input file.
+      For \texttt{cpmd.x} this is the first command line argument.
+      The file interface reopens the same name.
+\item \texttt{cnts\%pplib} is the pseudopotential directory.
+      For \texttt{cpmd.x} this is the second command line argument, then
+      \texttt{CPMD\_PP\_LIBRARY\_PATH}, then \texttt{PP\_LIBRARY\_PATH},
+      then the working directory.
+\item \texttt{cnts\%filepath} is the directory for large files.
+      For \texttt{cpmd.x} this is \texttt{CPMD\_FILEPATH}, then the working
+      directory.
+      A \refkeyword{FILEPATH} line in the input still replaces it.
+\item \texttt{cnts\%tmpdir} is the scratch directory.
+      For \texttt{cpmd.x} this is \texttt{TMPDIR}, then the working directory.
+\item \texttt{cnts\%logfile} is the log path on the Earth Simulator.
+      For \texttt{cpmd.x} this is the third command line argument, then
+      \texttt{./cpmd.log}.
+\end{itemize}
+
+Three logical fields on \texttt{cntl} have the same scope.
+Each defaults to the \texttt{cpmd.x} behaviour.
+The subroutines assign those fields.
+
+\begin{itemize}
+\item \texttt{embed\_set\_need\_forces(.TRUE.)} sets
+      \texttt{cntl\%embed\_need\_forces}.
+      The ionic forces stay allocated when the wavefunction is converged.
+      The default is \texttt{.FALSE.}.
+\item \texttt{embed\_set\_warm\_orbitals(.TRUE.)} sets
+      \texttt{cntl\%embed\_warm\_orbitals}.
+      The next call starts from the orbitals saved after convergence.
+      The default is \texttt{.FALSE.}.
+      \texttt{embed\_set\_warm\_orbitals(.FALSE.)} and
+      \texttt{embed\_reset\_warm\_orbitals} free that copy.
+\item \texttt{embed\_set\_write\_files(.FALSE.)} sets
+      \texttt{cntl\%embed\_write\_files}.
+      The restart file and the geometry file are not written.
+      The default is \texttt{.TRUE.}.
+\end{itemize}
+
+\texttt{stopgm} calls \texttt{cpmd\_stopgm\_hook} with the integer 999.
+The hook is null until the host sets it.
+A nonzero return skips the normal stop on the tasks that entered
+\texttt{stopgm}.
+
 During the run\ cpmd.x\ creates different outputs:
 \begin{itemize}
 \item Various status messages to monitor the correct operation of the program is

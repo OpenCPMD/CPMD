@@ -47,6 +47,7 @@ MODULE recpnew_utils
                                              sgpp2
   USE special_functions,               ONLY: cp_erf
   USE system,                          ONLY: cntl,&
+                                             cnts,&
                                              lx,&
                                              maxsys,&
                                              nbrx
@@ -84,8 +85,8 @@ CONTAINS
     CHARACTER(*), PARAMETER                  :: procedureN = 'recpnew'
     INTEGER, PARAMETER                       :: iunit = 21 
 
-    CHARACTER(len=120)                       :: ecplib
-    CHARACTER(len=200)                       :: fnames
+    CHARACTER(len=1024)                      :: ecplib
+    CHARACTER(len=1104)                      :: fnames
     CHARACTER(len=80)                        :: line
     INTEGER                                  :: i, ia, ie, ierr, ii, il, &
                                                 inghcom, iostat, iout, ir, &
@@ -752,8 +753,8 @@ CONTAINS
     CHARACTER(*), PARAMETER                  :: procedureN = 'recpeam'
     INTEGER, PARAMETER                       :: iunit = 21 
 
-    CHARACTER(len=120)                       :: ecplib
-    CHARACTER(len=200)                       :: fnames
+    CHARACTER(len=1024)                      :: ecplib
+    CHARACTER(len=1104)                      :: fnames
     CHARACTER(len=80)                        :: line
     INTEGER                                  :: i, ia, ie, ierr, iout, it, &
                                                 lenecp
@@ -863,8 +864,21 @@ CONTAINS
 
     INTEGER                                  :: icarg
 
-! 
-! 
+    ! cnts%pplib is the host's pseudopotential directory. cpmd.x leaves
+    ! it blank and still reads argument 2, then the two environment
+    ! variables, then the working directory.
+    IF (LEN_TRIM(cnts%pplib).GT.0) THEN
+       ecplib=cnts%pplib
+       lenecp=LEN_TRIM(ecplib)
+       IF (ecplib(lenecp:lenecp).NE.'/') THEN
+          IF (lenecp.GE.LEN(ecplib)) CALL stopgm('GET_PPLIB',&
+               'pseudopotential directory is too long',&
+               __LINE__,__FILE__)
+          ecplib(lenecp+1:lenecp+1)='/'
+          lenecp=lenecp+1
+       ENDIF
+       RETURN
+    ENDIF
 
     icarg=m_iargc()
     IF (icarg.GT.1) THEN

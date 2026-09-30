@@ -570,7 +570,8 @@ SUBROUTINE tistopgm(file_unit)
 
   INTEGER                                    :: i
 
-  IF (tname%trace_depth.GT.0) THEN
+  ! trace_depth is HUGE(0) until tistart; there is no stack to print then.
+  IF (tname%trace_depth.GT.0 .AND. tname%trace_depth.LE.SIZE(tname%trace_names)) THEN
      WRITE(file_unit,'(A)') ' call stack:'
      DO i=tname%trace_depth,1,-1
         WRITE(file_unit,'(10X,I3,2X,A)') i,TRIM(tname%trace_names(i))

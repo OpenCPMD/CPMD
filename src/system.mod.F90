@@ -563,6 +563,11 @@ MODULE system
      LOGICAL :: thubb  = .FALSE.
      LOGICAL :: use_mts = .FALSE.
      LOGICAL :: use_scaled_hfx = .FALSE.
+     ! Host switches. control_def does not assign these, so a value set
+     ! by the host stays. cpmd.x leaves the defaults.
+     LOGICAL :: embed_write_files = .TRUE.
+     LOGICAL :: embed_need_forces = .FALSE.
+     LOGICAL :: embed_warm_orbitals = .FALSE.
   END TYPE cntl_t
   TYPE(cntl_t), SAVE, PUBLIC :: cntl
   ! ==================================================================
@@ -792,9 +797,19 @@ MODULE system
      REAL(real_8) :: gfreq = HUGE(0.0_real_8) !vw not initialized at all
   END TYPE cntr_t
   TYPE(cntr_t), SAVE, PUBLIC :: cntr
-  ! strings
+  ! Strings a host may set before startup. Blank means cpmd.x reads
+  ! the command line or the environment.
+  !   inputfile  argument 1, and the file the interface reopens
+  !   pplib      argument 2, else the two PP environment variables, else .
+  !   filepath   CPMD_FILEPATH, else ./
+  !   tmpdir     TMPDIR, else the working directory
+  !   logfile    argument 3 on the Earth Simulator, else ./cpmd.log
   TYPE, PUBLIC :: cnts_t
      CHARACTER(len=255)   :: inputfile = ''
+     CHARACTER(len=1024)  :: pplib = ''
+     CHARACTER(len=1024)  :: filepath = ''
+     CHARACTER(len=255)   :: tmpdir = ''
+     CHARACTER(len=255)   :: logfile = ''
   END TYPE cnts_t
   TYPE(cnts_t), SAVE, PUBLIC :: cnts
 

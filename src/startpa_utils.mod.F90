@@ -126,11 +126,21 @@ CONTAINS
     CALL numcpus(parai%ncpus)
     ! 
 #ifdef __ES
-    icarg=m_iargc()
-    IF (icarg.GT.2) THEN
-       CALL m_getarg(3,filename)
+    ! cnts%logfile is the host's log path. cpmd.x leaves it blank and
+    ! still reads argument 3, else ./cpmd.log.
+    IF (LEN_TRIM(cnts%logfile).GT.0) THEN
+       IF (LEN_TRIM(cnts%logfile).GT.LEN(filename)) THEN
+          CALL stopgm(procedureN,'log path is too long',&
+               __LINE__,__FILE__)
+       ENDIF
+       filename=TRIM(cnts%logfile)
     ELSE
-       filename='./cpmd.log'
+       icarg=m_iargc()
+       IF (icarg.GT.2) THEN
+          CALL m_getarg(3,filename)
+       ELSE
+          filename='./cpmd.log'
+       ENDIF
     ENDIF
     lef=LEN(TRIM(filename))
     iend=lef
